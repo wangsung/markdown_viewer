@@ -11,3 +11,5 @@ desktop.ini
 *.njsproj
 *.sln
 *.sw?
+# Project configs (Antigravity)
+.agents/
