@@ -534,6 +534,11 @@ body {
     font-style: italic;
 }
 
+/* List items, bullets, and meta tokens in CodeMirror Markdown Mode */
+.cm-variable-2, .cm-variable-3, .cm-keyword, .cm-meta {
+    color: #cbd5e1 !important; /* Bright gray */
+}
+
 /* ==========================================================================
    Right Panel: Preview & Markdown Typo
    ========================================================================== */
