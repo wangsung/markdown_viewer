@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Viewer - 독립형 에디터</title>
+    <!-- Code Highlight CSS (GitHub Theme) -->
+    <link rel="stylesheet" href="libs/github.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 상단 메뉴바 -->
+    <header class="menu-bar">
+        <div class="menu-left">
+            <span class="logo">MD Viewer</span>
+            <!-- 파일 이름 보기 뱃지 -->
+            <div class="file-badge" id="file-badge" title="현재 열려있는 파일">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <span id="current-filename">제목 없음.md</span>
+            </div>
+            <!-- 저장 버튼 추가 -->
+            <button id="btn-save" class="btn btn-secondary" title="현재 편집중인 문서를 다운로드하여 컴퓨터에 저장합니다.">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                저장
+            </button>
+            <!-- 실시간 렌더링 스위치 이동 배치 -->
+            <label class="toggle-control">
+                <input type="checkbox" id="auto-render" checked>
+                <span class="toggle-label">실시간 렌더링</span>
+            </label>
+        </div>
+
+        <!-- 보기 스타일 설정 (글꼴, 크기, 선 색상) -->
+        <div class="menu-center">
+            <div class="menu-item">
+                <label for="font-select">글꼴</label>
+                <select id="font-select">
+                    <option value="system-ui, -apple-system, sans-serif">시스템 기본</option>
+                    <option value="'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Sans-Serif (고딕)</option>
+                    <option value="Georgia, 'Times New Roman', serif">Serif (명조)</option>
+                    <option value="'Courier New', Courier, monospace">Monospace (고정폭)</option>
+                </select>
+            </div>
+
+            <div class="menu-item">
+                <label for="font-size-select">크기</label>
+                <select id="font-size-select">
+                    <option value="12px">12px</option>
+                    <option value="14px">14px</option>
+                    <option value="16px" selected>16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                    <option value="24px">24px</option>
+                </select>
+            </div>
+
+            <div class="menu-item">
+                <label for="line-color-picker">선 색상</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="line-color-picker" value="#3b82f6">
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-right">
+            <button id="btn-copy" class="btn btn-secondary" title="변환된 HTML 코드를 클립보드에 복사합니다.">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                HTML 복사
+            </button>
+            <button id="btn-debug" class="btn btn-secondary" title="키프레임 동기화 디버깅 패널을 토글합니다.">
+                ⚙️ 키프레임 디버그
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 영역 -->
+    <main class="container">
+        <!-- 좌측 패널: 에디터 -->
+        <section class="panel left" id="editor-panel">
+            <!-- 에디터 툴바 -->
+            <div class="toolbar">
+                <button type="button" class="toolbar-btn" data-markdown="bold" title="굵게 (Ctrl+B)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="italic" title="기울임 (Ctrl+I)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="20"></line><line x1="14" y1="4" x2="5" y2="20"></line></svg>
+                </button>
+                <div class="toolbar-separator"></div>
+                <button type="button" class="toolbar-btn" data-markdown="h1" title="제목 1 (Heading 1)">
+                    <strong>H1</strong>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="h2" title="제목 2 (Heading 2)">
+                    <strong>H2</strong>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="h3" title="제목 3 (Heading 3)">
+                    <strong>H3</strong>
+                </button>
+                <div class="toolbar-separator"></div>
+                <button type="button" class="toolbar-btn" data-markdown="link" title="링크 삽입">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="image" title="이미지 삽입">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="code" title="인라인 코드">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="codeblock" title="코드 블록">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"><line x1="6" y1="8" x2="10" y2="8"></line><line x1="6" y1="12" x2="14" y2="12"></line></rect></svg>
+                </button>
+                <div class="toolbar-separator"></div>
+                <button type="button" class="toolbar-btn" data-markdown="quote" title="인용구">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="ul" title="글머리 기호 목록">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><line x1="5" y1="6" x2="5.01" y2="6"></line><line x1="5" y1="12" x2="5.01" y2="12"></line><line x1="5" y1="18" x2="5.01" y2="18"></line></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="ol" title="번호 매기기 목록">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"></path></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="hr" title="가로 구분선">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <button type="button" class="toolbar-btn" data-markdown="table" title="테이블 삽입">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                </button>
+            </div>
+            
+            <!-- 에디터 텍스트 영역 -->
+            <div class="editor-container">
+                <textarea id="editor" spellcheck="false" placeholder="# 마크다운 에디터에 오신 것을 환영합니다!
+(💡 내 컴퓨터의 마크다운 파일(.md)을 이 창에 드래그 앤 드롭하여 불러올 수 있습니다.)
+
+여기에 마크다운을 작성하시면 우측 뷰포트에 실시간으로 렌더링됩니다.
+
+## 주요 기능 안내:
+1. **상단 메뉴바**: 폰트 종류, 폰트 크기, 포인트 선 색상을 지정할 수 있습니다.
+2. **구분선**: 중앙의 구분선을 마우스로 잡고 끌어 좌우 창 크기를 조절할 수 있습니다.
+3. **도구 모음 (Toolbar)**: 좌측 상단의 버튼들을 사용하여 빠르게 굵게, 기울임, 목록, 이미지, 표 등을 삽입할 수 있습니다.
+4. **오프라인 동작**: 외부 네트워크 요청이 없는 독립형 동작을 수행합니다.
+
+### 코드 강조 (Syntax Highlighting) 지원:
+```javascript
+// 자바스크립트 코드 구문 강조 확인
+function greet(user) {
+    console.log(`안녕하세요, ${user}님!`);
+}
+greet('사용자');
+```
+
+### 표(Table) 지원:
+| 항목 | 설명 | 비고 |
+| :--- | :---: | ---: |
+| 사과 | 빨간색 | 맛있는 과일 |
+| 바나나 | 노란색 | 달콤한 과일 |
+
+인용구 사용 예시:
+> 마크다운은 텍스트 기반의 마크업언어로, 가독성이 높고 작성이 편리합니다.
+
+포인트 색상 설정으로 인용구 왼쪽 선 및 표의 헤더 테두리 색상 등이 유연하게 연동됩니다. 지금 테스트해 보세요!"></textarea>
+            </div>
+        </section>
+
+        <!-- 크기 조절 구분선 -->
+        <div class="divider" id="drag-divider"></div>
+
+        <!-- 우측 패널: 프리뷰 -->
+        <section class="panel right" id="preview-panel">
+            <div class="preview-viewport">
+                <div id="preview" class="markdown-body"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 라이브러리 스크립트 파일 로드 -->
+    <script src="libs/marked.min.js"></script>
+    <script src="libs/highlight.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
