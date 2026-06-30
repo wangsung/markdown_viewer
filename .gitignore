@@ -13,3 +13,5 @@ desktop.ini
 *.sw?
 # Project configs (Antigravity)
 .agents/
+worktree_codemirror/
+
