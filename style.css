@@ -406,42 +406,132 @@ body {
     overflow: hidden;
 }
 
-textarea#editor {
+/* CodeMirror Editor Styles */
+.CodeMirror {
     width: 100%;
     height: 100%;
-    background-color: var(--bg-primary);
-    color: #e2e8f0;
-    border: none;
-    outline: none;
-    resize: none;
+    background-color: var(--bg-primary) !important;
+    color: #e2e8f0 !important;
     font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
     font-size: 15px;
     line-height: 1.65;
-    padding: 24px;
     box-sizing: border-box;
-    overflow-y: auto;
-    caret-color: var(--theme-color);
-    transition: font-family 0.15s;
 }
 
-/* Scrollbar styling for Editor (Dark) */
-textarea#editor::-webkit-scrollbar {
+.CodeMirror-lines {
+    padding: 24px !important;
+}
+
+/* Caret / Cursor */
+.CodeMirror-cursor {
+    border-left: 2px solid var(--theme-color) !important;
+}
+
+/* Gutters (Line Numbers Column) */
+.CodeMirror-gutters {
+    background-color: var(--bg-secondary) !important;
+    border-right: 1px solid var(--border-color) !important;
+}
+
+.CodeMirror-linenumber {
+    color: var(--text-inactive) !important;
+    padding: 0 6px 0 8px;
+    text-align: right;
+}
+
+/* Active Line background & Selection */
+.CodeMirror-activeline-background {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.CodeMirror-focused .CodeMirror-selected {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.CodeMirror-selected {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Scrollbar styling for CodeMirror Scroll */
+.CodeMirror-scroll::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
 
-textarea#editor::-webkit-scrollbar-track {
+.CodeMirror-scroll::-webkit-scrollbar-track {
     background: var(--bg-primary);
 }
 
-textarea#editor::-webkit-scrollbar-thumb {
+.CodeMirror-scroll::-webkit-scrollbar-thumb {
     background: var(--border-color);
     border-radius: 5px;
     border: 2px solid var(--bg-primary);
 }
 
-textarea#editor::-webkit-scrollbar-thumb:hover {
+.CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
     background: var(--text-inactive);
+}
+
+/* CodeMirror Markdown Syntax Styling (Heading, bold, italic, code, links) */
+.cm-header {
+    font-weight: 700;
+}
+
+.cm-header-1 {
+    font-size: 1.45em;
+    color: var(--theme-color) !important;
+}
+
+.cm-header-2 {
+    font-size: 1.3em;
+    color: #38bdf8 !important; /* Light blue */
+}
+
+.cm-header-3 {
+    font-size: 1.18em;
+    color: #f1f5f9 !important;
+}
+
+.cm-header-4, .cm-header-5, .cm-header-6 {
+    font-size: 1em;
+    color: var(--text-muted) !important;
+}
+
+.cm-formatting-header {
+    color: var(--text-inactive) !important;
+    font-weight: normal;
+}
+
+.cm-strong {
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.cm-em {
+    font-style: italic;
+    color: var(--text-main);
+}
+
+.cm-comment, .cm-code {
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: #f43f5e !important; /* Rose 500 */
+}
+
+.cm-link {
+    color: var(--theme-color) !important;
+    text-decoration: underline;
+}
+
+.cm-url {
+    color: var(--text-muted) !important;
+}
+
+.cm-quote {
+    color: var(--text-muted) !important;
+    font-style: italic;
 }
 
 /* ==========================================================================

@@ -11,6 +11,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // DOM Elements
     const editor = document.getElementById('editor');
+    
+    // Initialize CodeMirror v5
+    const cm = CodeMirror.fromTextArea(editor, {
+        mode: 'markdown',
+        lineNumbers: true,
+        lineWrapping: true,
+        theme: 'default',
+        viewportMargin: Infinity,
+        extraKeys: {
+            "Tab": function(cm) {
+                cm.replaceSelection("    ");
+            },
+            "Cmd-B": function(cm) {
+                insertFormatting('bold');
+            },
+            "Ctrl-B": function(cm) {
+                insertFormatting('bold');
+            },
+            "Cmd-I": function(cm) {
+                insertFormatting('italic');
+            },
+            "Ctrl-I": function(cm) {
+                insertFormatting('italic');
+            }
+        }
+    });
+
     const preview = document.getElementById('preview');
     const dragDivider = document.getElementById('drag-divider');
     const editorPanel = document.getElementById('editor-panel');
@@ -215,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Main Render Function with Line Mapping
     function renderMarkdown() {
         // Windows 개행문자(\r\n)를 Unix 개행문자(\n)로 통일하여 marked 토큰과 인덱스를 일치시킴
-        const markdownText = editor.value.replace(/\r\n/g, '\n');
+        const markdownText = cm.getValue().replace(/\r\n/g, '\n');
         if (typeof marked === 'undefined') {
             preview.innerHTML = `<div style="color: red; padding: 20px;">marked.js 라이브러리가 로드되지 않았습니다.</div>`;
             return;
@@ -348,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (percentage > 80) percentage = 80;
         
         editorPanel.style.width = `${percentage}%`;
+        cm.refresh();
     }
 
     function stopDrag() {
@@ -361,6 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('mouseup', stopDrag);
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', stopDrag);
+        cm.refresh();
     }
 
     dragDivider.addEventListener('mousedown', startDrag);
@@ -441,13 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     
     function insertFormatting(type) {
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        const text = editor.value;
-        const selectedText = text.substring(start, end);
-        
-        let before = text.substring(0, start);
-        let after = text.substring(end);
+        const selectedText = cm.getSelection();
         
         let prefix = '';
         let suffix = '';
@@ -529,16 +552,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const content = selectedText || placeholder;
-        const newText = before + prefix + content + suffix + after;
+        const replacement = prefix + content + suffix;
         
-        editor.value = newText;
+        cm.replaceSelection(replacement, 'around');
         updateFilenameDisplay(currentFilename, true);
-        
-        // Reposition selection/caret
-        editor.focus();
-        const newStart = start + prefix.length;
-        const newEnd = newStart + content.length;
-        editor.setSelectionRange(newStart, newEnd);
+        cm.focus();
         
         // Trigger render
         if (autoRenderCheckbox.checked) {
@@ -549,7 +567,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Attach Event Listeners to Toolbar buttons
     toolbarButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // Find data-markdown attribute on button or its SVG child
             const target = e.currentTarget;
             const markdownType = target.getAttribute('data-markdown');
             if (markdownType) {
@@ -561,35 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Keyboard Shortcuts & Editor Enhancements
     // ==========================================================================
-    editor.addEventListener('keydown', (e) => {
-        // Tab key indent (insert 4 spaces)
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const start = editor.selectionStart;
-            const end = editor.selectionEnd;
-            const text = editor.value;
-            
-            editor.value = text.substring(0, start) + '    ' + text.substring(end);
-            editor.selectionStart = editor.selectionEnd = start + 4;
-            updateFilenameDisplay(currentFilename, true);
-            
-            if (autoRenderCheckbox.checked) {
-                renderMarkdown();
-            }
-        }
-        
-        // Ctrl + B -> Bold shortcut
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
-            e.preventDefault();
-            insertFormatting('bold');
-        }
-        
-        // Ctrl + I -> Italic shortcut
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') {
-            e.preventDefault();
-            insertFormatting('italic');
-        }
-    });
+    // Keyboard Shortcuts handled natively by CodeMirror extraKeys option
 
     // ==========================================================================
     // Copy Rendered HTML Logic
@@ -672,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수
     function downloadCurrentContent() {
-        const text = editor.value;
+        const text = cm.getValue();
         const blob = new Blob([text], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -715,13 +704,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (shouldLoad) {
                     const reader = new FileReader();
                     reader.onload = function(event) {
-                        editor.value = event.target.result;
+                        cm.setValue(event.target.result);
                         updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
                         renderMarkdown();
                         
                         // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
-                        editor.scrollTop = 0;
-                        editor.scrollLeft = 0;
+                        cm.scrollTo(0, 0);
                         const previewViewport = document.querySelector('.preview-viewport');
                         if (previewViewport) {
                             previewViewport.scrollTop = 0;
@@ -746,14 +734,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastPreviewScrollTop = -1; // 중복 스크롤 업데이트 필터용
 
     // 마우스 위치에 따른 스크롤 주도권(Source) 설정
-    editor.addEventListener('mouseenter', () => { activeScrollSource = 'editor'; });
+    cm.getWrapperElement().addEventListener('mouseenter', () => { activeScrollSource = 'editor'; });
     if (previewViewport) {
         previewViewport.addEventListener('mouseenter', () => { activeScrollSource = 'preview'; });
     }
 
     // 1. 텍스트 라인 식별자 추출 헬퍼 함수
     function getLineIdentifier(lineNum) {
-        const lines = editor.value.replace(/\r\n/g, '\n').split('\n');
+        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
         if (lineNum <= 0 || lineNum > lines.length) return '';
         const rawLine = lines[lineNum - 1].trim();
         if (!rawLine) return '';
@@ -786,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. 초기 렌더링 시 Heading들을 추출하여 초기 키프레임 자동 구축
     function rebuildInitialKeyframes() {
         if (!previewViewport) return;
-        const lines = editor.value.replace(/\r\n/g, '\n').split('\n');
+        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
         const totalLines = lines.length;
         const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
         
@@ -854,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function recalculateKeyframePositions() {
         if (!previewViewport) return;
         const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const lines = editor.value.replace(/\r\n/g, '\n').split('\n');
+        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
         const totalLines = lines.length;
         
         keyframes.forEach(kf => {
@@ -884,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addOrUpdateKeyframe(id, line, newPercent, targetScrollTop) {
         if (!id) return;
         
-        const totalLines = editor.value.replace(/\r\n/g, '\n').split('\n').length;
+        const totalLines = cm.getValue().replace(/\r\n/g, '\n').split('\n').length;
         const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
         
         let pivotIndex = keyframes.findIndex(kf => kf.id === id);
@@ -954,13 +942,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 7. 커서/선택영역 가시성 보정 및 비율 보정 키프레임 등록
     function syncPreviewToCursor() {
-        const start = editor.selectionStart;
-        const end = editor.selectionEnd;
-        const hasSelection = (start !== end); // 텍스트 드래그 선택(Selection) 여부
-        
-        const caretPos = start;
-        const textBeforeCaret = editor.value.substring(0, caretPos).replace(/\r\n/g, '\n');
-        const cursorLine = textBeforeCaret.split('\n').length;
+        const hasSelection = cm.somethingSelected();
+        const cursor = cm.getCursor('start');
+        const cursorLine = cursor.line + 1;
         
         // 프리뷰 내에 현재 커서 라인과 인접한 data-line 엘리먼트 탐색
         const elements = Array.from(preview.querySelectorAll('[data-line]'));
@@ -1006,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 수동 스크롤 조작 위치를 기록하여 redundant 스크롤 이벤트 자동 무시 처리
             lastPreviewScrollTop = targetScrollTop;
-            lastEditorScrollTop = editor.scrollTop;
+            lastEditorScrollTop = cm.getScrollInfo().top;
             
             // 단순 커서 focus/클릭 시에는 키프레임을 일절 건드리지 않고 뷰어 가시성 스크롤 동기화만 진행합니다.
             // 마우스 드래그를 통한 텍스트 선택(Selection)이면서 뷰포트 밖을 벗어나 정렬 보정이 필요할 때만 키프레임을 생성/갱신합니다.
@@ -1025,10 +1009,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 커서 이동/클릭/입력에 따른 가시성 검사 등록
-    editor.addEventListener('keyup', () => {
-        syncPreviewToCursor();
-    });
-    editor.addEventListener('click', () => {
+    cm.on('cursorActivity', () => {
         syncPreviewToCursor();
     });
 
@@ -1036,7 +1017,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function getPreviewScrollForEditor(editorScrollTop) {
         if (keyframes.length === 0) return 0;
         
-        const maxEditorScrollTop = editor.scrollHeight - editor.clientHeight;
+        const scrollInfo = cm.getScrollInfo();
+        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
         const currentPercent = maxEditorScrollTop > 0 ? editorScrollTop / maxEditorScrollTop : 0;
         
         let kfBefore = keyframes[0];
@@ -1082,7 +1064,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
-        const maxEditorScrollTop = editor.scrollHeight - editor.clientHeight;
+        const scrollInfo = cm.getScrollInfo();
+        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
         
         if (kfBefore === kfAfter) {
             return kfBefore.editorPercent * maxEditorScrollTop;
@@ -1096,13 +1079,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 에디터 스크롤 이벤트 바인딩
-    editor.addEventListener('scroll', () => {
+    cm.on('scroll', () => {
         if (isSyncing) return;
         if (activeScrollSource !== 'editor' || !previewViewport) return;
-        if (editor.scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
         
-        lastEditorScrollTop = editor.scrollTop;
-        const targetScroll = getPreviewScrollForEditor(editor.scrollTop);
+        const scrollInfo = cm.getScrollInfo();
+        const scrollTop = scrollInfo.top;
+        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
+        
+        lastEditorScrollTop = scrollTop;
+        const targetScroll = getPreviewScrollForEditor(scrollTop);
         lastPreviewScrollTop = targetScroll;
         previewViewport.scrollTop = targetScroll;
         updateDebugPanel();
@@ -1118,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastPreviewScrollTop = previewViewport.scrollTop;
             const targetScroll = getEditorScrollForPreview(previewViewport.scrollTop);
             lastEditorScrollTop = targetScroll;
-            editor.scrollTop = targetScroll;
+            cm.scrollTo(null, targetScroll);
             updateDebugPanel();
         });
     }
@@ -1213,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDebugPanel();
 
     // Auto Render Event
-    editor.addEventListener('input', () => {
+    cm.on('change', () => {
         updateFilenameDisplay(currentFilename, true);
         if (autoRenderCheckbox.checked) {
             renderMarkdown();
