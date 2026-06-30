@@ -713,3 +713,21 @@ div.katex-error {
     margin: 1em 0;
 }
 
+/* ==========================================================================
+   Mermaid Diagram Layout Rules
+   ========================================================================== */
+.mermaid {
+    background-color: transparent;
+    padding: 1.5em 0;
+    margin: 1.5em 0;
+    text-align: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+    background-color: transparent !important;
+}
+

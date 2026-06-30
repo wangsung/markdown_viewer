@@ -22,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const autoRenderCheckbox = document.getElementById('auto-render');
     const mathRenderCheckbox = document.getElementById('math-render');
     const mathRenderWrapper = document.getElementById('math-render-wrapper');
+    const diagramRenderCheckbox = document.getElementById('diagram-render');
+    const diagramRenderWrapper = document.getElementById('diagram-render-wrapper');
     const btnCopy = document.getElementById('btn-copy');
     const btnSave = document.getElementById('btn-save');
     const btnDebug = document.getElementById('btn-debug');
@@ -72,6 +74,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Mermaid availability and state initialization
+    const isMermaidAvailable = typeof mermaid !== 'undefined';
+    let enableDiagramSupport = isMermaidAvailable; // default: true if Mermaid is loaded
+
+    // If Mermaid is not loaded, hide the UI toggle
+    if (diagramRenderWrapper) {
+        if (!isMermaidAvailable) {
+            diagramRenderWrapper.style.display = 'none';
+        } else if (diagramRenderCheckbox) {
+            diagramRenderCheckbox.checked = enableDiagramSupport;
+        }
+    }
+
+    // Initialize mermaid if available
+    if (isMermaidAvailable) {
+        try {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose'
+            });
+        } catch (e) {
+            console.error("Mermaid initialization failed:", e);
+        }
+    }
+
     // Configure custom marked.js renderer to support highlight.js & KaTeX
     if (typeof marked !== 'undefined') {
         const renderer = new marked.Renderer();
@@ -96,6 +124,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("KaTeX code block error:", e);
                     return `<div class="katex-error">${escapeHtml(text)}</div>`;
                 }
+            }
+
+            // Check if it's mermaid diagram code block and diagram support is enabled
+            if (lang === 'mermaid' && enableDiagramSupport && isMermaidAvailable) {
+                return `<div class="mermaid">${escapeHtml(text)}</div>`;
             }
             
             const validLang = !!(lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang));
@@ -250,6 +283,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             preview.innerHTML = htmlSegments.join('\n');
+            
+            // Render Mermaid diagrams asynchronously if enabled and available
+            if (enableDiagramSupport && isMermaidAvailable) {
+                try {
+                    mermaid.run({
+                        querySelector: '.mermaid'
+                    }).catch(err => {
+                        console.error("Mermaid asynchronous render error:", err);
+                    });
+                } catch (e) {
+                    console.error("Mermaid run invocation error:", e);
+                }
+            }
             
             // 렌더링 완료 후 초기 주요 헤더들로 키프레임 목록 구축
             rebuildInitialKeyframes();
@@ -1177,6 +1223,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
             enableMathSupport = mathRenderCheckbox.checked;
+            renderMarkdown();
+        });
+    }
+
+    // 다이어그램 토글 변경 시 이벤트 바인딩
+    if (diagramRenderCheckbox) {
+        diagramRenderCheckbox.addEventListener('change', () => {
+            enableDiagramSupport = diagramRenderCheckbox.checked;
             renderMarkdown();
         });
     }
