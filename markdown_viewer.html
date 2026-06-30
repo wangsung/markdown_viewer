@@ -6,6 +6,8 @@
     <title>Markdown Viewer - 독립형 에디터</title>
     <!-- Code Highlight CSS (GitHub Theme) -->
     <link rel="stylesheet" href="libs/github.min.css">
+    <!-- KaTeX CSS (Mathematical Formulas) -->
+    <link rel="stylesheet" href="libs/katex/katex.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -27,6 +29,11 @@
             <label class="toggle-control">
                 <input type="checkbox" id="auto-render" checked>
                 <span class="toggle-label">실시간 렌더링</span>
+            </label>
+            <!-- 수식 지원 토글 스위치 -->
+            <label class="toggle-control" id="math-render-wrapper">
+                <input type="checkbox" id="math-render" checked>
+                <span class="toggle-label">수식 지원</span>
             </label>
         </div>
 
@@ -175,6 +182,7 @@ greet('사용자');
     <!-- 라이브러리 스크립트 파일 로드 -->
     <script src="libs/marked.min.js"></script>
     <script src="libs/highlight.min.js"></script>
+    <script src="libs/katex/katex.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

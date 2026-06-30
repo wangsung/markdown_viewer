@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // HTML Escape helper
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // DOM Elements
     const editor = document.getElementById('editor');
     const preview = document.getElementById('preview');
@@ -10,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('font-size-select');
     const lineColorPicker = document.getElementById('line-color-picker');
     const autoRenderCheckbox = document.getElementById('auto-render');
+    const mathRenderCheckbox = document.getElementById('math-render');
+    const mathRenderWrapper = document.getElementById('math-render-wrapper');
     const btnCopy = document.getElementById('btn-copy');
     const btnSave = document.getElementById('btn-save');
     const btnDebug = document.getElementById('btn-debug');
@@ -44,20 +56,23 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilenameDisplay(currentFilename, false);
 
     // ==========================================================================
-    // Markdown & Syntax Highlight Configuration
+    // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
-    // HTML Escape helper
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    // KaTeX availability and state initialization
+    const isKatexAvailable = typeof katex !== 'undefined';
+    let enableMathSupport = isKatexAvailable; // default: true if KaTeX is loaded
+
+    // If KaTeX is not loaded, hide the UI toggle
+    if (mathRenderWrapper) {
+        if (!isKatexAvailable) {
+            mathRenderWrapper.style.display = 'none';
+        } else if (mathRenderCheckbox) {
+            mathRenderCheckbox.checked = enableMathSupport;
+        }
     }
 
-    // Configure custom marked.js renderer to support highlight.js
+    // Configure custom marked.js renderer to support highlight.js & KaTeX
     if (typeof marked !== 'undefined') {
         const renderer = new marked.Renderer();
         
@@ -71,6 +86,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 text = codeOrObj || '';
                 lang = infostring || '';
+            }
+            
+            // Check if it's math/latex code block and math rendering is enabled
+            if ((lang === 'math' || lang === 'latex') && enableMathSupport && isKatexAvailable) {
+                try {
+                    return `<div class="katex-block">${katex.renderToString(text, { displayMode: true, throwOnError: false })}</div>`;
+                } catch (e) {
+                    console.error("KaTeX code block error:", e);
+                    return `<div class="katex-error">${escapeHtml(text)}</div>`;
+                }
             }
             
             const validLang = !!(lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang));
@@ -88,12 +113,70 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
         };
 
-        marked.use({
+        const markedOptions = {
             renderer: renderer,
             gfm: true,
             breaks: true,
             pedantic: false
-        });
+        };
+
+        // Inject extensions only if KaTeX is available (can be toggled at render time)
+        const inlineMath = {
+            name: 'inlineMath',
+            level: 'inline',
+            start(src) { return src.indexOf('$'); },
+            tokenizer(src, tokens) {
+                const match = src.match(/^\$([^$\n]+?)\$/);
+                if (match) {
+                    return {
+                        type: 'inlineMath',
+                        raw: match[0],
+                        formula: match[1].trim()
+                    };
+                }
+            },
+            renderer(token) {
+                if (enableMathSupport && isKatexAvailable) {
+                    try {
+                        return katex.renderToString(token.formula, { displayMode: false, throwOnError: false });
+                    } catch (err) {
+                        console.error("KaTeX inline parsing error:", err);
+                        return `<span class="katex-error">${escapeHtml(token.raw)}</span>`;
+                    }
+                }
+                return escapeHtml(token.raw); // Fallback: output raw text
+            }
+        };
+
+        const blockMath = {
+            name: 'blockMath',
+            level: 'block',
+            start(src) { return src.indexOf('$$'); },
+            tokenizer(src, tokens) {
+                const match = src.match(/^\$\$\n?([\s\S]+?)\n?\$\$/);
+                if (match) {
+                    return {
+                        type: 'blockMath',
+                        raw: match[0],
+                        formula: match[1].trim()
+                    };
+                }
+            },
+            renderer(token) {
+                if (enableMathSupport && isKatexAvailable) {
+                    try {
+                        return `<div class="katex-block">${katex.renderToString(token.formula, { displayMode: true, throwOnError: false })}</div>`;
+                    } catch (err) {
+                        console.error("KaTeX block parsing error:", err);
+                        return `<div class="katex-error">${escapeHtml(token.raw)}</div>`;
+                    }
+                }
+                return `<div class="katex-fallback">${escapeHtml(token.raw)}</div>`; // Fallback: output raw text in a div
+            }
+        };
+
+        markedOptions.extensions = [inlineMath, blockMath];
+        marked.use(markedOptions);
     }
 
     // Main Render Function with Line Mapping
@@ -1090,6 +1173,14 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMarkdown();
         }
     });
+    // 수식 토글 변경 시 이벤트 바인딩
+    if (mathRenderCheckbox) {
+        mathRenderCheckbox.addEventListener('change', () => {
+            enableMathSupport = mathRenderCheckbox.checked;
+            renderMarkdown();
+        });
+    }
+
     // 저장 버튼 클릭 이벤트 바인딩
     if (btnSave) {
         btnSave.addEventListener('click', downloadCurrentContent);

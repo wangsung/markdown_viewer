@@ -686,3 +686,30 @@ textarea#editor::-webkit-scrollbar-thumb:hover {
     to { opacity: 1; transform: scale(1); }
 }
 
+/* ==========================================================================
+   LaTeX KaTeX Math Styling & Custom Layout Rules
+   ========================================================================== */
+.katex-block {
+    margin: 1.5em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5em;
+    text-align: center;
+}
+
+.katex-error {
+    color: #ef4444;
+    border: 1px dashed #fca5a5;
+    background-color: #fef2f2;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9em;
+    display: inline-block;
+}
+
+div.katex-error {
+    display: block;
+    margin: 1em 0;
+}
+
