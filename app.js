@@ -992,13 +992,11 @@ document.addEventListener('DOMContentLoaded', () => {
             lastPreviewScrollTop = targetScrollTop;
             lastEditorScrollTop = cm.getScrollInfo().top;
             
-            // 단순 커서 focus/클릭 시에는 키프레임을 일절 건드리지 않고 뷰어 가시성 스크롤 동기화만 진행합니다.
-            // 마우스 드래그를 통한 텍스트 선택(Selection)이면서 뷰포트 밖을 벗어나 정렬 보정이 필요할 때만 키프레임을 생성/갱신합니다.
-            if (hasSelection) {
-                const id = getLineIdentifier(cursorLine);
+            // 에디터 포커스 및 커서 이동 시 스크롤 보정이 실질적으로 발생했다면, 
+            // 뷰포트 정렬 왜곡 방지를 위해 해당 키프레임의 실제 스크롤 비율을 함께 보정 업데이트합니다.
+            const id = getLineIdentifier(cursorLine);
+            if (id) {
                 const newPercent = maxPreviewScrollY > 0 ? targetScrollTop / maxPreviewScrollY : 0;
-                
-                // 키프레임 추가/갱신 및 다른 키프레임 비례 조절(Rescaling) 수행
                 addOrUpdateKeyframe(id, cursorLine, newPercent, targetScrollTop);
             }
             
@@ -1011,6 +1009,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 커서 이동/클릭/입력에 따른 가시성 검사 등록
     cm.on('cursorActivity', () => {
         syncPreviewToCursor();
+    });
+
+    cm.on('focus', () => {
+        activeScrollSource = 'editor';
     });
 
     // 8. 에디터 -> 프리뷰 방향 스크롤 매핑 함수 (비율 기반 보간)
