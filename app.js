@@ -877,12 +877,23 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const totalLines = cm.getValue().replace(/\r\n/g, '\n').split('\n').length;
         const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
+        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
         
         let pivotIndex = keyframes.findIndex(kf => kf.id === id);
         let oldPercent = 0;
         
         if (pivotIndex !== -1) {
             oldPercent = keyframes[pivotIndex].previewPercent;
+            
+            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
+            const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
+            const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
+            const minAllowed = kfBefore.previewPercent;
+            const maxAllowed = kfAfter.previewPercent;
+            
+            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
+            targetScrollTop = newPercent * maxPreviewScrollY;
+
             keyframes[pivotIndex].line = line;
             keyframes[pivotIndex].editorPercent = editorPercent;
             keyframes[pivotIndex].previewPercent = newPercent;
@@ -901,6 +912,17 @@ document.addEventListener('DOMContentLoaded', () => {
             pivotIndex = keyframes.findIndex(kf => kf.id === id);
             const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
             const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
+            
+            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
+            const minAllowed = kfBefore.previewPercent;
+            const maxAllowed = kfAfter.previewPercent;
+            
+            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
+            targetScrollTop = newPercent * maxPreviewScrollY;
+            
+            keyframes[pivotIndex].previewPercent = newPercent;
+            keyframes[pivotIndex].previewScrollY = targetScrollTop;
+
             const dist = kfAfter.line - kfBefore.line;
             const ratio = dist > 0 ? (line - kfBefore.line) / dist : 0.5;
             oldPercent = kfBefore.previewPercent + ratio * (kfAfter.previewPercent - kfBefore.previewPercent);
@@ -921,8 +943,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 0부터 pivotIndex - 1 까지 (상단 영역)
         for (let j = 1; j < pivotIndex; j++) {
             if (oldPercent > 0) {
-                keyframes[j].previewPercent = keyframes[j].previewPercent * (newPercent / oldPercent);
-                keyframes[j].previewScrollY = keyframes[j].previewPercent * maxPreviewScrollY;
+                let adjustedPercent = keyframes[j].previewPercent * (newPercent / oldPercent);
+                // 범위 제한 (Clamping)
+                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
+                
+                keyframes[j].previewPercent = adjustedPercent;
+                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
             }
         }
         
@@ -931,8 +957,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const denom = 1.0 - oldPercent;
             if (denom > 0) {
                 const ratio = (keyframes[j].previewPercent - oldPercent) / denom;
-                keyframes[j].previewPercent = newPercent + ratio * (1.0 - newPercent);
-                keyframes[j].previewScrollY = keyframes[j].previewPercent * maxPreviewScrollY;
+                let adjustedPercent = newPercent + ratio * (1.0 - newPercent);
+                // 범위 제한 (Clamping)
+                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
+                
+                keyframes[j].previewPercent = adjustedPercent;
+                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
             }
         }
         
