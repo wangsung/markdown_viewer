@@ -739,6 +739,15 @@ document.addEventListener('DOMContentLoaded', () => {
         previewViewport.addEventListener('mouseenter', () => { activeScrollSource = 'preview'; });
     }
 
+    // 텍스트 라인 및 Heading 정제 헬퍼 함수
+    function cleanTextForIdentifier(text, isHeading) {
+        let cleanText = text
+            .replace(/^[#>\s\-*+]+/g, '')   // 헤더, 인용구, 목록 불릿 기호만 제거
+            .replace(/[*_`~]/g, '')         // 볼드, 이탤릭, 인라인 코드, 취소선 기호 제거 (대괄호/소괄호는 유지)
+            .trim();
+        return isHeading ? cleanText : cleanText.substring(0, 30);
+    }
+
     // 1. 텍스트 라인 식별자 추출 헬퍼 함수
     function getLineIdentifier(lineNum) {
         const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
@@ -746,13 +755,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawLine = lines[lineNum - 1].trim();
         if (!rawLine) return '';
         
-        // 마크다운 구문 표시 기호를 제거하여 렌더링된 텍스트와 근접하게 가공
-        let cleanText = rawLine
-            .replace(/^[#>\s\-*+\d\.]+/g, '') // 헤더, 인용구, 목록 불릿 제거
-            .replace(/[*_`~[\]()]/g, '')     // 볼드, 이탤릭, 링크 괄호 등 제거
-            .trim();
-            
-        return cleanText.substring(0, 30);
+        const isHeading = /^#+\s/.test(rawLine);
+        return cleanTextForIdentifier(rawLine, isHeading);
     }
 
     // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색
@@ -793,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
         headings.forEach(el => {
             const line = parseInt(el.getAttribute('data-line'), 10);
-            const id = el.textContent.trim().substring(0, 30);
+            const id = cleanTextForIdentifier(el.textContent, true);
             if (!isNaN(line) && id) {
                 const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
                 
