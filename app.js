@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSelect = document.getElementById('font-select');
     const fontSizeSelect = document.getElementById('font-size-select');
     const lineColorPicker = document.getElementById('line-color-picker');
-    const autoRenderCheckbox = document.getElementById('auto-render');
+    const scrollSyncCheckbox = document.getElementById('scroll-sync');
     const mathRenderCheckbox = document.getElementById('math-render');
     const mathRenderWrapper = document.getElementById('math-render-wrapper');
     const diagramRenderCheckbox = document.getElementById('diagram-render');
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFilename = '제목 없음.md';
     let isDirty = false;
     let isSyncing = false;
+    let enableScrollSync = true;
 
     // 파일 이름 표시 및 상태 변경 함수
     function updateFilenameDisplay(name, isModified) {
@@ -558,10 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFilenameDisplay(currentFilename, true);
         cm.focus();
         
-        // Trigger render
-        if (autoRenderCheckbox.checked) {
-            renderMarkdown();
-        }
+        // Trigger render (실시간 렌더링 상시 동작)
+        renderMarkdown();
     }
 
     // Attach Event Listeners to Toolbar buttons
@@ -946,6 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 7. 커서/선택영역 가시성 보정 및 비율 보정 키프레임 등록
     function syncPreviewToCursor() {
+        if (!enableScrollSync) return;
         const hasSelection = cm.somethingSelected();
         const cursor = cm.getCursor('start');
         const cursorLine = cursor.line + 1;
@@ -1104,6 +1104,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 에디터 스크롤 이벤트 바인딩 (상대적 델타 기반 동기화 로직)
     cm.on('scroll', () => {
+        if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
         if (isSyncing) return;
         if (activeScrollSource !== 'editor' || !previewViewport) return;
         
@@ -1177,6 +1178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 프리뷰 스크롤 이벤트 바인딩
     if (previewViewport) {
         previewViewport.addEventListener('scroll', () => {
+            if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
             if (isSyncing) return;
             if (activeScrollSource !== 'preview') return;
             if (previewViewport.scrollTop === lastPreviewScrollTop) return; // 변경사항이 없다면 동기화 스킵
@@ -1287,9 +1289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auto Render Event
     cm.on('change', () => {
         updateFilenameDisplay(currentFilename, true);
-        if (autoRenderCheckbox.checked) {
-            renderMarkdown();
-        }
+        renderMarkdown();
     });
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
@@ -1304,6 +1304,17 @@ document.addEventListener('DOMContentLoaded', () => {
         diagramRenderCheckbox.addEventListener('change', () => {
             enableDiagramSupport = diagramRenderCheckbox.checked;
             renderMarkdown();
+        });
+    }
+
+    // 스크롤 동기화 토글 변경 시 이벤트 바인딩
+    if (scrollSyncCheckbox) {
+        scrollSyncCheckbox.addEventListener('change', () => {
+            enableScrollSync = scrollSyncCheckbox.checked;
+            if (enableScrollSync) {
+                // 동기화 활성화 시 현재 커서 위치로 즉시 프리뷰 정렬
+                syncPreviewToCursor();
+            }
         });
     }
 
