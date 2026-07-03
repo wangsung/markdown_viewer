@@ -1084,6 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return targetEditorPercent * maxEditorScrollTop;
     }
 
+    /* 기존 절대 매핑 스크롤 동기화 로직 주석 처리
     // 에디터 스크롤 이벤트 바인딩
     cm.on('scroll', () => {
         if (isSyncing) return;
@@ -1097,6 +1098,79 @@ document.addEventListener('DOMContentLoaded', () => {
         const targetScroll = getPreviewScrollForEditor(scrollTop);
         lastPreviewScrollTop = targetScroll;
         previewViewport.scrollTop = targetScroll;
+        updateDebugPanel();
+    });
+    */
+
+    // 에디터 스크롤 이벤트 바인딩 (상대적 델타 기반 동기화 로직)
+    cm.on('scroll', () => {
+        if (isSyncing) return;
+        if (activeScrollSource !== 'editor' || !previewViewport) return;
+        
+        const scrollInfo = cm.getScrollInfo();
+        const scrollTop = scrollInfo.top;
+        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
+        
+        // 최초 스크롤 이벤트 시 lastEditorScrollTop 초기화 처리 (튀지 않도록 방지)
+        if (lastEditorScrollTop === -1) {
+            lastEditorScrollTop = scrollTop;
+            return;
+        }
+
+        const deltaY_ed = scrollTop - lastEditorScrollTop;
+        lastEditorScrollTop = scrollTop;
+
+        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
+        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
+
+        // 예외 처리: 완전한 최상단/최하단 도달 시 강제 정렬 (누적 오차 해결)
+        if (scrollTop <= 0) {
+            previewViewport.scrollTop = 0;
+            lastPreviewScrollTop = 0;
+            updateDebugPanel();
+            return;
+        }
+        if (scrollTop >= maxEditorScrollTop) {
+            previewViewport.scrollTop = maxPreviewScrollY;
+            lastPreviewScrollTop = maxPreviewScrollY;
+            updateDebugPanel();
+            return;
+        }
+
+        // 현재 스크롤 비율 계산
+        const currentPercent = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
+        
+        // 보간 구간 탐색
+        let kfBefore = keyframes[0];
+        let kfAfter = keyframes[keyframes.length - 1];
+        
+        for (let i = 0; i < keyframes.length; i++) {
+            const kf = keyframes[i];
+            if (kf.editorPercent <= currentPercent) {
+                kfBefore = kf;
+            } else {
+                kfAfter = kf;
+                break;
+            }
+        }
+
+        // 현재 구간의 스크롤 배율(S) 계산
+        const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+        const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
+        
+        // Division by zero 방지
+        const scaleFactor = height_ed_range > 0 ? height_pr_range / height_ed_range : 1.0;
+
+        // 프리뷰 이동할 델타 및 새로운 스크롤탑 적용
+        const deltaY_pr = deltaY_ed * scaleFactor;
+        let newPreviewScrollTop = previewViewport.scrollTop + deltaY_pr;
+
+        // 범위 값 제한 (Clamping)
+        newPreviewScrollTop = Math.max(0, Math.min(newPreviewScrollTop, maxPreviewScrollY));
+
+        lastPreviewScrollTop = newPreviewScrollTop;
+        previewViewport.scrollTop = newPreviewScrollTop;
+        
         updateDebugPanel();
     });
 
