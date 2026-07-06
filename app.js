@@ -603,48 +603,52 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard Shortcuts handled natively by CodeMirror extraKeys option
 
     // ==========================================================================
-    // Copy Rendered HTML Logic
+    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
     // ==========================================================================
     btnCopy.addEventListener('click', () => {
-        const htmlContent = preview.innerHTML;
-        
-        // If content is empty
-        if (!htmlContent || htmlContent.trim() === '') {
-            alert('복사할 렌더링된 내용이 없습니다.');
+        // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
+        if (!preview || preview.children.length === 0) {
+            alert('복사할 프리뷰 내용이 없습니다.');
             return;
         }
-        
-        // Modern Clipboard API
-        navigator.clipboard.writeText(htmlContent).then(() => {
-            // Success Feedback
-            const originalHTML = btnCopy.innerHTML;
-            btnCopy.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                복사 완료!
-            `;
-            btnCopy.style.borderColor = '#10b981';
-            btnCopy.style.color = '#10b981';
-            
-            setTimeout(() => {
-                btnCopy.innerHTML = originalHTML;
-                btnCopy.style.borderColor = '';
-                btnCopy.style.color = '';
-            }, 2000);
-        }).catch(err => {
-            console.error('클립보드 복사 실패:', err);
-            // Fallback method
-            const textarea = document.createElement('textarea');
-            textarea.value = htmlContent;
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                alert('HTML 코드가 복사되었습니다. (대체 방식)');
-            } catch (err) {
-                alert('클립보드 복사 실패. 브라우저 설정을 확인해 주세요.');
+
+        // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
+        const range = document.createRange();
+        range.selectNodeContents(preview);
+
+        // 이전 선택 범위를 지우고 새로운 범위 추가
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+            // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
+            const successful = document.execCommand('copy');
+            if (successful) {
+                // 복사 성공 피드백 표시
+                const originalHTML = btnCopy.innerHTML;
+                btnCopy.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    복사 완료!
+                `;
+                btnCopy.style.borderColor = '#10b981';
+                btnCopy.style.color = '#10b981';
+                
+                setTimeout(() => {
+                    btnCopy.innerHTML = originalHTML;
+                    btnCopy.style.borderColor = '';
+                    btnCopy.style.color = '';
+                }, 2000);
+            } else {
+                alert('클립보드 복사 명령을 실행할 수 없습니다.');
             }
-            document.body.removeChild(textarea);
-        });
+        } catch (err) {
+            console.error('클립보드 복사 실패:', err);
+            alert('클립보드 복사에 실패했습니다.');
+        } finally {
+            // 복사 완료 후 선택 영역 해제 (시각적 잔상 제거 및 정리)
+            selection.removeAllRanges();
+        }
     });
     // ==========================================================================
     // Drag & Drop Markdown File Loading Logic
@@ -1472,9 +1476,33 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFilenameDisplay(window.loadedFileContent.name, false);
     }
 
+    // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수
+    function initializePanelWidths() {
+        const containerRect = container.getBoundingClientRect();
+        if (containerRect.width === 0) return;
+        
+        // TOC 사이드바의 실제 점유 폭 계산
+        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
+        const dividerWidth = 6;
+        const availableWidth = containerRect.width - tocWidth - dividerWidth;
+        
+        if (availableWidth <= 0) return;
+        
+        // 에디터와 프리뷰가 동일한 너비를 갖도록 설정
+        const targetEditorWidth = availableWidth / 2;
+        const percentage = (targetEditorWidth / containerRect.width) * 100;
+        
+        editorPanel.style.width = `${percentage}%`;
+        cm.refresh();
+    }
+
     // Trigger Initial Render
     renderMarkdown();
     updateDebugPanel();
+    
+    // 초기 너비 동등 설정 실행 및 로드 완료 후 보정
+    initializePanelWidths();
+    window.addEventListener('load', initializePanelWidths);
 
     // Auto Render Event
     cm.on('change', () => {

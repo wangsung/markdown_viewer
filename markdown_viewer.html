@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Viewer - 독립형 에디터</title>
+    <title>MarkVi - 독립형 에디터</title>
     <!-- Code Highlight CSS (GitHub Theme) -->
     <link rel="stylesheet" href="libs/github.min.css">
     <!-- KaTeX CSS (Mathematical Formulas) -->
@@ -28,7 +28,7 @@
     <!-- 상단 메뉴바 -->
     <header class="menu-bar">
         <div class="menu-left">
-            <span class="logo">MD Viewer</span>
+            <span class="logo">MarkVi</span>
             <!-- 파일 이름 보기 뱃지 -->
             <div class="file-badge" id="file-badge" title="현재 열려있는 파일">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -89,12 +89,12 @@
         </div>
 
         <div class="menu-right">
-            <button id="btn-copy" class="btn btn-secondary" title="변환된 HTML 코드를 클립보드에 복사합니다.">
+            <button id="btn-copy" class="btn btn-secondary" title="프리뷰 화면의 전체 내용을 선택하여 복사합니다.">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                HTML 복사
+                Preview 복사
             </button>
             <button id="btn-debug" class="btn btn-secondary" title="키프레임 동기화 디버깅 패널을 토글합니다.">
-                ⚙️ 키프레임 디버그
+                🐞 키프레임
             </button>
             <button id="btn-settings" class="btn btn-secondary" title="설정 다이얼로그를 엽니다.">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
