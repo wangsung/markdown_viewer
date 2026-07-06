@@ -375,13 +375,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const containerRect = container.getBoundingClientRect();
         
-        // Calculate percentage width of the left panel
-        const relativeX = clientX - containerRect.left;
-        let percentage = (relativeX / containerRect.width) * 100;
+        // TOC 사이드바의 실제 점유 폭 계산
+        const tocSidebar = document.getElementById('toc-sidebar');
+        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
         
-        // Enforce boundary constraints (20% to 80%)
-        if (percentage < 20) percentage = 20;
-        if (percentage > 80) percentage = 80;
+        // TOC 시작선 및 점유 폭을 차감한 순수 에디터 시작점 기준 마우스 상대 좌표
+        const relativeX = clientX - containerRect.left - tocWidth;
+        
+        // 전체 너비에서 TOC 폭을 제외한 가용 분할 폭
+        const availableWidth = containerRect.width - tocWidth;
+        
+        // 1. 가용 분할 영역 기준의 백분율 비율 산출
+        let percentageOfAvailable = availableWidth > 0 ? (relativeX / availableWidth) * 100 : 50;
+        
+        // 2. 가용 영역에 대한 좌우 경계 제약조건 (20% ~ 80%) 강제화
+        if (percentageOfAvailable < 20) percentageOfAvailable = 20;
+        if (percentageOfAvailable > 80) percentageOfAvailable = 80;
+        
+        // 3. 제약이 적용된 에디터 패널의 실제 목표 픽셀 폭 복원
+        const targetEditorWidth = (percentageOfAvailable / 100) * availableWidth;
+        
+        // 4. 스타일 대입을 위한 전체 부모 컨테이너 기준 비율로 최종 환산
+        let percentage = (targetEditorWidth / containerRect.width) * 100;
         
         editorPanel.style.width = `${percentage}%`;
         cm.refresh();
