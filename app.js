@@ -766,12 +766,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return cleanTextForIdentifier(rawLine, isHeading);
     }
 
-    // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색
+    // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색 (고유 ID 접미사 _line_줄번호 분리 처리)
     function findPreviewElementByIdentifier(id) {
         if (!id || id === '[START]' || id === '[END]') return null;
         
         const candidates = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table');
-        const cleanId = id.trim().toLowerCase();
+        
+        // 고유 ID 접미사 (_line_숫자) 분리 처리
+        let baseId = id;
+        const lineSuffixMatch = id.match(/(.+)_line_\d+$/);
+        if (lineSuffixMatch) {
+            baseId = lineSuffixMatch[1];
+        }
+        
+        const cleanId = baseId.trim().toLowerCase();
         
         for (let el of candidates) {
             const text = el.textContent.trim().toLowerCase();
@@ -927,8 +935,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
         headings.forEach(el => {
             const line = parseInt(el.getAttribute('data-line'), 10);
-            const id = cleanTextForIdentifier(el.textContent, true);
-            if (!isNaN(line) && id) {
+            const cleanText = cleanTextForIdentifier(el.textContent, true);
+            if (!isNaN(line) && cleanText) {
+                const id = `${cleanText}_line_${line}`;
                 const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
                 
                 // 초기 previewPercent를 editorPercent와 비례하게(동일하게) 세팅
@@ -1159,8 +1168,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 에디터 포커스 및 커서 이동 시 스크롤 보정이 실질적으로 발생했다면, 
             // 뷰포트 정렬 왜곡 방지를 위해 해당 키프레임의 실제 스크롤 비율을 함께 보정 업데이트합니다.
-            const id = getLineIdentifier(cursorLine);
-            if (id) {
+            const cleanText = getLineIdentifier(cursorLine);
+            if (cleanText) {
+                const id = `${cleanText}_line_${cursorLine}`;
                 const newPercent = maxPreviewScrollY > 0 ? targetScrollTop / maxPreviewScrollY : 0;
                 addOrUpdateKeyframe(id, cursorLine, newPercent, targetScrollTop);
             }

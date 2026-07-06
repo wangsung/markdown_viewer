@@ -10,7 +10,19 @@
     <link rel="stylesheet" href="libs/katex/katex.min.css">
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="libs/codemirror/codemirror.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.0.1">
+    <style id="codemirror-override-patch">
+        /* CodeMirror 기본 스타일 오버라이딩 최종 안전장치 */
+        .CodeMirror.cm-s-default .CodeMirror-selected {
+            background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.3) !important;
+        }
+        .CodeMirror.cm-s-default.CodeMirror-focused .CodeMirror-selected {
+            background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.35) !important;
+        }
+        .CodeMirror.cm-s-default .CodeMirror-selectedtext {
+            background-color: transparent !important;
+        }
+    </style>
 </head>
 <body>
     <!-- 상단 메뉴바 -->

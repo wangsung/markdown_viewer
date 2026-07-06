@@ -444,12 +444,39 @@ body {
     background-color: rgba(255, 255, 255, 0.02) !important;
 }
 
-.CodeMirror-focused .CodeMirror-selected {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+/* ==========================================================================
+   CodeMirror Selection & Highlight (초고명시도 패치 및 간섭 방지)
+   ========================================================================== */
+
+/* 1. 디폴트 테마 명시자(.cm-s-default) 저격을 통한 선택 영역 배경 강제 적용 */
+.CodeMirror.cm-s-default .CodeMirror-selected {
+    background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.3) !important;
 }
 
-.CodeMirror-selected {
-    background-color: rgba(255, 255, 255, 0.08) !important;
+.CodeMirror.cm-s-default.CodeMirror-focused .CodeMirror-selected {
+    background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.35) !important;
+}
+
+/* 2. 드래그 선택 영역에 들어온 개별 마크다운 토큰(댓글, 코드 등) 배경 간섭 방지 */
+.CodeMirror.cm-s-default .CodeMirror-selectedtext {
+    background-color: transparent !important;
+}
+
+/* 3. 브라우저 기본 가상 선택자 ::selection 규칙의 초고명시도 오버라이딩 */
+.CodeMirror.cm-s-default .CodeMirror-line::selection,
+.CodeMirror.cm-s-default .CodeMirror-line > span::selection,
+.CodeMirror.cm-s-default .CodeMirror-line > span > span::selection,
+.CodeMirror.cm-s-default .CodeMirror-line *::selection {
+    background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.3) !important;
+    color: var(--text-main, #f1f5f9) !important;
+}
+
+.CodeMirror.cm-s-default .CodeMirror-line::-moz-selection,
+.CodeMirror.cm-s-default .CodeMirror-line > span::-moz-selection,
+.CodeMirror.cm-s-default .CodeMirror-line > span > span::-moz-selection,
+.CodeMirror.cm-s-default .CodeMirror-line *::-moz-selection {
+    background-color: rgba(var(--theme-color-rgb, 59, 130, 246), 0.3) !important;
+    color: var(--text-main, #f1f5f9) !important;
 }
 
 /* Scrollbar styling for CodeMirror Scroll */
