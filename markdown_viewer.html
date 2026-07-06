@@ -93,6 +93,30 @@
 
     <!-- 메인 컨테이너 영역 -->
     <main class="container">
+        <!-- 좌측 TOC Heading 목록창 (접이식 사이드바) -->
+        <aside class="toc-sidebar" id="toc-sidebar">
+            <div class="toc-header">
+                <span class="toc-title">문서 개요</span>
+                <button id="btn-toc-toggle-inner" class="toc-close-btn" title="개요창 접기" aria-label="개요창 접기" aria-expanded="true">
+                    <!-- 접기용 왼쪽 화살표 아이콘 (Feather Icon style) -->
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+            </div>
+            <div class="toc-body">
+                <ul id="toc-list" class="toc-list">
+                    <!-- JS를 통해 Heading(h1~h6) 목록이 동적으로 생성되는 영역 -->
+                </ul>
+            </div>
+        </aside>
+
+        <!-- 세로 Bar 토글 버튼 (사이드바가 접혔을 때 좌측 끝에 부드럽게 대기하는 버튼) -->
+        <button class="toc-toggle-bar" id="toc-toggle-bar" title="개요창 열기" aria-label="개요창 열기" aria-expanded="false">
+            <div class="toc-toggle-indicator">
+                <!-- 펼치기용 오른쪽 화살표 아이콘 -->
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+        </button>
+
         <!-- 좌측 패널: 에디터 -->
         <section class="panel left" id="editor-panel">
             <!-- 에디터 툴바 -->

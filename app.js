@@ -43,6 +43,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const editorPanel = document.getElementById('editor-panel');
     const container = document.querySelector('.container');
     
+    // TOC 사이드바 DOM 요소
+    const tocSidebar = document.getElementById('toc-sidebar');
+    const btnTocToggleInner = document.getElementById('btn-toc-toggle-inner');
+    const tocToggleBar = document.getElementById('toc-toggle-bar');
+    
     const fontSelect = document.getElementById('font-select');
     const fontSizeSelect = document.getElementById('font-size-select');
     const lineColorPicker = document.getElementById('line-color-picker');
@@ -330,6 +335,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 렌더링 완료 후 커서가 있는 줄의 프리뷰 가시성 자동 보정 실행
             syncPreviewToCursor();
+
+            // 에디터 텍스트 파싱을 통한 TOC 목록 동적 빌드
+            buildTOC();
             
         } catch (e) {
             console.error("Rendering error:", e);
@@ -774,6 +782,129 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링
+    function buildTOC() {
+        const tocList = document.getElementById('toc-list');
+        if (!tocList) return;
+
+        const text = cm.getValue().replace(/\r\n/g, '\n');
+        const lines = text.split('\n');
+        const headings = [];
+        let inCodeBlock = false;
+
+        lines.forEach((lineText, idx) => {
+            const trimmed = lineText.trim();
+            if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+                inCodeBlock = !inCodeBlock;
+                return;
+            }
+            if (inCodeBlock) return;
+
+            // Heading 1~6에 해당하는 정규식 패턴 검사 (닫는 # 기호 제외)
+            const match = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
+            if (match) {
+                const level = match[1].length;
+                const textVal = match[2].trim();
+                headings.push({
+                    line: idx, // 0-based index
+                    level: level,
+                    text: textVal
+                });
+            }
+        });
+
+        tocList.innerHTML = '';
+        headings.forEach(heading => {
+            const li = document.createElement('li');
+            li.className = `toc-item toc-h${heading.level}`;
+            li.setAttribute('data-line', heading.line + 1); // data-line은 1-based
+
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = heading.text;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const line = heading.line; // 0-based
+                isSyncing = true;
+
+                // 에디터 커서 이동 및 포커스
+                cm.setCursor({line: line, ch: 0});
+                cm.focus();
+
+                // 에디터 스크롤 연동 (화면 중앙 부근에 오도록 정렬)
+                const charCoords = cm.charCoords({line: line, ch: 0}, 'local');
+                const editorHeight = cm.getWrapperElement().clientHeight;
+                const targetEditorScrollTop = Math.max(0, charCoords.top - editorHeight / 2);
+                cm.scrollTo(null, targetEditorScrollTop);
+                lastEditorScrollTop = targetEditorScrollTop;
+
+                // 프리뷰 뷰포트 스크롤 연동 (중앙 뷰 스크롤 연동, 스냅백 방지를 위해 behavior: 'auto' 적용)
+                const targetEl = preview.querySelector(`[data-line="${line + 1}"]`);
+                if (targetEl && previewViewport) {
+                    const targetScrollTop = previewViewport.scrollTop + targetEl.getBoundingClientRect().top - previewViewport.getBoundingClientRect().top - previewViewport.clientHeight / 2 + targetEl.clientHeight / 2;
+                    const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
+                    const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxPreviewScrollY));
+
+                    previewViewport.scrollTo({
+                        top: clampedScrollTop,
+                        behavior: 'auto'
+                    });
+                    lastPreviewScrollTop = clampedScrollTop;
+                }
+
+                // 이동 트랜지션 완료 고려하여 300ms 후 동기화 상태 원복
+                setTimeout(() => {
+                    isSyncing = false;
+                    updateActiveTOCItem();
+                }, 300);
+            });
+
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+
+        updateActiveTOCItem();
+    }
+
+    // 현재 보고 있는 프리뷰 위치에 따라 TOC 아이템 active 상태 업데이트
+    function updateActiveTOCItem() {
+        if (!previewViewport) return;
+        const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
+        if (headings.length === 0) return;
+
+        const viewportRect = previewViewport.getBoundingClientRect();
+        let activeHeading = null;
+
+        for (let i = 0; i < headings.length; i++) {
+            const el = headings[i];
+            const rect = el.getBoundingClientRect();
+
+            // 뷰포트 상단으로부터 약 100px 이내 영역에 헤더가 있는 경우를 활성화 기준으로 처리
+            if (rect.top - viewportRect.top <= 100) {
+                activeHeading = el;
+            } else {
+                break;
+            }
+        }
+
+        if (!activeHeading && headings.length > 0) {
+            activeHeading = headings[0];
+        }
+
+        if (activeHeading) {
+            const line = activeHeading.getAttribute('data-line');
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(item => {
+                if (item.getAttribute('data-line') === line) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+    }
+
     // 3. 초기 렌더링 시 Heading들을 추출하여 초기 키프레임 자동 구축
     function rebuildInitialKeyframes() {
         if (!previewViewport) return;
@@ -1159,12 +1290,14 @@ document.addEventListener('DOMContentLoaded', () => {
             previewViewport.scrollTop = 0;
             lastPreviewScrollTop = 0;
             updateDebugPanel();
+            updateActiveTOCItem();
             return;
         }
         if (scrollTop >= maxEditorScrollTop) {
             previewViewport.scrollTop = maxPreviewScrollY;
             lastPreviewScrollTop = maxPreviewScrollY;
             updateDebugPanel();
+            updateActiveTOCItem();
             return;
         }
 
@@ -1203,6 +1336,7 @@ document.addEventListener('DOMContentLoaded', () => {
         previewViewport.scrollTop = newPreviewScrollTop;
         
         updateDebugPanel();
+        updateActiveTOCItem();
     });
 
     // 프리뷰 스크롤 이벤트 바인딩
@@ -1218,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lastEditorScrollTop = targetScroll;
             cm.scrollTo(null, targetScroll);
             updateDebugPanel();
+            updateActiveTOCItem();
         });
     }
 
@@ -1414,6 +1549,39 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadRegFile('associate_edge.reg', edgeReg);
             alert('Edge 연결등록 레지스트리 파일(associate_edge.reg)이 다운로드되었습니다.\n\n다운로드된 파일을 더블 클릭하여 실행(병합)해 주세요!');
             settingsModal.style.display = 'none';
+        });
+    }
+
+    // TOC 사이드바 토글 관련 이벤트 바인딩
+    if (btnTocToggleInner && tocSidebar) {
+        btnTocToggleInner.addEventListener('click', () => {
+            tocSidebar.classList.add('collapsed');
+            btnTocToggleInner.setAttribute('aria-expanded', 'false');
+            if (tocToggleBar) {
+                tocToggleBar.setAttribute('aria-expanded', 'false');
+            }
+        });
+        btnTocToggleInner.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                btnTocToggleInner.click();
+            }
+        });
+    }
+
+    if (tocToggleBar && tocSidebar) {
+        tocToggleBar.addEventListener('click', () => {
+            tocSidebar.classList.remove('collapsed');
+            if (btnTocToggleInner) {
+                btnTocToggleInner.setAttribute('aria-expanded', 'true');
+            }
+            tocToggleBar.setAttribute('aria-expanded', 'true');
+        });
+        tocToggleBar.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                tocToggleBar.click();
+            }
         });
     }
 });
