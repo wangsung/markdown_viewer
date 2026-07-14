@@ -75,6 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnView = document.getElementById('btn-view');
     const viewMenu = document.getElementById('view-menu');
 
+    const menuDropdown = document.getElementById('menu-dropdown');
+    const btnMenu = document.getElementById('btn-menu');
+    const mainMenu = document.getElementById('main-menu');
+    const btnNewFile = document.getElementById('btn-new-file');
+    const btnOpenFile = document.getElementById('btn-open-file');
+    const fileInput = document.getElementById('file-input');
+
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
     // 에디터 파일 관련 변수 및 상태 플래그
@@ -679,14 +686,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
     // ==========================================================================
-    // 내보내기 및 보기 드롭다운 토글 및 닫기 처리
+    // ==========================================================================
+    // 내보내기 및 보기, 메인 메뉴 드롭다운 토글 및 닫기 처리
     // ==========================================================================
     if (btnExport && exportMenu) {
         btnExport.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (viewMenu) {
-                viewMenu.classList.remove('show');
-            }
+            if (viewMenu) viewMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
             exportMenu.classList.toggle('show');
         });
     }
@@ -694,26 +701,48 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnView && viewMenu) {
         btnView.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
             viewMenu.classList.toggle('show');
         });
     }
 
-    // 문서의 다른 부분을 클릭하면 두 드롭다운 모두 닫히도록 설정
+    if (btnMenu && mainMenu) {
+        btnMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (viewMenu) viewMenu.classList.remove('show');
+            mainMenu.classList.toggle('show');
+        });
+    }
+
+    // 문서의 다른 부분을 클릭하면 모든 드롭다운이 닫히도록 설정
     document.addEventListener('click', (e) => {
         if (exportDropdown && !exportDropdown.contains(e.target)) {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
+            if (exportMenu) exportMenu.classList.remove('show');
         }
         if (viewDropdown && !viewDropdown.contains(e.target)) {
-            if (viewMenu) {
-                viewMenu.classList.remove('show');
-            }
+            if (viewMenu) viewMenu.classList.remove('show');
+        }
+        if (menuDropdown && !menuDropdown.contains(e.target)) {
+            if (mainMenu) mainMenu.classList.remove('show');
         }
     });
+
+    // 메인 메뉴 하위 액션 연결
+    if (btnNewFile) {
+        btnNewFile.addEventListener('click', () => {
+            if (mainMenu) mainMenu.classList.remove('show');
+            handleNewFile();
+        });
+    }
+
+    if (btnOpenFile) {
+        btnOpenFile.addEventListener('click', () => {
+            if (mainMenu) mainMenu.classList.remove('show');
+            if (fileInput) fileInput.click();
+        });
+    }
 
     if (btnExportHtml) {
         btnExportHtml.addEventListener('click', () => {
@@ -1119,23 +1148,74 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
-    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수
+    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수 (Save As 형태로 동작)
     function downloadCurrentContent() {
         const text = cm.getValue();
+        // 사용자에게 저장할 파일명을 물어봄 (Save As 동작 보장)
+        const newFilename = prompt("저장할 마크다운 파일명을 입력하세요:", currentFilename);
+        if (newFilename === null) {
+            // 취소를 누르면 무시
+            return;
+        }
+
+        const finalFilename = newFilename.trim() || '제목 없음.md';
         const blob = new Blob([text], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = currentFilename;
+        a.download = finalFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
         // 저장 완료 후 수정 안 됨 상태로 업데이트
-        updateFilenameDisplay(currentFilename, false);
+        updateFilenameDisplay(finalFilename, false);
     }
 
+    // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
+    function loadSingleFile(file) {
+        if (!file) return;
+        const fileName = file.name;
+        const extension = fileName.split('.').pop().toLowerCase();
+        const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
+        
+        if (allowedExtensions.includes(extension) || file.type.startsWith('text/')) {
+            let shouldLoad = true;
+            
+            if (isDirty) {
+                const saveConfirm = confirm(`작성 중인 내용이 변경되었습니다. 파일 로드 전에 현재 문서를 컴퓨터에 저장(다운로드)하시겠습니까?`);
+                if (saveConfirm) {
+                    downloadCurrentContent();
+                } else {
+                    // 저장 안 함 선택 시, 덮어쓰고 계속 불러올지 재차 확인 (작업 소실 방지)
+                    shouldLoad = confirm(`현재 문서를 저장하지 않고 "${fileName}" 파일을 불러오시겠습니까?\n(확인을 누르면 작성 중이던 기존 수정 내용이 사라집니다.)`);
+                }
+            }
+            
+            if (shouldLoad) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    cm.setValue(event.target.result);
+                    updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
+                    renderMarkdown();
+                    
+                    // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
+                    cm.scrollTo(0, 0);
+                    const previewViewport = document.querySelector('.preview-viewport');
+                    if (previewViewport) {
+                        previewViewport.scrollTop = 0;
+                        previewViewport.scrollLeft = 0;
+                    }
+                };
+                reader.readAsText(file);
+            }
+        } else {
+            alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.');
+        }
+    }
+
+    // 드래그 앤 드롭 파일 로딩 연동
     editorContainer.addEventListener('drop', (e) => {
         e.preventDefault();
         dragCounter = 0;
@@ -1143,46 +1223,35 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const files = e.dataTransfer.files;
         if (files && files.length > 0) {
-            const file = files[0];
-            const fileName = file.name;
-            const extension = fileName.split('.').pop().toLowerCase();
-            const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
-            
-            if (allowedExtensions.includes(extension) || file.type.startsWith('text/')) {
-                let shouldLoad = true;
-                
-                if (isDirty) {
-                    const saveConfirm = confirm(`작성 중인 내용이 변경되었습니다. 파일 로드 전에 현재 문서를 컴퓨터에 저장(다운로드)하시겠습니까?`);
-                    if (saveConfirm) {
-                        downloadCurrentContent();
-                    } else {
-                        // 저장 안 함 선택 시, 덮어쓰고 계속 불러올지 재차 확인 (작업 소실 방지)
-                        shouldLoad = confirm(`현재 문서를 저장하지 않고 "${fileName}" 파일을 불러오시겠습니까?\n(확인을 누르면 작성 중이던 기존 수정 내용이 사라집니다.)`);
-                    }
-                }
-                
-                if (shouldLoad) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        cm.setValue(event.target.result);
-                        updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
-                        renderMarkdown();
-                        
-                        // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
-                        cm.scrollTo(0, 0);
-                        const previewViewport = document.querySelector('.preview-viewport');
-                        if (previewViewport) {
-                            previewViewport.scrollTop = 0;
-                            previewViewport.scrollLeft = 0;
-                        }
-                    };
-                    reader.readAsText(file);
-                }
-            } else {
-                alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.');
-            }
+            loadSingleFile(files[0]);
         }
     });
+
+    // 숨김 파일 인풋 change 이벤트 연동 (md 불러오기)
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                loadSingleFile(files[0]);
+                // 다음 파일 로드를 위해 input 값 초기화
+                fileInput.value = '';
+            }
+        });
+    }
+
+    // 새 마크다운 파일 초기화 비즈니스 로직
+    function handleNewFile() {
+        let shouldCreate = true;
+        if (isDirty) {
+            shouldCreate = confirm("작성 중인 내용이 변경되었습니다. 저장하지 않은 변경 사항을 모두 취소하고 새 마크다운을 만드시겠습니까?");
+        }
+        if (shouldCreate) {
+            cm.setValue('');
+            updateFilenameDisplay('제목 없음.md', false);
+            renderMarkdown();
+            cm.scrollTo(0, 0);
+        }
+    }
 
     // ==========================================================================
     // 식별자 및 비율 기반 비례 재조정(Proportional Rescaling) 스크롤 동기화 로직

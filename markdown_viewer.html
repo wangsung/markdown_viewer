@@ -29,6 +29,22 @@
     <header class="menu-bar">
         <div class="menu-left">
             <span class="logo">MarkVi</span>
+            <!-- 메인 메뉴 확장 드롭다운 -->
+            <div class="dropdown" id="menu-dropdown">
+                <button id="btn-menu" class="btn btn-secondary btn-icon" title="주요 메뉴를 엽니다.">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
+                <div class="dropdown-menu" id="main-menu">
+                    <button id="btn-new-file" class="dropdown-item" title="새로운 마크다운 문서를 만듭니다.">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                        새 markdown
+                    </button>
+                    <button id="btn-open-file" class="dropdown-item" title="로컬 마크다운 파일을 불러옵니다.">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><polyline points="12 11 12 17"></polyline><polyline points="9 14 12 11 15 14"></polyline></svg>
+                        md 불러오기
+                    </button>
+                </div>
+            </div>
             <!-- 파일 이름 보기 뱃지 -->
             <div class="file-badge" id="file-badge" title="현재 열려있는 파일">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
@@ -44,6 +60,7 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
                 문단 모으기
             </button>
+            <input type="file" id="file-input" accept=".md,.markdown,.txt,text/*" style="display:none;">
             <!-- 스크롤 동기화 토글 스위치 -->
             <label class="toggle-control" id="scroll-sync-wrapper">
                 <input type="checkbox" id="scroll-sync" checked>
