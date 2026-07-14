@@ -89,10 +89,23 @@
         </div>
 
         <div class="menu-right">
-            <button id="btn-copy" class="btn btn-secondary" title="프리뷰 화면의 전체 내용을 선택하여 복사합니다.">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                Preview 복사
-            </button>
+            <div class="dropdown" id="export-dropdown">
+                <button id="btn-export" class="btn btn-secondary" title="문서를 내보내거나 복사합니다.">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    내보내기
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-menu" id="export-menu">
+                    <button id="btn-copy" class="dropdown-item" title="프리뷰 화면의 전체 내용을 선택하여 복사합니다.">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Preview 복사
+                    </button>
+                    <button id="btn-export-html" class="dropdown-item" title="프리뷰 화면을 스타일이 포함된 HTML 파일로 다운로드합니다.">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Preview HTML 내보내기
+                    </button>
+                </div>
+            </div>
             <button id="btn-debug" class="btn btn-secondary" title="키프레임 동기화 디버깅 패널을 토글합니다.">
                 🐞 키프레임
             </button>

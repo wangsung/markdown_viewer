@@ -59,6 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCopy = document.getElementById('btn-copy');
     const btnSave = document.getElementById('btn-save');
     const btnDebug = document.getElementById('btn-debug');
+    const exportDropdown = document.getElementById('export-dropdown');
+    const btnExport = document.getElementById('btn-export');
+    const exportMenu = document.getElementById('export-menu');
+    const btnExportHtml = document.getElementById('btn-export-html');
 
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
@@ -605,11 +609,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
     // ==========================================================================
+    // ==========================================================================
+    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
+    // ==========================================================================
     btnCopy.addEventListener('click', () => {
         // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
         if (!preview || preview.children.length === 0) {
             alert('복사할 프리뷰 내용이 없습니다.');
             return;
+        }
+
+        // 드롭다운 메뉴 닫기
+        if (exportMenu) {
+            exportMenu.classList.remove('show');
         }
 
         // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
@@ -625,20 +637,22 @@ document.addEventListener('DOMContentLoaded', () => {
             // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
             const successful = document.execCommand('copy');
             if (successful) {
-                // 복사 성공 피드백 표시
-                const originalHTML = btnCopy.innerHTML;
-                btnCopy.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    복사 완료!
-                `;
-                btnCopy.style.borderColor = '#10b981';
-                btnCopy.style.color = '#10b981';
-                
-                setTimeout(() => {
-                    btnCopy.innerHTML = originalHTML;
-                    btnCopy.style.borderColor = '';
-                    btnCopy.style.color = '';
-                }, 2000);
+                // 내보내기 버튼(btnExport)에 복사 성공 피드백 표시
+                if (btnExport) {
+                    const originalHTML = btnExport.innerHTML;
+                    btnExport.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        복사 완료!
+                    `;
+                    btnExport.style.borderColor = '#10b981';
+                    btnExport.style.color = '#10b981';
+                    
+                    setTimeout(() => {
+                        btnExport.innerHTML = originalHTML;
+                        btnExport.style.borderColor = '';
+                        btnExport.style.color = '';
+                    }, 2000);
+                }
             } else {
                 alert('클립보드 복사 명령을 실행할 수 없습니다.');
             }
@@ -650,6 +664,154 @@ document.addEventListener('DOMContentLoaded', () => {
             selection.removeAllRanges();
         }
     });
+
+    // ==========================================================================
+    // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
+    // ==========================================================================
+    if (btnExport && exportMenu) {
+        btnExport.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle('show');
+        });
+
+        // 문서의 다른 부분을 클릭하면 드롭다운이 닫히도록 설정
+        document.addEventListener('click', (e) => {
+            if (exportDropdown && !exportDropdown.contains(e.target)) {
+                exportMenu.classList.remove('show');
+            }
+        });
+    }
+
+    if (btnExportHtml) {
+        btnExportHtml.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+            downloadPreviewHtml();
+        });
+    }
+
+    // 프리뷰 HTML을 스타일이 포함된 HTML 파일로 다운로드
+    async function downloadPreviewHtml() {
+        if (!preview || preview.children.length === 0) {
+            alert('내보낼 프리뷰 내용이 없습니다.');
+            return;
+        }
+
+        try {
+            // CSS 파일들을 읽어온다 (실패 시 CDN 주소 폴백 또는 빈 문자열 처리)
+            let githubCss = '';
+            let katexCss = '';
+            let styleCss = '';
+
+            try {
+                const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
+                githubCss = await res.text();
+            } catch (e) {
+                console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
+                githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
+            }
+
+            try {
+                const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
+                let rawKatex = await res.text();
+                // 폰트 경로를 CDN 주소로 치환하여 단독 실행 시 깨짐 방지
+                katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
+            } catch (e) {
+                console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
+                katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
+            }
+
+            try {
+                const res = await fetch(chrome.runtime.getURL('style.css'));
+                styleCss = await res.text();
+            } catch (e) {
+                console.warn('style.css fetch 실패.', e);
+            }
+
+            // 현재 테마 설정 추출
+            const fontStyle = getComputedStyle(preview).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
+            const fontSizeStyle = getComputedStyle(preview).getPropertyValue('font-size').trim() || '16px';
+            const lineColor = document.getElementById('line-color-picker')?.value || '#3b82f6';
+
+            // HTML 문서 템플릿
+            const htmlContent = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${currentFilename.replace(/\.[^/.]+$/, "")} - Preview Export</title>
+    <style>
+        /* Base Variables overrides */
+        :root {
+            --theme-color: ${lineColor};
+            --preview-bg: #ffffff;
+            --preview-text: #1f2937;
+            --preview-heading: #111827;
+            --preview-border: #e5e7eb;
+            --preview-code-bg: #f3f4f6;
+            --preview-blockquote-bg: #f9fafb;
+            --preview-font-family: ${fontStyle};
+            --preview-font-size: ${fontSizeStyle};
+        }
+        
+        body {
+            background-color: var(--preview-bg);
+            color: var(--preview-text);
+            font-family: var(--preview-font-family);
+            font-size: var(--preview-font-size);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .export-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 40px 24px;
+            box-sizing: border-box;
+        }
+
+        /* github code highlight styles */
+        ${githubCss}
+
+        /* katex math formulas styles */
+        ${katexCss}
+
+        /* app preview markdown styles */
+        ${styleCss}
+    </style>
+</head>
+<body>
+    <div class="export-container">
+        <article class="markdown-body">
+            ${preview.innerHTML}
+        </article>
+    </div>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // 파일명 설정
+            const lastDotIndex = currentFilename.lastIndexOf('.');
+            const baseName = lastDotIndex !== -1 ? currentFilename.substring(0, lastDotIndex) : currentFilename;
+            a.download = `${baseName}.html`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } catch (err) {
+            console.error('HTML 내보내기 실패:', err);
+            alert('HTML 내보내기에 실패했습니다.');
+        }
+    }
     // ==========================================================================
     // Drag & Drop Markdown File Loading Logic
     // ==========================================================================
