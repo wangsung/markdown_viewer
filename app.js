@@ -1148,29 +1148,21 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
-    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수 (Save As 형태로 동작)
+    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수
     function downloadCurrentContent() {
         const text = cm.getValue();
-        // 사용자에게 저장할 파일명을 물어봄 (Save As 동작 보장)
-        const newFilename = prompt("저장할 마크다운 파일명을 입력하세요:", currentFilename);
-        if (newFilename === null) {
-            // 취소를 누르면 무시
-            return;
-        }
-
-        const finalFilename = newFilename.trim() || '제목 없음.md';
         const blob = new Blob([text], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = finalFilename;
+        a.download = currentFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
         // 저장 완료 후 수정 안 됨 상태로 업데이트
-        updateFilenameDisplay(finalFilename, false);
+        updateFilenameDisplay(currentFilename, false);
     }
 
     // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
