@@ -3,7 +3,7 @@
   "name": "로컬 마크다운 뷰어 (Offline MarkVi)",
   "version": "1.0.0",
   "description": "로컬 마크다운 파일(.md)을 브라우저에서 열었을 때 자동으로 아름답게 프리뷰해 줍니다.",
-  "permissions": [],
+  "permissions": ["downloads"],
   "content_scripts": [
     {
       "matches": [

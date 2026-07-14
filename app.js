@@ -873,23 +873,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            
+
             // 파일명 설정
             const lastDotIndex = currentFilename.lastIndexOf('.');
             const baseName = lastDotIndex !== -1 ? currentFilename.substring(0, lastDotIndex) : currentFilename;
-            a.download = `${baseName}.html`;
-            
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            const targetFilename = `${baseName}.html`;
+
+            if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
+                chrome.downloads.download({
+                    url: url,
+                    filename: targetFilename,
+                    saveAs: true // 다른 이름으로 저장 강제 활성화
+                }, (downloadId) => {
+                    if (chrome.runtime.lastError) {
+                        console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
+                        fallbackHtmlDownload(url, targetFilename);
+                    }
+                });
+            } else {
+                fallbackHtmlDownload(url, targetFilename);
+            }
             
         } catch (err) {
             console.error('HTML 저장 실패:', err);
             alert('HTML 저장에 실패했습니다.');
         }
+    }
+
+    // HTML 다운로드 fallback 처리 함수
+    function fallbackHtmlDownload(url, filename) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     // 프리뷰 HTML을 새창/새탭에 띄우는 함수
@@ -1153,16 +1172,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const text = cm.getValue();
         const blob = new Blob([text], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
+        
+        // chrome.downloads API를 사용하여 무조건 다른 이름으로 저장 대화상자(SaveAs)를 직접 호출
+        if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
+            chrome.downloads.download({
+                url: url,
+                filename: currentFilename,
+                saveAs: true // 다른 이름으로 저장 강제 활성화
+            }, (downloadId) => {
+                if (chrome.runtime.lastError) {
+                    console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
+                    fallbackDownload(url, currentFilename);
+                } else {
+                    updateFilenameDisplay(currentFilename, false);
+                }
+            });
+        } else {
+            fallbackDownload(url, currentFilename);
+        }
+    }
+
+    // chrome.downloads 미지원 환경을 위한 fallback 파일 저장 함수
+    function fallbackDownload(url, filename) {
         const a = document.createElement('a');
         a.href = url;
-        a.download = currentFilename;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        // 저장 완료 후 수정 안 됨 상태로 업데이트
-        updateFilenameDisplay(currentFilename, false);
+        updateFilenameDisplay(filename, false);
     }
 
     // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
