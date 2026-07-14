@@ -61,11 +61,6 @@
                 문단 모으기
             </button>
             <input type="file" id="file-input" accept=".md, .markdown" style="display:none;">
-            <!-- 스크롤 동기화 토글 스위치 -->
-            <label class="toggle-control" id="scroll-sync-wrapper">
-                <input type="checkbox" id="scroll-sync" checked>
-                <span class="toggle-label">Scroll Sync</span>
-            </label>
         </div>
 
         <!-- 보기 스타일 설정 (글꼴, 크기, 선 색상) -->
@@ -90,6 +85,13 @@
                     <option value="20px">20px</option>
                     <option value="24px">24px</option>
                 </select>
+            </div>
+
+            <div class="menu-item" style="display: flex; align-items: center; align-self: center;">
+                <label class="toggle-control" id="scroll-sync-wrapper" style="margin: 0;">
+                    <input type="checkbox" id="scroll-sync" checked>
+                    <span class="toggle-label">Scroll Sync</span>
+                </label>
             </div>
 
             <div class="menu-item">
