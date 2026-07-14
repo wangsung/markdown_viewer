@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExport = document.getElementById('btn-export');
     const exportMenu = document.getElementById('export-menu');
     const btnExportHtml = document.getElementById('btn-export-html');
+    const btnOpenNewWindow = document.getElementById('btn-open-new-window');
     const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
     
     const viewDropdown = document.getElementById('view-dropdown');
@@ -723,51 +724,58 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 프리뷰 HTML을 스타일이 포함된 HTML 파일로 다운로드
-    async function downloadPreviewHtml() {
+    if (btnOpenNewWindow) {
+        btnOpenNewWindow.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+            openPreviewHtmlInNewWindow();
+        });
+    }
+
+    // 프리뷰의 스타일을 취합하여 standalone HTML 콘텐츠를 빌드하는 공통 함수
+    async function generatePreviewHtmlContent() {
         if (!preview || preview.children.length === 0) {
-            alert('내보낼 프리뷰 내용이 없습니다.');
-            return;
+            return null;
+        }
+
+        // CSS 파일들을 읽어온다 (실패 시 CDN 주소 폴백 또는 빈 문자열 처리)
+        let githubCss = '';
+        let katexCss = '';
+        let styleCss = '';
+
+        try {
+            const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
+            githubCss = await res.text();
+        } catch (e) {
+            console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
+            githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
         }
 
         try {
-            // CSS 파일들을 읽어온다 (실패 시 CDN 주소 폴백 또는 빈 문자열 처리)
-            let githubCss = '';
-            let katexCss = '';
-            let styleCss = '';
+            const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
+            let rawKatex = await res.text();
+            // 폰트 경로를 CDN 주소로 치환하여 단독 실행 시 깨짐 방지
+            katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
+        } catch (e) {
+            console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
+            katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
+        }
 
-            try {
-                const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
-                githubCss = await res.text();
-            } catch (e) {
-                console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-                githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
-            }
+        try {
+            const res = await fetch(chrome.runtime.getURL('style.css'));
+            styleCss = await res.text();
+        } catch (e) {
+            console.warn('style.css fetch 실패.', e);
+        }
 
-            try {
-                const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
-                let rawKatex = await res.text();
-                // 폰트 경로를 CDN 주소로 치환하여 단독 실행 시 깨짐 방지
-                katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
-            } catch (e) {
-                console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-                katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
-            }
+        // 현재 테마 설정 추출
+        const fontStyle = getComputedStyle(preview).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
+        const fontSizeStyle = getComputedStyle(preview).getPropertyValue('font-size').trim() || '16px';
+        const lineColor = document.getElementById('line-color-picker')?.value || '#3b82f6';
 
-            try {
-                const res = await fetch(chrome.runtime.getURL('style.css'));
-                styleCss = await res.text();
-            } catch (e) {
-                console.warn('style.css fetch 실패.', e);
-            }
-
-            // 현재 테마 설정 추출
-            const fontStyle = getComputedStyle(preview).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
-            const fontSizeStyle = getComputedStyle(preview).getPropertyValue('font-size').trim() || '16px';
-            const lineColor = document.getElementById('line-color-picker')?.value || '#3b82f6';
-
-            // HTML 문서 템플릿
-            const htmlContent = `<!DOCTYPE html>
+        // HTML 문서 템플릿 반환
+        return `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -823,6 +831,16 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 </body>
 </html>`;
+    }
+
+    // 프리뷰 HTML을 스타일이 포함된 HTML 파일로 다운로드
+    async function downloadPreviewHtml() {
+        try {
+            const htmlContent = await generatePreviewHtmlContent();
+            if (!htmlContent) {
+                alert('내보낼 프리뷰 내용이 없습니다.');
+                return;
+            }
 
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -840,8 +858,35 @@ document.addEventListener('DOMContentLoaded', () => {
             URL.revokeObjectURL(url);
             
         } catch (err) {
-            console.error('HTML 내보내기 실패:', err);
-            alert('HTML 내보내기에 실패했습니다.');
+            console.error('HTML 저장 실패:', err);
+            alert('HTML 저장에 실패했습니다.');
+        }
+    }
+
+    // 프리뷰 HTML을 새창/새탭에 띄우는 함수
+    async function openPreviewHtmlInNewWindow() {
+        // 브라우저 팝업 차단 회피를 위해 사용자 상호작용 스레드 직속으로 창을 우선 엶
+        const newWindow = window.open('about:blank', '_blank');
+        if (!newWindow) {
+            alert('팝업 차단이 감지되었습니다. 팝업 차단을 해제해 주세요.');
+            return;
+        }
+
+        try {
+            const htmlContent = await generatePreviewHtmlContent();
+            if (!htmlContent) {
+                alert('새 창으로 띄울 프리뷰 내용이 없습니다.');
+                newWindow.close();
+                return;
+            }
+
+            newWindow.document.open();
+            newWindow.document.write(htmlContent);
+            newWindow.document.close();
+        } catch (err) {
+            console.error('HTML 새 창 열기 실패:', err);
+            alert('HTML 새 창 열기에 실패했습니다.');
+            newWindow.close();
         }
     }
 
