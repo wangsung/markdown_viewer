@@ -961,6 +961,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 앞쪽 Line A 자체가 마크다운 구조의 일부로 끝났다면 결합하지 않음
             if (isMarkdownElement(trimmedA)) return false;
 
+            // [추가 구현]: 첫 번째 줄(Line A)의 끝이 <br> 또는 <br/> 등 HTML 개행 태그라면 
+            // 명시적 강제 개행 의도이므로 다음 줄과 결합하지 않고 행 분리 상태 유지
+            if (/<br\s*\/?>$/i.test(trimmedA)) return false;
+
             // [추가된 고도화 규칙]: 앞 줄의 완성도 판단
             // 앞 줄이 너무 짧다면(단어 3개 이하 혹은 15자 미만) 단독 제목이나 캡션일 확률이 매우 높으므로 결합 안 함
             if (isLineATooShort(lineA)) return false;
