@@ -1278,6 +1278,12 @@ div.katex-error {
     animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+#main-menu {
+    left: 0;
+    right: auto;
+    transform-origin: top left;
+}
+
 .dropdown-menu.show {
     display: block;
 }
