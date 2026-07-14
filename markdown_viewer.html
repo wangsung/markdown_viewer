@@ -39,16 +39,11 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 저장
             </button>
-            <!-- 수식 지원 토글 스위치 -->
-            <label class="toggle-control" id="math-render-wrapper">
-                <input type="checkbox" id="math-render" checked>
-                <span class="toggle-label">수식</span>
-            </label>
-            <!-- 다이어그램 지원 토글 스위치 -->
-            <label class="toggle-control" id="diagram-render-wrapper">
-                <input type="checkbox" id="diagram-render" checked>
-                <span class="toggle-label">Mermaid</span>
-            </label>
+            <!-- 문단 모으기 버튼 추가 -->
+            <button id="btn-join-paragraphs" class="btn btn-secondary" title="인위적으로 잘린 줄을 분석하여 하나의 문단으로 이어 붙입니다. (Alt+Q)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"></path></svg>
+                문단 모으기
+            </button>
             <!-- 스크롤 동기화 토글 스위치 -->
             <label class="toggle-control" id="scroll-sync-wrapper">
                 <input type="checkbox" id="scroll-sync" checked>
@@ -89,6 +84,28 @@
         </div>
 
         <div class="menu-right">
+            <!-- 보기 설정 드롭다운 메뉴 -->
+            <div class="dropdown" id="view-dropdown">
+                <button id="btn-view" class="btn btn-secondary" title="화면 보기 설정을 변경합니다.">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    보기
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-menu" id="view-menu">
+                    <div class="dropdown-item-toggle">
+                        <label class="toggle-control" id="math-render-wrapper">
+                            <input type="checkbox" id="math-render" checked>
+                            <span class="toggle-label">수식</span>
+                        </label>
+                    </div>
+                    <div class="dropdown-item-toggle">
+                        <label class="toggle-control" id="diagram-render-wrapper">
+                            <input type="checkbox" id="diagram-render" checked>
+                            <span class="toggle-label">Mermaid</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="dropdown" id="export-dropdown">
                 <button id="btn-export" class="btn btn-secondary" title="문서를 내보내거나 복사합니다.">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>

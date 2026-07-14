@@ -1316,4 +1316,22 @@ div.katex-error {
     color: var(--theme-color);
 }
 
+.dropdown-item-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 8px 16px;
+    transition: background-color 0.15s;
+}
+
+.dropdown-item-toggle:hover {
+    background-color: var(--border-color);
+}
+
+.dropdown-item-toggle .toggle-control {
+    width: 100%;
+    justify-content: space-between;
+    flex-direction: row-reverse;
+}
+
 

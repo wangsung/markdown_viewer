@@ -34,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             "Ctrl-I": function(cm) {
                 insertFormatting('italic');
+            },
+            "Alt-Q": function(cm) {
+                if (typeof joinParagraphsAction === 'function') {
+                    joinParagraphsAction();
+                }
             }
         }
     });
@@ -63,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExport = document.getElementById('btn-export');
     const exportMenu = document.getElementById('export-menu');
     const btnExportHtml = document.getElementById('btn-export-html');
+    const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
+    
+    const viewDropdown = document.getElementById('view-dropdown');
+    const btnView = document.getElementById('btn-view');
+    const viewMenu = document.getElementById('view-menu');
 
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
@@ -668,19 +678,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
     // ==========================================================================
+    // 내보내기 및 보기 드롭다운 토글 및 닫기 처리
+    // ==========================================================================
     if (btnExport && exportMenu) {
         btnExport.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (viewMenu) {
+                viewMenu.classList.remove('show');
+            }
             exportMenu.classList.toggle('show');
         });
+    }
 
-        // 문서의 다른 부분을 클릭하면 드롭다운이 닫히도록 설정
-        document.addEventListener('click', (e) => {
-            if (exportDropdown && !exportDropdown.contains(e.target)) {
+    if (btnView && viewMenu) {
+        btnView.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
+            viewMenu.classList.toggle('show');
         });
     }
+
+    // 문서의 다른 부분을 클릭하면 두 드롭다운 모두 닫히도록 설정
+    document.addEventListener('click', (e) => {
+        if (exportDropdown && !exportDropdown.contains(e.target)) {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+        }
+        if (viewDropdown && !viewDropdown.contains(e.target)) {
+            if (viewMenu) {
+                viewMenu.classList.remove('show');
+            }
+        }
+    });
 
     if (btnExportHtml) {
         btnExportHtml.addEventListener('click', () => {
@@ -812,6 +844,197 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('HTML 내보내기에 실패했습니다.');
         }
     }
+
+    // ==========================================================================
+    // 문단 모으기 (Smart Paragraph Join) 기능
+    // ==========================================================================
+
+    // 문단 모으기 버튼 클릭 이벤트 핸들러 바인딩
+    if (btnJoinParagraphs) {
+        btnJoinParagraphs.addEventListener('click', () => {
+            joinParagraphsAction();
+        });
+    }
+
+    // 에디터의 상황에 따라 문단 모으기를 수행하는 핵심 액션 함수
+    function joinParagraphsAction() {
+        const selection = cm.getSelection();
+        if (selection) {
+            // 선택한 텍스트 영역이 있으면 선택 영역만 변환 적용
+            const joinedText = joinParagraphs(selection);
+            cm.replaceSelection(joinedText);
+        } else {
+            // 선택 영역이 없으면 문서 전체를 대상으로 변환 적용
+            const fullText = cm.getValue();
+            const joinedText = joinParagraphs(fullText);
+            cm.setValue(joinedText);
+        }
+        
+        // 렌더링 갱신 및 에디터 포커스 복원
+        renderMarkdown();
+        cm.focus();
+    }
+
+    /**
+     * 연속해서 들어간 강제 줄바꿈(엔터)들을 분석하여 의미상 한 문단인 경우 결합해 주는 함수
+     */
+    function joinParagraphs(text) {
+        const lines = text.split(/\r?\n/);
+        const result = [];
+        let currentParagraph = [];
+
+        // 마크다운 문법 요소(제목, 리스트, 인용, 표 등)로 시작하는지 판단
+        const isMarkdownElement = (line) => {
+            const trimmed = line.trim();
+            // #, >, -, *, +, 숫자. , |, ``` 등
+            return /^([#>\-*+\d\.]|\||`{3,})/.test(trimmed);
+        };
+
+        // 영단어가 행 끝에서 하이픈(-)으로 잘렸는지 판단 (예: "infor-")
+        const isEnglishHyphenated = (line) => {
+            return /[a-zA-Z]-$/.test(line.trim());
+        };
+
+        // 앞쪽 라인(Line A)이 자립할 수 있는 문단 구성요소를 충분히 갖췄는지 판단
+        const isLineATooShort = (lineA) => {
+            const trimmed = lineA.trim();
+            // 단어 수가 3개 이하이거나 글자 수가 15자 미만이면 
+            // 독립된 제목, 캡션, 색인 등으로 간주하여 다음 줄과 합치지 않음
+            const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
+            return wordCount <= 3 || trimmed.length < 15;
+        };
+
+        /**
+         * 영어 단어 시작 및 대소문자 판정 힌트를 기반으로 결합 여부를 판단하는 함수
+         */
+        const shouldJoinEng = (trimmedA, trimmedB) => {
+            const firstCharB = trimmedB.charAt(0);
+            const isEnglishB = /[a-zA-Z]/.test(firstCharB);
+            if (isEnglishB) {
+                // Line B의 첫 영문자가 소문자라면 100% 앞 문장의 중간이 끊겨 넘어온 것이므로 결합
+                const isLowerB = firstCharB === firstCharB.toLowerCase() && firstCharB !== firstCharB.toUpperCase();
+                if (isLowerB) return true;
+
+                // Line B가 대문자로 시작하더라도, 앞의 Line A가 문장 종결부(. ? ! 또는 따옴표)로 끝나지 않았다면
+                // 문장 도중에 들어간 고유명사 등으로 판단하여 결합 진행
+                const endsWithSentenceEnd = /[\.\?\!]["']?$/.test(trimmedA);
+                if (!endsWithSentenceEnd) return true;
+            }
+            return null; // 영어 판정 결과 결정되지 않음
+        };
+
+        /**
+         * 한글 조사 및 연결어미 판정 힌트를 기반으로 결합 여부를 판단하는 함수
+         */
+        const shouldJoinKor = (trimmedA, trimmedB) => {
+            const lastCharA = trimmedA.slice(-1);
+            const isKoreanA = /[가-힣]/.test(lastCharA);
+            if (isKoreanA) {
+                // Line A의 마지막 글자가 종결형 문장부호(. ? !)로 끝나지 않고 일반 한글로 끝난 경우, 
+                // 문장이 아직 끝나지 않았으므로 결합
+                const endsWithSentenceEnd = /[\.\?\!]["']?$/.test(trimmedA);
+                if (!endsWithSentenceEnd) return true;
+                
+                // 혹은 문장부호 유무와 무관하게 마지막 글자가 명백한 조사나 연결어미로 끝난 경우 결합
+                const endsWithParticles = /[은는이가을를고며와과의에로]$/.test(trimmedA);
+                if (endsWithParticles) return true;
+            }
+            return null; // 한글 판정 결과 결정되지 않음
+        };
+
+        /**
+         * 두 개의 연속된 행 (Line A와 Line B)을 같은 문단으로 묶어 이어 붙일지 판정하는 핵심 로직
+         */
+        const shouldJoin = (lineA, lineB) => {
+            const trimmedA = lineA.trim();
+            const trimmedB = lineB.trim();
+
+            // 어느 한 쪽이라도 비어 있다면 결합하지 않음 (빈 줄은 명확한 문단 구분선)
+            if (!trimmedA || !trimmedB) return false;
+            
+            // 뒤이어 나오는 Line B가 마크다운 요소로 시작한다면 본문 결합을 막아야 함
+            if (isMarkdownElement(trimmedB)) return false;
+            
+            // Line B가 2칸 이상의 스페이스나 탭 문자 등 들여쓰기로 시작하면 새 단락의 시작으로 간주함
+            if (/^\s{2,}/.test(lineB) || /^\t/.test(lineB)) return false;
+
+            // 앞쪽 Line A 자체가 마크다운 구조의 일부로 끝났다면 결합하지 않음
+            if (isMarkdownElement(trimmedA)) return false;
+
+            // [추가된 고도화 규칙]: 앞 줄의 완성도 판단
+            // 앞 줄이 너무 짧다면(단어 3개 이하 혹은 15자 미만) 단독 제목이나 캡션일 확률이 매우 높으므로 결합 안 함
+            if (isLineATooShort(lineA)) return false;
+
+            // 1. 영어 힌트 판정
+            const engResult = shouldJoinEng(trimmedA, trimmedB);
+            if (engResult !== null) return engResult;
+
+            // 2. 한글 힌트 판정
+            const korResult = shouldJoinKor(trimmedA, trimmedB);
+            if (korResult !== null) return korResult;
+
+            // 기본 규칙: 빈 줄 없이 1회 개행(엔터)이 들어간 텍스트 블록은 
+            // 위 예외 필터(제목 방지, 들여쓰기 감지 등)를 거쳤다면 같은 문단 내의 단순 텍스트 래핑이므로
+            // 공백을 두고 결합해 줍니다.
+            return true;
+        };
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (!trimmed) {
+                // 빈 줄을 만나면 기존에 누적해서 합쳐오던 문단 버퍼를 결과에 쏟아내고(flush) 빈 줄을 삽입
+                if (currentParagraph.length > 0) {
+                    result.push(flushParagraph(currentParagraph));
+                    currentParagraph = [];
+                }
+                result.push(line);
+                continue;
+            }
+
+            if (currentParagraph.length === 0) {
+                currentParagraph.push(line);
+            } else {
+                const prevLine = currentParagraph[currentParagraph.length - 1];
+                if (shouldJoin(prevLine, line)) {
+                    currentParagraph.push(line);
+                } else {
+                    // 결합 대상이 아니라면 이전까지 모았던 버퍼를 변환 저장하고, 새 문단을 시작
+                    result.push(flushParagraph(currentParagraph));
+                    currentParagraph = [line];
+                }
+            }
+        }
+
+        // 마지막으로 남아있는 문단 버퍼 정리
+        if (currentParagraph.length > 0) {
+            result.push(flushParagraph(currentParagraph));
+        }
+
+        return result.join('\n');
+
+        // 버퍼에 담긴 한 문단의 여러 라인을 규칙에 맞춰 결합
+        function flushParagraph(paraLines) {
+            if (paraLines.length === 0) return '';
+            let merged = paraLines[0];
+            
+            for (let i = 1; i < paraLines.length; i++) {
+                const current = paraLines[i];
+                const prev = paraLines[i - 1];
+                
+                if (isEnglishHyphenated(prev)) {
+                    // 영어 단어가 하이픈으로 쪼개진 경우, 끝의 하이픈(-)을 제거하고 다음 줄을 공백 없이 바짝 이어붙임
+                    merged = merged.slice(0, -1) + current.trim();
+                } else {
+                    // 일반 문장은 영어 단어 간 혹은 한글 낱말 간 띄어쓰기를 위해 공백 한 칸을 끼워넣고 연결
+                    merged += ' ' + current.trim();
+                }
+            }
+            return merged;
+        }
+    }
+
     // ==========================================================================
     // Drag & Drop Markdown File Loading Logic
     // ==========================================================================
