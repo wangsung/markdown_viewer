@@ -152,6 +152,75 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilenameDisplay(currentFilename, false);
 
     // ==========================================================================
+    // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
+    // ==========================================================================
+    const SESSION_STORAGE_KEY = 'markvi_document_session';
+
+    function saveDocumentSession() {
+        if (!cm) return;
+        try {
+            const sessionData = {
+                content: cm.getValue(),
+                filename: currentFilename,
+                isDirty: isDirty,
+                editorWidthPercent: editorPanel ? editorPanel.style.width : '',
+                fontFamily: fontSelect ? fontSelect.value : '',
+                fontSize: fontSizeSelect ? fontSizeSelect.value : '',
+                lineColor: lineColorPicker ? lineColorPicker.value : ''
+            };
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+        } catch (e) {
+            console.warn('Failed to save document session:', e);
+        }
+    }
+
+    function restoreDocumentSession() {
+        try {
+            const rawData = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (!rawData) return;
+            const session = JSON.parse(rawData);
+
+            // 1. Content Restore
+            if (typeof session.content === 'string' && session.content.length > 0) {
+                cm.setValue(session.content);
+            }
+
+            // 2. Filename & Status Restore
+            if (session.filename) {
+                updateFilenameDisplay(session.filename, !!session.isDirty);
+            }
+
+            // 3. Panel Split Width Restore
+            if (session.editorWidthPercent && editorPanel) {
+                editorPanel.style.width = session.editorWidthPercent;
+                if (typeof cm.refresh === 'function') cm.refresh();
+            }
+
+            // 4. Font Family Restore
+            if (session.fontFamily && fontSelect) {
+                fontSelect.value = session.fontFamily;
+                if (preview) preview.style.setProperty('--preview-font-family', session.fontFamily);
+            }
+
+            // 5. Font Size Restore
+            if (session.fontSize && fontSizeSelect) {
+                fontSizeSelect.value = session.fontSize;
+                if (preview) preview.style.setProperty('--preview-font-size', session.fontSize);
+            }
+
+            // 6. Line Color Restore
+            if (session.lineColor && lineColorPicker) {
+                lineColorPicker.value = session.lineColor;
+                if (typeof updateThemeColors === 'function') {
+                    updateThemeColors(session.lineColor);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to restore document session:', e);
+        }
+    }
+
+    // ==========================================================================
     // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
@@ -475,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', stopDrag);
         cm.refresh();
+        saveDocumentSession();
     }
 
     dragDivider.addEventListener('mousedown', startDrag);
@@ -491,11 +561,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Font Family Selector
     fontSelect.addEventListener('change', () => {
         preview.style.setProperty('--preview-font-family', fontSelect.value);
+        saveDocumentSession();
     });
 
     // 2. Font Size Selector
     fontSizeSelect.addEventListener('change', () => {
         preview.style.setProperty('--preview-font-size', fontSizeSelect.value);
+        saveDocumentSession();
     });
 
     // 3. Line Color Picker (Dynamic CSS Theme Variables)
@@ -545,6 +617,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     lineColorPicker.addEventListener('input', (e) => {
         updateThemeColors(e.target.value);
+        saveDocumentSession();
     });
 
     // Initialize theme colors on load
@@ -1269,6 +1342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cm.setValue(event.target.result);
                     updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
                     renderMarkdown();
+                    saveDocumentSession();
                     
                     // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
                     cm.scrollTo(0, 0);
@@ -1320,6 +1394,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateFilenameDisplay('제목 없음.md', false);
             renderMarkdown();
             cm.scrollTo(0, 0);
+            saveDocumentSession();
         }
     }
 
@@ -2069,18 +2144,27 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
+    // 복원할 저장 세션이 존재하는지 확인
+    const hasSavedSession = !!localStorage.getItem(SESSION_STORAGE_KEY);
+
+    // 저장된 세션 (문서 내용, 파일명, 에디터/Preview 분할 폭, 글꼴 등) 복원
+    restoreDocumentSession();
+
     // Trigger Initial Render
     renderMarkdown();
     updateDebugPanel();
     
-    // 초기 너비 동등 설정 실행 및 로드 완료 후 보정
-    initializePanelWidths();
-    window.addEventListener('load', initializePanelWidths);
+    // 세션 복원된 분할 폭이 없을 경우에만 초기 동등 너비 설정 실행
+    if (!hasSavedSession) {
+        initializePanelWidths();
+        window.addEventListener('load', initializePanelWidths);
+    }
 
-    // Auto Render Event
+    // Auto Render & Auto Save Event
     cm.on('change', () => {
         updateFilenameDisplay(currentFilename, true);
         renderMarkdown();
+        saveDocumentSession();
     });
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {

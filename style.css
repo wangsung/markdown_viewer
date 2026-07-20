@@ -192,7 +192,7 @@ body {
     height: 28px;
     border-radius: 50%;
     overflow: hidden;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-frame);
     cursor: pointer;
     transition: transform 0.2s;
 }
@@ -225,7 +225,7 @@ body {
     appearance: none;
     width: 36px;
     height: 20px;
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     border-radius: 20px;
     position: relative;
     outline: none;
@@ -256,11 +256,11 @@ body {
 .toggle-label {
     font-size: 0.85rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
 }
 
 .toggle-control input[type="checkbox"]:checked + .toggle-label {
-    color: var(--text-main);
+    color: var(--text-frame-main);
 }
 
 /* Buttons */
@@ -305,13 +305,13 @@ body {
 
 .btn-secondary {
     background-color: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
+    border: 1px solid var(--border-frame);
+    color: var(--text-frame-main);
 }
 
 .btn-secondary:hover {
-    background-color: var(--border-color);
-    border-color: var(--text-muted);
+    background-color: var(--border-frame);
+    border-color: var(--text-frame-muted);
     transform: translateY(-1px);
 }
 
@@ -327,7 +327,7 @@ body {
     flex: 1;
     overflow: hidden;
     position: relative;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-frame-primary);
 }
 
 .panel {
@@ -352,7 +352,7 @@ body {
 /* Draggable Divider */
 .divider {
     width: 6px;
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     cursor: col-resize;
     position: relative;
     z-index: 5;
@@ -388,8 +388,8 @@ body {
    ========================================================================== */
 .toolbar {
     height: 44px;
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-frame-secondary);
+    border-bottom: 1px solid var(--border-frame);
     padding: 0 16px;
     display: flex;
     align-items: center;
@@ -403,7 +403,7 @@ body {
 }
 
 .toolbar::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     border-radius: 10px;
 }
 
@@ -413,7 +413,7 @@ body {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -423,7 +423,7 @@ body {
 }
 
 .toolbar-btn:hover {
-    color: var(--text-main);
+    color: var(--text-frame-main);
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -439,7 +439,7 @@ body {
 .toolbar-separator {
     width: 1px;
     height: 18px;
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     margin: 0 6px;
 }
 
@@ -1149,8 +1149,8 @@ div.katex-error {
 .toc-sidebar {
     width: var(--toc-width);
     height: 100%;
-    background-color: var(--bg-secondary); /* 상단 헤더/툴바와 동일한 톤의 다크 그레이 */
-    border-right: 1px solid var(--border-color);
+    background-color: var(--bg-frame-secondary); /* 상단 헤더/툴바와 동일한 톤의 다크 그레이 */
+    border-right: 1px solid var(--border-frame);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -1172,7 +1172,7 @@ div.katex-error {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-frame);
     background-color: rgba(0, 0, 0, 0.15); /* 깊이감을 주는 백그라운드 틴트 */
     flex-shrink: 0;
 }
@@ -1355,11 +1355,11 @@ div.katex-error {
     position: absolute;
     right: 0;
     top: calc(100% + 8px);
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background-color: #0b132b;
+    border: 1px solid #475569;
     border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15);
+    z-index: 1000;
     min-width: 210px;
     padding: 6px 0;
     transform-origin: top right;
@@ -1395,7 +1395,7 @@ div.katex-error {
     padding: 10px 16px;
     background: none;
     border: none;
-    color: var(--text-main);
+    color: var(--text-frame-main);
     font-size: 0.875rem;
     font-weight: 500;
     text-align: left;
@@ -1404,12 +1404,12 @@ div.katex-error {
 }
 
 .dropdown-item:hover {
-    background-color: var(--border-color);
-    color: var(--text-main);
+    background-color: var(--border-frame);
+    color: var(--text-frame-main);
 }
 
 .dropdown-item svg {
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
     transition: color 0.15s;
 }
 
@@ -1426,7 +1426,7 @@ div.katex-error {
 }
 
 .dropdown-item-toggle:hover {
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
 }
 
 .dropdown-item-toggle .toggle-control {
