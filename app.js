@@ -82,6 +82,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenFile = document.getElementById('btn-open-file');
     const fileInput = document.getElementById('file-input');
 
+    // Theme Toggle Elements & Logic
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const themeIconSun = document.querySelector('.theme-icon-sun');
+    const themeIconMoon = document.querySelector('.theme-icon-moon');
+    const themeToggleText = document.getElementById('theme-toggle-text');
+
+    function applyTheme(theme) {
+        if (container) {
+            container.setAttribute('data-editor-theme', theme);
+        }
+        document.documentElement.setAttribute('data-editor-theme', theme);
+        localStorage.setItem('markvi_editor_theme', theme);
+
+        if (theme === 'dark') {
+            if (themeIconSun) themeIconSun.style.display = 'none';
+            if (themeIconMoon) themeIconMoon.style.display = 'inline-block';
+            if (themeToggleText) themeToggleText.textContent = 'Dark';
+        } else {
+            if (themeIconSun) themeIconSun.style.display = 'inline-block';
+            if (themeIconMoon) themeIconMoon.style.display = 'none';
+            if (themeToggleText) themeToggleText.textContent = 'Light';
+        }
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('markvi_editor_theme') || 'dark';
+        applyTheme(savedTheme);
+    }
+
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const currentTheme = (container && container.getAttribute('data-editor-theme')) || document.documentElement.getAttribute('data-editor-theme') || 'dark';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+    }
+
+    initTheme();
+
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
     // 에디터 파일 관련 변수 및 상태 플래그
