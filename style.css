@@ -36,6 +36,10 @@
     --preview-border: #334155;
     --preview-code-bg: #0f172a;
     --preview-blockquote-bg: #0f172a;
+    --preview-blockquote-text: #cbd5e1;
+    --preview-table-th-bg: #0f172a;
+    --preview-table-tr-bg: #1e293b;
+    --preview-table-tr-even-bg: #0f172a;
 }
 
 /* Editor Body View - Light Theme */
@@ -53,6 +57,10 @@
     --preview-border: #e5e7eb;
     --preview-code-bg: #f3f4f6;
     --preview-blockquote-bg: #f9fafb;
+    --preview-blockquote-text: #4b5563;
+    --preview-table-th-bg: #f9fafb;
+    --preview-table-tr-bg: #ffffff;
+    --preview-table-tr-even-bg: #f9fafb;
 }
 
 /* ==========================================================================
@@ -756,7 +764,7 @@ body {
 /* Blockquote */
 .markdown-body blockquote {
     padding: 10px 20px;
-    color: #4b5563;
+    color: var(--preview-blockquote-text);
     border-left: 4px solid var(--theme-color);
     background-color: var(--preview-blockquote-bg);
     border-radius: 0 6px 6px 0;
@@ -796,21 +804,23 @@ body {
 .markdown-body table td {
     padding: 8px 13px;
     border: 1px solid var(--preview-border);
+    color: var(--preview-text);
 }
 
 .markdown-body table th {
     font-weight: 600;
-    background-color: #f9fafb;
+    background-color: var(--preview-table-th-bg);
+    color: var(--preview-heading);
     border-bottom: 2px solid var(--theme-color);
 }
 
 .markdown-body table tr {
-    background-color: #ffffff;
+    background-color: var(--preview-table-tr-bg);
     border-top: 1px solid var(--preview-border);
 }
 
 .markdown-body table tr:nth-child(even) {
-    background-color: #f9fafb;
+    background-color: var(--preview-table-tr-even-bg);
 }
 
 /* Code & Pre */
