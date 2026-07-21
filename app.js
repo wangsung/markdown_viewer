@@ -240,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h3: { colorLight: '#0f172a', colorDark: '#f1f5f9', size: '1.25em', border: 'none' },
                 h4: { colorLight: '#334155', colorDark: '#cbd5e1', size: '1em', border: 'none' },
                 h5: { colorLight: '#475569', colorDark: '#94a3b8', size: '0.875em', border: 'none' },
-                h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' }
+                h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' },
+                link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' }
             }
         },
         {
@@ -252,7 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h3: { colorLight: '#0ea5e9', colorDark: '#bae6fd', size: '1.3em', border: 'none' },
                 h4: { colorLight: '#0369a1', colorDark: '#e0f2fe', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#1e3a8a', colorDark: '#f0f9ff', size: '0.9em', border: 'none' },
-                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
+                link: { colorLight: '#0284c7', colorDark: '#38bdf8', decoration: 'none' }
             }
         },
         {
@@ -264,7 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h3: { colorLight: '#10b981', colorDark: '#a7f3d0', size: '1.3em', border: 'none' },
                 h4: { colorLight: '#047857', colorDark: '#d1fae5', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#064e3b', colorDark: '#ecfdf5', size: '0.9em', border: 'none' },
-                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
+                link: { colorLight: '#059669', colorDark: '#34d399', decoration: 'none' }
             }
         },
         {
@@ -276,7 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h3: { colorLight: '#f43f5e', colorDark: '#fecdd3', size: '1.3em', border: 'none' },
                 h4: { colorLight: '#be123c', colorDark: '#ffe4e6', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#881337', colorDark: '#fff1f2', size: '0.9em', border: 'none' },
-                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
+                link: { colorLight: '#e11d48', colorDark: '#fb7185', decoration: 'underline' }
             }
         },
         {
@@ -288,7 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h3: { colorLight: '#8b5cf6', colorDark: '#ddd6fe', size: '1.3em', border: 'none' },
                 h4: { colorLight: '#6d28d9', colorDark: '#ede9fe', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#4c1d95', colorDark: '#f5f3ff', size: '0.9em', border: 'none' },
-                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
+                link: { colorLight: '#7c3aed', colorDark: '#a78bfa', decoration: 'none' }
             }
         }
     ];
@@ -335,6 +340,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (styleObj.border) root.style.setProperty(`--${tag}-border`, styleObj.border);
             }
         });
+
+        // 🔗 HyperLink 적용
+        if (styles.link) {
+            const linkObj = styles.link;
+            const targetLinkColor = currentTheme === 'light'
+                ? (linkObj.colorLight || linkObj.color || '#0969da')
+                : (linkObj.colorDark || linkObj.color || '#38bdf8');
+            root.style.setProperty('--link-color', targetLinkColor);
+            root.style.setProperty('--link-decoration', linkObj.decoration || 'underline');
+        }
 
         localStorage.setItem('markvi_active_heading_preset', presetId);
 
@@ -2396,9 +2411,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target === settingsModal) {
             settingsModal.style.display = 'none';
         }
-        if (event.target === headingModal) {
-            headingModal.style.display = 'none';
-        }
     });
 
     // 레지스트리(.reg) 파일 다운로드 헬퍼
@@ -2542,6 +2554,34 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             headingStyleControls.appendChild(row);
         });
+
+        // 🔗 HyperLink 행 생성
+        const linkObj = found.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
+        const linkRow = document.createElement('div');
+        linkRow.style.display = 'flex';
+        linkRow.style.alignItems = 'center';
+        linkRow.style.gap = '6px';
+        linkRow.style.padding = '3px 8px';
+        linkRow.style.background = 'var(--input-frame-bg)';
+        linkRow.style.border = '1px solid var(--border-frame)';
+        linkRow.style.borderRadius = '4px';
+
+        linkRow.innerHTML = `
+            <span style="font-weight: 700; width: 44px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 Link</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 링크 색상">
+                ☀️<input type="color" id="modal-link-color-light" value="${linkObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) 링크 색상">
+                🌙<input type="color" id="modal-link-color-dark" value="${linkObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">밑줄:</label>
+            <select id="modal-link-decoration" style="padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem; flex:1;">
+                <option value="underline" ${linkObj.decoration === 'underline' ? 'selected' : ''}>underline (밑줄 있음)</option>
+                <option value="none" ${linkObj.decoration === 'none' ? 'selected' : ''}>none (밑줄 없음)</option>
+            </select>
+        `;
+        headingStyleControls.appendChild(linkRow);
     }
 
     if (btnEditHeadingStyle && headingModal) {
@@ -2602,6 +2642,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
                 }
             });
+
+            // 🔗 Link 수거
+            const linkLight = document.getElementById('modal-link-color-light');
+            const linkDark = document.getElementById('modal-link-color-dark');
+            const linkDeco = document.getElementById('modal-link-decoration');
+            if (linkLight && linkDark && linkDeco) {
+                presets[foundIdx].styles.link = {
+                    colorLight: linkLight.value,
+                    colorDark: linkDark.value,
+                    decoration: linkDeco.value
+                };
+            }
             saveHeadingPresets(presets);
             applyHeadingPreset(currentId);
             renderMarkdown();
