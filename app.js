@@ -2638,16 +2638,16 @@ document.addEventListener('DOMContentLoaded', () => {
             row.style.borderRadius = '4px';
 
             row.innerHTML = `
-                <span style="font-weight: 700; width: 24px; font-size: 0.8rem; color: var(--theme-color);">${tag.toUpperCase()}</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+                <span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--theme-color);"># ${tag.toUpperCase()}</span>
+                <label style="font-size: 0.75rem; color: var(--text-frame-muted);">크기:</label>
+                <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">색:</span>
                 <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) Heading 색상">
                     ☀️<input type="color" id="modal-${tag}-color-light" value="${colorLight}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
                 </label>
                 <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) Heading 색상">
                     🌙<input type="color" id="modal-${tag}-color-dark" value="${colorDark}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
                 </label>
-                <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">크기:</label>
-                <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">하단선:</label>
                 <input type="text" id="modal-${tag}-border" value="${border}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
             `;
@@ -2666,8 +2666,8 @@ document.addEventListener('DOMContentLoaded', () => {
         linkRow.style.borderRadius = '4px';
 
         linkRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ ] 대괄호 링크</span>
-            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ 대괄호 링크 ]</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 대괄호 링크 색상">
                 ☀️<input type="color" id="modal-link-color-light" value="${linkObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
@@ -2694,8 +2694,8 @@ document.addEventListener('DOMContentLoaded', () => {
         strongRow.style.borderRadius = '4px';
 
         strongRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;">💪 굵게</span>
-            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;"><strong style="font-size:0.85rem; font-weight:800; font-family:serif; margin-right:6px;">B</strong> ** 굵게 **</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 굵게 글자 색상">
                 ☀️<input type="color" id="modal-strong-color-light" value="${strongObj.colorLight || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
@@ -2705,7 +2705,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         headingStyleControls.appendChild(strongRow);
 
-        // ✨ 기울임 행 생성
+        // ✨ * 기울임 * 행 생성
         const emObj = found.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
         const emRow = document.createElement('div');
         emRow.style.display = 'flex';
@@ -2717,8 +2717,8 @@ document.addEventListener('DOMContentLoaded', () => {
         emRow.style.borderRadius = '4px';
 
         emRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;">✨ 기울임</span>
-            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;"><em style="font-size:0.85rem; font-style:italic; font-family:serif; margin-right:6px;">I</em> * 기울임 *</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 기울임 글자 색상">
                 ☀️<input type="color" id="modal-em-color-light" value="${emObj.colorLight || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
@@ -2740,8 +2740,8 @@ document.addEventListener('DOMContentLoaded', () => {
         codeRow.style.borderRadius = '4px';
 
         codeRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` \` Inline code</span>
-            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` Inline code \`</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Inline Code 색상">
                 ☀️<input type="color" id="modal-code-color-light" value="${codeObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
@@ -2763,7 +2763,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bqRow.style.borderRadius = '4px';
 
         bqRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 인용문</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 > 인용문</span>
             <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 인용문 글자 색상">
                 ☀️<input type="color" id="modal-blockquote-color-light" value="${bqObj.colorLight || '#475569'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -2793,8 +2793,8 @@ document.addEventListener('DOMContentLoaded', () => {
         lineRow.style.borderRadius = '4px';
 
         lineRow.innerHTML = `
-            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ Line</span>
-            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ --- line 구분선</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 선 색상">
                 ☀️<input type="color" id="modal-line-color-light" value="${lineObj.colorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
