@@ -243,6 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 h5: { colorLight: '#475569', colorDark: '#94a3b8', size: '0.875em', border: 'none' },
                 h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' },
                 link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' },
+                strong: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                em: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                code: { colorLight: '#0969da', colorDark: '#38bdf8' },
+                blockquote: { colorLight: '#475569', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' },
                 line: { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' }
             }
         },
@@ -257,6 +261,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 h5: { colorLight: '#1e3a8a', colorDark: '#f0f9ff', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
                 link: { colorLight: '#0284c7', colorDark: '#38bdf8', decoration: 'none' },
+                strong: { colorLight: '#0369a1', colorDark: '#38bdf8' },
+                em: { colorLight: '#0284c7', colorDark: '#7dd3fc' },
+                code: { colorLight: '#0284c7', colorDark: '#38bdf8' },
+                blockquote: { colorLight: '#0369a1', colorDark: '#bae6fd', borderLight: '#0284c7', borderDark: '#38bdf8' },
                 line: { colorLight: '#38bdf8', colorDark: '#0ea5e9', border: '2px solid #38bdf8' }
             }
         },
@@ -271,6 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 h5: { colorLight: '#064e3b', colorDark: '#ecfdf5', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
                 link: { colorLight: '#059669', colorDark: '#34d399', decoration: 'none' },
+                strong: { colorLight: '#047857', colorDark: '#34d399' },
+                em: { colorLight: '#059669', colorDark: '#6ee7b7' },
+                code: { colorLight: '#059669', colorDark: '#34d399' },
+                blockquote: { colorLight: '#047857', colorDark: '#a7f3d0', borderLight: '#059669', borderDark: '#34d399' },
                 line: { colorLight: '#059669', colorDark: '#10b981', border: '2px solid #059669' }
             }
         },
@@ -285,6 +297,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 h5: { colorLight: '#881337', colorDark: '#fff1f2', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
                 link: { colorLight: '#e11d48', colorDark: '#fb7185', decoration: 'underline' },
+                strong: { colorLight: '#be123c', colorDark: '#fb7185' },
+                em: { colorLight: '#e11d48', colorDark: '#fda4af' },
+                code: { colorLight: '#e11d48', colorDark: '#fb7185' },
+                blockquote: { colorLight: '#881337', colorDark: '#fecdd3', borderLight: '#e11d48', borderDark: '#fb7185' },
                 line: { colorLight: '#e11d48', colorDark: '#f43f5e', border: '2px solid #e11d48' }
             }
         },
@@ -299,6 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 h5: { colorLight: '#4c1d95', colorDark: '#f5f3ff', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
                 link: { colorLight: '#7c3aed', colorDark: '#a78bfa', decoration: 'none' },
+                strong: { colorLight: '#6d28d9', colorDark: '#a78bfa' },
+                em: { colorLight: '#7c3aed', colorDark: '#c4b5fd' },
+                code: { colorLight: '#7c3aed', colorDark: '#a78bfa' },
+                blockquote: { colorLight: '#4c1d95', colorDark: '#ddd6fe', borderLight: '#7c3aed', borderDark: '#a78bfa' },
                 line: { colorLight: '#7c3aed', colorDark: '#8b5cf6', border: '2px dashed #8b5cf6' }
             }
         }
@@ -347,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 🔗 HyperLink 적용
+        // 🔗 HyperLink / 대괄호 적용
         if (styles.link) {
             const linkObj = styles.link;
             const targetLinkColor = currentTheme === 'light'
@@ -355,6 +375,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 : (linkObj.colorDark || linkObj.color || '#38bdf8');
             root.style.setProperty('--link-color', targetLinkColor);
             root.style.setProperty('--link-decoration', linkObj.decoration || 'underline');
+        }
+
+        // 💪 굵게 (Strong / Bold)
+        if (styles.strong) {
+            const boldObj = styles.strong;
+            const targetBoldColor = currentTheme === 'light'
+                ? (boldObj.colorLight || boldObj.color || '#0f172a')
+                : (boldObj.colorDark || boldObj.color || '#f8fafc');
+            root.style.setProperty('--bold-color', targetBoldColor);
+        }
+
+        // ✨ 기울임 (Em / Italic)
+        if (styles.em) {
+            const emObj = styles.em;
+            const targetItalicColor = currentTheme === 'light'
+                ? (emObj.colorLight || emObj.color || '#0f172a')
+                : (emObj.colorDark || emObj.color || '#f8fafc');
+            root.style.setProperty('--italic-color', targetItalicColor);
+        }
+
+        // 💻 ` ` Inline code
+        if (styles.code) {
+            const codeObj = styles.code;
+            const targetCodeColor = currentTheme === 'light'
+                ? (codeObj.colorLight || codeObj.color || '#0969da')
+                : (codeObj.colorDark || codeObj.color || '#38bdf8');
+            root.style.setProperty('--code-color', targetCodeColor);
+        }
+
+        // 💬 인용문 (Blockquote)
+        if (styles.blockquote) {
+            const bqObj = styles.blockquote;
+            const targetBqColor = currentTheme === 'light'
+                ? (bqObj.colorLight || bqObj.color || '#475569')
+                : (bqObj.colorDark || bqObj.color || '#cbd5e1');
+            const targetBqBorder = currentTheme === 'light'
+                ? (bqObj.borderLight || bqObj.borderColor || '#0969da')
+                : (bqObj.borderDark || bqObj.borderColor || '#38bdf8');
+            root.style.setProperty('--blockquote-text-color', targetBqColor);
+            root.style.setProperty('--blockquote-border-color', targetBqBorder);
         }
 
         // ➖ Line (선 색상/구분선) 적용
@@ -548,7 +608,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        markedOptions.extensions = [inlineMath, blockMath];
+        const bracketText = {
+            name: 'bracketText',
+            level: 'inline',
+            start(src) { return src.indexOf('['); },
+            tokenizer(src, tokens) {
+                const match = src.match(/^\[([^\]\n]+)\](?!\(|\[)/);
+                if (match) {
+                    return {
+                        type: 'bracketText',
+                        raw: match[0],
+                        text: match[1]
+                    };
+                }
+            },
+            renderer(token) {
+                return `<span class="md-bracket-link">[${token.text}]</span>`;
+            }
+        };
+
+        markedOptions.extensions = [inlineMath, blockMath, bracketText];
         marked.use(markedOptions);
     }
 
@@ -2575,7 +2654,7 @@ document.addEventListener('DOMContentLoaded', () => {
             headingStyleControls.appendChild(row);
         });
 
-        // 🔗 HyperLink 행 생성
+        // 🔗 [ ] 대괄호 링크 행 생성
         const linkObj = found.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
         const linkRow = document.createElement('div');
         linkRow.style.display = 'flex';
@@ -2587,12 +2666,12 @@ document.addEventListener('DOMContentLoaded', () => {
         linkRow.style.borderRadius = '4px';
 
         linkRow.innerHTML = `
-            <span style="font-weight: 700; width: 44px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 Link</span>
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ ] 대괄호 링크</span>
             <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
-            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 링크 색상">
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 대괄호 링크 색상">
                 ☀️<input type="color" id="modal-link-color-light" value="${linkObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
-            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) 링크 색상">
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) 대괄호 링크 색상">
                 🌙<input type="color" id="modal-link-color-dark" value="${linkObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
             </label>
             <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">밑줄:</label>
@@ -2602,6 +2681,105 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
         `;
         headingStyleControls.appendChild(linkRow);
+
+        // 💪 굵게 행 생성
+        const strongObj = found.styles.strong || { colorLight: '#0f172a', colorDark: '#f8fafc' };
+        const strongRow = document.createElement('div');
+        strongRow.style.display = 'flex';
+        strongRow.style.alignItems = 'center';
+        strongRow.style.gap = '6px';
+        strongRow.style.padding = '3px 8px';
+        strongRow.style.background = 'var(--input-frame-bg)';
+        strongRow.style.border = '1px solid var(--border-frame)';
+        strongRow.style.borderRadius = '4px';
+
+        strongRow.innerHTML = `
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;">💪 굵게</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 굵게 글자 색상">
+                ☀️<input type="color" id="modal-strong-color-light" value="${strongObj.colorLight || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 굵게 글자 색상">
+                🌙<input type="color" id="modal-strong-color-dark" value="${strongObj.colorDark || '#f8fafc'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+        `;
+        headingStyleControls.appendChild(strongRow);
+
+        // ✨ 기울임 행 생성
+        const emObj = found.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
+        const emRow = document.createElement('div');
+        emRow.style.display = 'flex';
+        emRow.style.alignItems = 'center';
+        emRow.style.gap = '6px';
+        emRow.style.padding = '3px 8px';
+        emRow.style.background = 'var(--input-frame-bg)';
+        emRow.style.border = '1px solid var(--border-frame)';
+        emRow.style.borderRadius = '4px';
+
+        emRow.innerHTML = `
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;">✨ 기울임</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 기울임 글자 색상">
+                ☀️<input type="color" id="modal-em-color-light" value="${emObj.colorLight || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 기울임 글자 색상">
+                🌙<input type="color" id="modal-em-color-dark" value="${emObj.colorDark || '#f8fafc'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+        `;
+        headingStyleControls.appendChild(emRow);
+
+        // 💻 ` ` Inline code 행 생성
+        const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8' };
+        const codeRow = document.createElement('div');
+        codeRow.style.display = 'flex';
+        codeRow.style.alignItems = 'center';
+        codeRow.style.gap = '6px';
+        codeRow.style.padding = '3px 8px';
+        codeRow.style.background = 'var(--input-frame-bg)';
+        codeRow.style.border = '1px solid var(--border-frame)';
+        codeRow.style.borderRadius = '4px';
+
+        codeRow.innerHTML = `
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` \` Inline code</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Inline Code 색상">
+                ☀️<input type="color" id="modal-code-color-light" value="${codeObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 Inline Code 색상">
+                🌙<input type="color" id="modal-code-color-dark" value="${codeObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+        `;
+        headingStyleControls.appendChild(codeRow);
+
+        // 💬 인용문 (Blockquote) 행 생성
+        const bqObj = found.styles.blockquote || { colorLight: '#475569', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
+        const bqRow = document.createElement('div');
+        bqRow.style.display = 'flex';
+        bqRow.style.alignItems = 'center';
+        bqRow.style.gap = '6px';
+        bqRow.style.padding = '3px 8px';
+        bqRow.style.background = 'var(--input-frame-bg)';
+        bqRow.style.border = '1px solid var(--border-frame)';
+        bqRow.style.borderRadius = '4px';
+
+        bqRow.innerHTML = `
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 인용문</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 인용문 글자 색상">
+                ☀️<input type="color" id="modal-blockquote-color-light" value="${bqObj.colorLight || '#475569'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 인용문 글자 색상">
+                🌙<input type="color" id="modal-blockquote-color-dark" value="${bqObj.colorDark || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 4px;">테두리:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 인용문 테두리 색상">
+                ☀️<input type="color" id="modal-blockquote-border-light" value="${bqObj.borderLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 인용문 테두리 색상">
+                🌙<input type="color" id="modal-blockquote-border-dark" value="${bqObj.borderDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+        `;
+        headingStyleControls.appendChild(bqRow);
 
         // ➖ Line (선 색상/구분선) 행 생성
         const lineObj = found.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
@@ -2615,7 +2793,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lineRow.style.borderRadius = '4px';
 
         lineRow.innerHTML = `
-            <span style="font-weight: 700; width: 44px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ Line</span>
+            <span style="font-weight: 700; width: 100px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ Line</span>
             <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
             <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 선 색상">
                 ☀️<input type="color" id="modal-line-color-light" value="${lineObj.colorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -2700,6 +2878,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
 
+            // 💪 굵게 수거
+            const strongLight = document.getElementById('modal-strong-color-light');
+            const strongDark = document.getElementById('modal-strong-color-dark');
+            if (strongLight && strongDark) {
+                presets[foundIdx].styles.strong = {
+                    colorLight: strongLight.value,
+                    colorDark: strongDark.value
+                };
+            }
+
+            // ✨ 기울임 수거
+            const emLight = document.getElementById('modal-em-color-light');
+            const emDark = document.getElementById('modal-em-color-dark');
+            if (emLight && emDark) {
+                presets[foundIdx].styles.em = {
+                    colorLight: emLight.value,
+                    colorDark: emDark.value
+                };
+            }
+
+            // 💻 ` ` Inline code 수거
+            const codeLight = document.getElementById('modal-code-color-light');
+            const codeDark = document.getElementById('modal-code-color-dark');
+            if (codeLight && codeDark) {
+                presets[foundIdx].styles.code = {
+                    colorLight: codeLight.value,
+                    colorDark: codeDark.value
+                };
+            }
+
+            // 💬 인용문 수거
+            const bqLight = document.getElementById('modal-blockquote-color-light');
+            const bqDark = document.getElementById('modal-blockquote-color-dark');
+            const bqBorderLight = document.getElementById('modal-blockquote-border-light');
+            const bqBorderDark = document.getElementById('modal-blockquote-border-dark');
+            if (bqLight && bqDark && bqBorderLight && bqBorderDark) {
+                presets[foundIdx].styles.blockquote = {
+                    colorLight: bqLight.value,
+                    colorDark: bqDark.value,
+                    borderLight: bqBorderLight.value,
+                    borderDark: bqBorderDark.value
+                };
+            }
+
             // ➖ Line 수거
             const lineLight = document.getElementById('modal-line-color-light');
             const lineDark = document.getElementById('modal-line-color-dark');
@@ -2753,7 +2975,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         h3: { colorLight: '#0ea5e9', colorDark: '#93c5fd', size: '1.3em', border: 'none' },
                         h4: { colorLight: '#38bdf8', colorDark: '#cbd5e1', size: '1.1em', border: 'none' },
                         h5: { colorLight: '#7dd3fc', colorDark: '#94a3b8', size: '0.9em', border: 'none' },
-                        h6: { colorLight: '#bae6fd', colorDark: '#64748b', size: '0.85em', border: 'none' }
+                        h6: { colorLight: '#bae6fd', colorDark: '#64748b', size: '0.85em', border: 'none' },
+                        link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' },
+                        strong: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                        em: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                        code: { colorLight: '#0969da', colorDark: '#38bdf8' },
+                        blockquote: { colorLight: '#475569', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' },
+                        line: { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' }
                     }
                 };
                 presets.push(newPreset);

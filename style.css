@@ -776,27 +776,33 @@ body {
     margin-bottom: 16px;
 }
 
-.markdown-body a {
+.markdown-body strong {
+    font-weight: 600;
+    color: var(--bold-color, inherit);
+}
+
+.markdown-body em {
+    font-style: italic;
+    color: var(--italic-color, inherit);
+}
+
+.markdown-body a,
+.markdown-body .md-bracket-link {
     color: var(--link-color, var(--theme-color));
     text-decoration: var(--link-decoration, underline);
     transition: color 0.2s, text-decoration 0.2s;
 }
 
-.markdown-body a:hover {
+.markdown-body a:hover,
+.markdown-body .md-bracket-link:hover {
     filter: brightness(1.2);
-}
-
-.CodeMirror .cm-link,
-.CodeMirror .cm-string.cm-url {
-    color: var(--link-color, #38bdf8) !important;
-    text-decoration: var(--link-decoration, underline) !important;
 }
 
 /* Blockquote */
 .markdown-body blockquote {
     padding: 10px 20px;
-    color: var(--preview-blockquote-text);
-    border-left: 4px solid var(--theme-color);
+    color: var(--blockquote-text-color, var(--preview-blockquote-text));
+    border-left: 4px solid var(--blockquote-border-color, var(--theme-color));
     background-color: var(--preview-blockquote-bg);
     border-radius: 0 6px 6px 0;
 }
@@ -859,6 +865,7 @@ body {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
+    color: var(--code-color, inherit);
     background-color: var(--preview-code-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
