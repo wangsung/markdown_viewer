@@ -555,22 +555,32 @@ body {
 
 .cm-header-1 {
     font-size: 1.45em;
-    color: var(--theme-color) !important;
+    color: var(--h1-color, var(--theme-color)) !important;
 }
 
 .cm-header-2 {
     font-size: 1.3em;
-    color: #38bdf8 !important; /* Light blue */
+    color: var(--h2-color, #38bdf8) !important;
 }
 
 .cm-header-3 {
     font-size: 1.18em;
-    color: #f1f5f9 !important;
+    color: var(--h3-color, #f1f5f9) !important;
 }
 
-.cm-header-4, .cm-header-5, .cm-header-6 {
+.cm-header-4 {
+    font-size: 1.1em;
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+
+.cm-header-5 {
     font-size: 1em;
-    color: var(--text-muted) !important;
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+
+.cm-header-6 {
+    font-size: 0.9em;
+    color: var(--h6-color, var(--text-muted)) !important;
 }
 
 .cm-formatting-header {

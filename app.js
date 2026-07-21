@@ -241,7 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h4: { colorLight: '#334155', colorDark: '#cbd5e1', size: '1em', border: 'none' },
                 h5: { colorLight: '#475569', colorDark: '#94a3b8', size: '0.875em', border: 'none' },
                 h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' },
-                link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' }
+                link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' },
+                line: { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' }
             }
         },
         {
@@ -254,7 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h4: { colorLight: '#0369a1', colorDark: '#e0f2fe', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#1e3a8a', colorDark: '#f0f9ff', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
-                link: { colorLight: '#0284c7', colorDark: '#38bdf8', decoration: 'none' }
+                link: { colorLight: '#0284c7', colorDark: '#38bdf8', decoration: 'none' },
+                line: { colorLight: '#38bdf8', colorDark: '#0ea5e9', border: '2px solid #38bdf8' }
             }
         },
         {
@@ -267,7 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h4: { colorLight: '#047857', colorDark: '#d1fae5', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#064e3b', colorDark: '#ecfdf5', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
-                link: { colorLight: '#059669', colorDark: '#34d399', decoration: 'none' }
+                link: { colorLight: '#059669', colorDark: '#34d399', decoration: 'none' },
+                line: { colorLight: '#059669', colorDark: '#10b981', border: '2px solid #059669' }
             }
         },
         {
@@ -280,7 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h4: { colorLight: '#be123c', colorDark: '#ffe4e6', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#881337', colorDark: '#fff1f2', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
-                link: { colorLight: '#e11d48', colorDark: '#fb7185', decoration: 'underline' }
+                link: { colorLight: '#e11d48', colorDark: '#fb7185', decoration: 'underline' },
+                line: { colorLight: '#e11d48', colorDark: '#f43f5e', border: '2px solid #e11d48' }
             }
         },
         {
@@ -293,7 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 h4: { colorLight: '#6d28d9', colorDark: '#ede9fe', size: '1.1em', border: 'none' },
                 h5: { colorLight: '#4c1d95', colorDark: '#f5f3ff', size: '0.9em', border: 'none' },
                 h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' },
-                link: { colorLight: '#7c3aed', colorDark: '#a78bfa', decoration: 'none' }
+                link: { colorLight: '#7c3aed', colorDark: '#a78bfa', decoration: 'none' },
+                line: { colorLight: '#7c3aed', colorDark: '#8b5cf6', border: '2px dashed #8b5cf6' }
             }
         }
     ];
@@ -349,6 +354,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 : (linkObj.colorDark || linkObj.color || '#38bdf8');
             root.style.setProperty('--link-color', targetLinkColor);
             root.style.setProperty('--link-decoration', linkObj.decoration || 'underline');
+        }
+
+        // ➖ Line (선 색상/구분선) 적용
+        if (styles.line) {
+            const lineObj = styles.line;
+            const targetLineColor = currentTheme === 'light'
+                ? (lineObj.colorLight || lineObj.color || '#cbd5e1')
+                : (lineObj.colorDark || lineObj.color || '#334155');
+            root.style.setProperty('--line-color', targetLineColor);
+            root.style.setProperty('--line-border', lineObj.border || '1px solid #334155');
+            root.style.setProperty('--theme-color', targetLineColor);
         }
 
         localStorage.setItem('markvi_active_heading_preset', presetId);
@@ -775,13 +791,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `#${rHex}${gHex}${bHex}`;
     }
 
-    lineColorPicker.addEventListener('input', (e) => {
-        updateThemeColors(e.target.value);
-        saveDocumentSession();
-    });
-
-    // Initialize theme colors on load
-    updateThemeColors(lineColorPicker.value);
+    if (lineColorPicker) {
+        lineColorPicker.addEventListener('input', (e) => {
+            updateThemeColors(e.target.value);
+            saveDocumentSession();
+        });
+        updateThemeColors(lineColorPicker.value);
+    }
 
     // ==========================================================================
     // Toolbar & Markdown Formatting Utilities
@@ -2582,6 +2598,31 @@ document.addEventListener('DOMContentLoaded', () => {
             </select>
         `;
         headingStyleControls.appendChild(linkRow);
+
+        // ➖ Line (선 색상/구분선) 행 생성
+        const lineObj = found.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
+        const lineRow = document.createElement('div');
+        lineRow.style.display = 'flex';
+        lineRow.style.alignItems = 'center';
+        lineRow.style.gap = '6px';
+        lineRow.style.padding = '3px 8px';
+        lineRow.style.background = 'var(--input-frame-bg)';
+        lineRow.style.border = '1px solid var(--border-frame)';
+        lineRow.style.borderRadius = '4px';
+
+        lineRow.innerHTML = `
+            <span style="font-weight: 700; width: 44px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ Line</span>
+            <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+            <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) 선 색상">
+                ☀️<input type="color" id="modal-line-color-light" value="${lineObj.colorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) 선 색상">
+                🌙<input type="color" id="modal-line-color-dark" value="${lineObj.colorDark || '#334155'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+            </label>
+            <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">선 스타일:</label>
+            <input type="text" id="modal-line-border" value="${lineObj.border || '1px solid #334155'}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+        `;
+        headingStyleControls.appendChild(lineRow);
     }
 
     if (btnEditHeadingStyle && headingModal) {
@@ -2652,6 +2693,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     colorLight: linkLight.value,
                     colorDark: linkDark.value,
                     decoration: linkDeco.value
+                };
+            }
+
+            // ➖ Line 수거
+            const lineLight = document.getElementById('modal-line-color-light');
+            const lineDark = document.getElementById('modal-line-color-dark');
+            const lineBorder = document.getElementById('modal-line-border');
+            if (lineLight && lineDark && lineBorder) {
+                presets[foundIdx].styles.line = {
+                    colorLight: lineLight.value,
+                    colorDark: lineDark.value,
+                    border: lineBorder.value
                 };
             }
             saveHeadingPresets(presets);
