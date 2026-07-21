@@ -87,39 +87,44 @@ body {
    Top Menu Bar (.menu-bar) - Always Dark
    ========================================================================== */
 .menu-bar {
-    height: 60px;
+    height: 48px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
+    padding: 0 10px;
     background-color: var(--bg-frame-secondary);
     border-bottom: 1px solid var(--border-frame);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 10;
     flex-shrink: 0;
+    overflow: visible;
+    white-space: nowrap;
 }
 
 .menu-left, .menu-center, .menu-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 5px;
+    flex-shrink: 0;
 }
 
 /* File Badge Styling */
 .file-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     background-color: var(--input-frame-bg);
     border: 1px solid var(--border-frame);
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85rem;
+    padding: 3px 8px;
+    border-radius: 16px;
+    font-size: 0.78rem;
     color: var(--text-frame-muted);
     font-weight: 500;
-    max-width: 320px;
+    max-width: 220px;
     transition: all 0.25s ease;
     user-select: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .file-badge svg {
@@ -156,27 +161,30 @@ body {
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .menu-item label {
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     color: var(--text-frame-muted);
-    white-space: nowrap;
+    white-space: nowrap !important;
 }
 
 .menu-item select {
     background-color: var(--input-frame-bg);
     color: var(--text-frame-main);
     border: 1px solid var(--border-frame);
-    border-radius: 6px;
-    padding: 5px 8px;
-    font-size: 0.825rem;
+    border-radius: 5px;
+    padding: 3px 6px;
+    font-size: 0.78rem;
     outline: none;
     cursor: pointer;
+    white-space: nowrap !important;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -216,17 +224,19 @@ body {
 .toggle-control {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     cursor: pointer;
     user-select: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .toggle-control input[type="checkbox"] {
     appearance: none;
-    width: 36px;
-    height: 20px;
+    width: 32px;
+    height: 18px;
     background-color: var(--border-frame);
-    border-radius: 20px;
+    border-radius: 18px;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -236,8 +246,8 @@ body {
 .toggle-control input[type="checkbox"]::before {
     content: '';
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     top: 3px;
     left: 3px;
@@ -250,13 +260,14 @@ body {
 }
 
 .toggle-control input[type="checkbox"]:checked::before {
-    transform: translateX(16px);
+    transform: translateX(14px);
 }
 
 .toggle-label {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 500;
     color: var(--text-frame-muted);
+    white-space: nowrap !important;
 }
 
 .toggle-control input[type="checkbox"]:checked + .toggle-label {
@@ -267,15 +278,17 @@ body {
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 0.875rem;
+    gap: 4px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
     outline: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .btn-icon {
@@ -459,7 +472,7 @@ body {
     background-color: var(--editor-bg) !important;
     color: var(--editor-text) !important;
     font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
-    font-size: 15px;
+    font-size: var(--editor-font-size, 14px) !important;
     line-height: 1.65;
     box-sizing: border-box;
     transition: background-color 0.25s ease, color 0.25s ease;

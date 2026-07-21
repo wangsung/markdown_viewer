@@ -213,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (session.fontSize && fontSizeSelect) {
                 fontSizeSelect.value = session.fontSize;
                 if (preview) preview.style.setProperty('--preview-font-size', session.fontSize);
+                document.documentElement.style.setProperty('--editor-font-size', session.fontSize);
             }
 
             // 6. Line Color Restore
@@ -742,7 +743,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Font Size Selector
     fontSizeSelect.addEventListener('change', () => {
-        preview.style.setProperty('--preview-font-size', fontSizeSelect.value);
+        const selectedSize = fontSizeSelect.value;
+        if (preview) preview.style.setProperty('--preview-font-size', selectedSize);
+        document.documentElement.style.setProperty('--editor-font-size', selectedSize);
+        if (cm && typeof cm.refresh === 'function') cm.refresh();
         saveDocumentSession();
     });
 
