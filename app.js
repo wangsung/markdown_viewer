@@ -75,6 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnView = document.getElementById('btn-view');
     const viewMenu = document.getElementById('view-menu');
 
+    const headingDropdown = document.getElementById('heading-dropdown');
+    const btnHeadingStyle = document.getElementById('btn-heading-style');
+    const headingStyleMenu = document.getElementById('heading-style-menu');
+
     const menuDropdown = document.getElementById('menu-dropdown');
     const btnMenu = document.getElementById('btn-menu');
     const mainMenu = document.getElementById('main-menu');
@@ -104,6 +108,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (themeIconMoon) themeIconMoon.style.display = 'none';
             if (themeToggleText) themeToggleText.textContent = 'Light';
         }
+
+        const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+        applyHeadingPreset(activePresetId);
     }
 
     function initTheme() {
@@ -218,6 +225,144 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.warn('Failed to restore document session:', e);
         }
+    }
+
+    // ==========================================================================
+    // Heading Style Presets Multi-Set System (Minimum 5 Sets)
+    // ==========================================================================
+    const DEFAULT_HEADING_PRESETS = [
+        {
+            id: 'github_classic',
+            name: '1. GitHub Classic',
+            styles: {
+                h1: { colorLight: '#1d4ed8', colorDark: '#3b82f6', size: '2em', border: '1px solid #334155' },
+                h2: { colorLight: '#0369a1', colorDark: '#0284c7', size: '1.5em', border: '1px solid #334155' },
+                h3: { colorLight: '#0f172a', colorDark: '#f1f5f9', size: '1.25em', border: 'none' },
+                h4: { colorLight: '#334155', colorDark: '#cbd5e1', size: '1em', border: 'none' },
+                h5: { colorLight: '#475569', colorDark: '#94a3b8', size: '0.875em', border: 'none' },
+                h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' }
+            }
+        },
+        {
+            id: 'ocean_breeze',
+            name: '2. Ocean Breeze (오션)',
+            styles: {
+                h1: { colorLight: '#0369a1', colorDark: '#38bdf8', size: '2.2em', border: '2px solid #38bdf8' },
+                h2: { colorLight: '#0284c7', colorDark: '#7dd3fc', size: '1.6em', border: '1px dashed #7dd3fc' },
+                h3: { colorLight: '#0ea5e9', colorDark: '#bae6fd', size: '1.3em', border: 'none' },
+                h4: { colorLight: '#0369a1', colorDark: '#e0f2fe', size: '1.1em', border: 'none' },
+                h5: { colorLight: '#1e3a8a', colorDark: '#f0f9ff', size: '0.9em', border: 'none' },
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+            }
+        },
+        {
+            id: 'emerald_forest',
+            name: '3. Emerald Forest (에메랄드)',
+            styles: {
+                h1: { colorLight: '#047857', colorDark: '#34d399', size: '2.2em', border: '2px solid #059669' },
+                h2: { colorLight: '#059669', colorDark: '#6ee7b7', size: '1.6em', border: '1px solid #10b981' },
+                h3: { colorLight: '#10b981', colorDark: '#a7f3d0', size: '1.3em', border: 'none' },
+                h4: { colorLight: '#047857', colorDark: '#d1fae5', size: '1.1em', border: 'none' },
+                h5: { colorLight: '#064e3b', colorDark: '#ecfdf5', size: '0.9em', border: 'none' },
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+            }
+        },
+        {
+            id: 'crimson_elegant',
+            name: '4. Crimson Elegant (크림슨)',
+            styles: {
+                h1: { colorLight: '#be123c', colorDark: '#fb7185', size: '2.2em', border: '2px solid #e11d48' },
+                h2: { colorLight: '#e11d48', colorDark: '#fda4af', size: '1.6em', border: '1px solid #f43f5e' },
+                h3: { colorLight: '#f43f5e', colorDark: '#fecdd3', size: '1.3em', border: 'none' },
+                h4: { colorLight: '#be123c', colorDark: '#ffe4e6', size: '1.1em', border: 'none' },
+                h5: { colorLight: '#881337', colorDark: '#fff1f2', size: '0.9em', border: 'none' },
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+            }
+        },
+        {
+            id: 'violet_modern',
+            name: '5. Violet Modern (바이올렛)',
+            styles: {
+                h1: { colorLight: '#6d28d9', colorDark: '#a78bfa', size: '2.2em', border: '2px solid #7c3aed' },
+                h2: { colorLight: '#7c3aed', colorDark: '#c4b5fd', size: '1.6em', border: '1px dashed #8b5cf6' },
+                h3: { colorLight: '#8b5cf6', colorDark: '#ddd6fe', size: '1.3em', border: 'none' },
+                h4: { colorLight: '#6d28d9', colorDark: '#ede9fe', size: '1.1em', border: 'none' },
+                h5: { colorLight: '#4c1d95', colorDark: '#f5f3ff', size: '0.9em', border: 'none' },
+                h6: { colorLight: '#334155', colorDark: '#f8fafc', size: '0.85em', border: 'none' }
+            }
+        }
+    ];
+
+    function getHeadingPresets() {
+        try {
+            const stored = localStorage.getItem('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {
+            console.warn('Failed to parse heading presets:', e);
+        }
+        return DEFAULT_HEADING_PRESETS;
+    }
+
+    function saveHeadingPresets(presets) {
+        try {
+            localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
+        } catch (e) {
+            console.warn('Failed to save heading presets:', e);
+        }
+    }
+
+    function applyHeadingPreset(presetId) {
+        const presets = getHeadingPresets();
+        const found = presets.find(p => p.id === presetId) || presets[0];
+        if (!found || !found.styles) return;
+
+        const styles = found.styles;
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+
+        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+            if (styles[tag]) {
+                const styleObj = styles[tag];
+                const targetColor = currentTheme === 'light'
+                    ? (styleObj.colorLight || styleObj.color || '#1d4ed8')
+                    : (styleObj.colorDark || styleObj.color || '#3b82f6');
+
+                root.style.setProperty(`--${tag}-color`, targetColor);
+                if (styleObj.size) root.style.setProperty(`--${tag}-size`, styleObj.size);
+                if (styleObj.border) root.style.setProperty(`--${tag}-border`, styleObj.border);
+            }
+        });
+
+        localStorage.setItem('markvi_active_heading_preset', presetId);
+
+        const headingSelect = document.getElementById('heading-preset-select');
+        const modalSelect = document.getElementById('modal-heading-preset-select');
+        if (headingSelect) headingSelect.value = presetId;
+        if (modalSelect) modalSelect.value = presetId;
+    }
+
+    function updatePresetSelectOptions() {
+        const presets = getHeadingPresets();
+        const headingSelect = document.getElementById('heading-preset-select');
+        const modalSelect = document.getElementById('modal-heading-preset-select');
+
+        [headingSelect, modalSelect].forEach(selectEl => {
+            if (!selectEl) return;
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '';
+            presets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                selectEl.appendChild(opt);
+            });
+            if (currentVal && presets.some(p => p.id === currentVal)) {
+                selectEl.value = currentVal;
+            }
+        });
     }
 
     // ==========================================================================
@@ -806,6 +951,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (viewMenu) viewMenu.classList.remove('show');
             if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             exportMenu.classList.toggle('show');
         });
     }
@@ -815,6 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (exportMenu) exportMenu.classList.remove('show');
             if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             viewMenu.classList.toggle('show');
         });
     }
@@ -824,9 +971,29 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (exportMenu) exportMenu.classList.remove('show');
             if (viewMenu) viewMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             mainMenu.classList.toggle('show');
         });
     }
+
+    if (btnHeadingStyle && headingStyleMenu) {
+        btnHeadingStyle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (viewMenu) viewMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
+            headingStyleMenu.classList.toggle('show');
+        });
+    }
+
+    // 드롭다운 내부 요소(셀렉트, 옵션 등) 클릭 시 드롭다운이 바로 닫히지 않도록 수용
+    [exportMenu, viewMenu, mainMenu, headingStyleMenu].forEach(menuEl => {
+        if (menuEl) {
+            menuEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+    });
 
     // 문서의 다른 부분을 클릭하면 모든 드롭다운이 닫히도록 설정
     document.addEventListener('click', (e) => {
@@ -838,6 +1005,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (menuDropdown && !menuDropdown.contains(e.target)) {
             if (mainMenu) mainMenu.classList.remove('show');
+        }
+        if (headingDropdown && !headingDropdown.contains(e.target)) {
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
         }
     });
 
@@ -2166,6 +2336,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderMarkdown();
         saveDocumentSession();
     });
+
+    // 브라우저 새로고침(F5) 또는 창 닫기 직전 강제 세션 저장
+    window.addEventListener('beforeunload', () => {
+        saveDocumentSession();
+    });
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
@@ -2220,6 +2395,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('click', (event) => {
         if (event.target === settingsModal) {
             settingsModal.style.display = 'none';
+        }
+        if (event.target === headingModal) {
+            headingModal.style.display = 'none';
         }
     });
 
@@ -2294,5 +2472,243 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // Heading Modal & Toast Control System
+    const btnEditHeadingStyle = document.getElementById('btn-edit-heading-style');
+    const headingModal = document.getElementById('heading-modal');
+    const closeHeadingModal = document.getElementById('close-heading-modal');
+    const modalHeadingSelect = document.getElementById('modal-heading-preset-select');
+    const headingStyleControls = document.getElementById('heading-style-controls');
+    const btnSaveHeadingPreset = document.getElementById('btn-save-heading-preset');
+    const btnAddHeadingPreset = document.getElementById('btn-add-heading-preset');
+    const btnDeleteHeadingPreset = document.getElementById('btn-delete-heading-preset');
+    const btnResetHeadingPresets = document.getElementById('btn-reset-heading-presets');
+    const btnSaveOnlyHeadingPreset = document.getElementById('btn-save-only-heading-preset');
+    const btnCloseHeadingModal = document.getElementById('btn-close-heading-modal');
+    const headingPresetSelect = document.getElementById('heading-preset-select');
+
+    function showToast(message, duration = 3000) {
+        let toast = document.getElementById('markvi-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'markvi-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+
+        if (toast.timeoutId) clearTimeout(toast.timeoutId);
+        toast.timeoutId = setTimeout(() => {
+            toast.classList.remove('show');
+        }, duration);
+    }
+
+    function renderHeadingModalControls(presetId) {
+        if (!headingStyleControls) return;
+        headingStyleControls.innerHTML = '';
+
+        const presets = getHeadingPresets();
+        const found = presets.find(p => p.id === presetId) || presets[0];
+        if (!found || !found.styles) return;
+
+        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+            const styleObj = found.styles[tag] || {};
+            const colorLight = styleObj.colorLight || styleObj.color || '#1d4ed8';
+            const colorDark = styleObj.colorDark || styleObj.color || '#3b82f6';
+            const size = styleObj.size || '1em';
+            const border = styleObj.border || 'none';
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '6px';
+            row.style.padding = '3px 8px';
+            row.style.background = 'var(--input-frame-bg)';
+            row.style.border = '1px solid var(--border-frame)';
+            row.style.borderRadius = '4px';
+
+            row.innerHTML = `
+                <span style="font-weight: 700; width: 24px; font-size: 0.8rem; color: var(--theme-color);">${tag.toUpperCase()}</span>
+                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색상:</span>
+                <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 (White 배경) Heading 색상">
+                    ☀️<input type="color" id="modal-${tag}-color-light" value="${colorLight}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                </label>
+                <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 (Dark 배경) Heading 색상">
+                    🌙<input type="color" id="modal-${tag}-color-dark" value="${colorDark}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                </label>
+                <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">크기:</label>
+                <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">하단선:</label>
+                <input type="text" id="modal-${tag}-border" value="${border}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+            `;
+            headingStyleControls.appendChild(row);
+        });
+    }
+
+    if (btnEditHeadingStyle && headingModal) {
+        btnEditHeadingStyle.addEventListener('click', (e) => {
+            if (e) e.stopPropagation();
+            if (viewMenu) viewMenu.classList.remove('show');
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
+            updatePresetSelectOptions();
+            const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+            if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
+            renderHeadingModalControls(currentActive);
+            headingModal.style.display = 'block';
+        });
+    }
+
+    function closeHeadingStyleModal() {
+        if (headingModal) {
+            headingModal.style.display = 'none';
+        }
+    }
+
+    if (headingPresetSelect) {
+        headingPresetSelect.addEventListener('change', (e) => {
+            applyHeadingPreset(e.target.value);
+            renderMarkdown();
+        });
+    }
+
+    if (modalHeadingSelect) {
+        modalHeadingSelect.addEventListener('change', (e) => {
+            renderHeadingModalControls(e.target.value);
+            applyHeadingPreset(e.target.value);
+            renderMarkdown();
+        });
+    }
+
+    if (closeHeadingModal) closeHeadingModal.addEventListener('click', closeHeadingStyleModal);
+    if (btnCloseHeadingModal) btnCloseHeadingModal.addEventListener('click', closeHeadingStyleModal);
+
+    function saveCurrentHeadingModalInputs() {
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const presets = getHeadingPresets();
+        const foundIdx = presets.findIndex(p => p.id === currentId);
+        if (foundIdx !== -1) {
+            ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+                const colorLightEl = document.getElementById(`modal-${tag}-color-light`);
+                const colorDarkEl = document.getElementById(`modal-${tag}-color-dark`);
+                const sizeEl = document.getElementById(`modal-${tag}-size`);
+                const borderEl = document.getElementById(`modal-${tag}-border`);
+                if (colorLightEl && colorDarkEl && sizeEl && borderEl) {
+                    presets[foundIdx].styles[tag] = {
+                        colorLight: colorLightEl.value,
+                        colorDark: colorDarkEl.value,
+                        size: sizeEl.value,
+                        border: borderEl.value
+                    };
+                }
+            });
+            saveHeadingPresets(presets);
+            applyHeadingPreset(currentId);
+            renderMarkdown();
+            return presets[foundIdx].name;
+        }
+        return null;
+    }
+
+    if (btnSaveOnlyHeadingPreset) {
+        btnSaveOnlyHeadingPreset.addEventListener('click', () => {
+            const presetName = saveCurrentHeadingModalInputs();
+            if (presetName) {
+                showToast(`'${presetName}' 세트 스타일이 저장되었습니다.`);
+            }
+        });
+    }
+
+    if (btnSaveHeadingPreset) {
+        btnSaveHeadingPreset.addEventListener('click', () => {
+            const presetName = saveCurrentHeadingModalInputs();
+            closeHeadingStyleModal();
+            if (presetName) {
+                showToast(`'${presetName}' 세트가 적용되었습니다.`);
+            }
+        });
+    }
+
+    if (btnAddHeadingPreset) {
+        btnAddHeadingPreset.addEventListener('click', () => {
+            const name = prompt('새로운 Heading Style Set의 이름을 입력하세요:', '새 스타일 세트');
+            if (name && name.trim()) {
+                const newId = 'custom_' + Date.now();
+                const presets = getHeadingPresets();
+                const newPreset = {
+                    id: newId,
+                    name: `${presets.length + 1}. ${name.trim()}`,
+                    styles: {
+                        h1: { colorLight: '#1d4ed8', colorDark: '#3b82f6', size: '2.2em', border: '2px solid #3b82f6' },
+                        h2: { colorLight: '#0369a1', colorDark: '#60a5fa', size: '1.6em', border: '1px solid #60a5fa' },
+                        h3: { colorLight: '#0ea5e9', colorDark: '#93c5fd', size: '1.3em', border: 'none' },
+                        h4: { colorLight: '#38bdf8', colorDark: '#cbd5e1', size: '1.1em', border: 'none' },
+                        h5: { colorLight: '#7dd3fc', colorDark: '#94a3b8', size: '0.9em', border: 'none' },
+                        h6: { colorLight: '#bae6fd', colorDark: '#64748b', size: '0.85em', border: 'none' }
+                    }
+                };
+                presets.push(newPreset);
+                saveHeadingPresets(presets);
+                updatePresetSelectOptions();
+                applyHeadingPreset(newId);
+                renderHeadingModalControls(newId);
+                renderMarkdown();
+                showToast(`'${newPreset.name}' 세트가 생성되었습니다.`);
+            }
+        });
+    }
+
+    if (btnDeleteHeadingPreset) {
+        btnDeleteHeadingPreset.addEventListener('click', () => {
+            const currentId = modalHeadingSelect ? modalHeadingSelect.value : '';
+            const presets = getHeadingPresets();
+            if (presets.length <= 1) {
+                showToast('최소 1개의 Heading Style Set은 유지되어야 합니다.');
+                return;
+            }
+            const foundIdx = presets.findIndex(p => p.id === currentId);
+            if (foundIdx !== -1) {
+                if (confirm(`'${presets[foundIdx].name}' 세트를 삭제하시겠습니까?`)) {
+                    const deletedName = presets[foundIdx].name;
+                    presets.splice(foundIdx, 1);
+                    saveHeadingPresets(presets);
+                    updatePresetSelectOptions();
+                    applyHeadingPreset(presets[0].id);
+                    renderHeadingModalControls(presets[0].id);
+                    renderMarkdown();
+                    showToast(`'${deletedName}' 세트가 삭제되었습니다.`);
+                }
+            }
+        });
+    }
+
+    if (btnResetHeadingPresets) {
+        btnResetHeadingPresets.addEventListener('click', () => {
+            const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+            const presets = getHeadingPresets();
+            const defaultPreset = DEFAULT_HEADING_PRESETS.find(p => p.id === currentId);
+
+            if (defaultPreset) {
+                if (confirm(`'${defaultPreset.name}' 스타일 세트를 초기 기본값으로 복원하시겠습니까?`)) {
+                    const foundIdx = presets.findIndex(p => p.id === currentId);
+                    if (foundIdx !== -1) {
+                        presets[foundIdx] = JSON.parse(JSON.stringify(defaultPreset));
+                        saveHeadingPresets(presets);
+                        applyHeadingPreset(currentId);
+                        renderHeadingModalControls(currentId);
+                        renderMarkdown();
+                        showToast(`'${defaultPreset.name}' 세트가 초기 기본값으로 복원되었습니다.`);
+                    }
+                }
+            } else {
+                showToast('기본 제공 5종 프리셋만 초기값 복원이 가능합니다.');
+            }
+        });
+    }
+
+    // 문서 시작 시 Heading Preset 초기화
+    updatePresetSelectOptions();
+    const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+    applyHeadingPreset(activePreset);
 });
 

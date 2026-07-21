@@ -133,6 +133,31 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Heading Style 드롭다운 메뉴 (내보내기 메뉴 왼쪽에 배치) -->
+            <div class="dropdown" id="heading-dropdown">
+                <button id="btn-heading-style" class="btn btn-secondary" title="Heading 스타일 세트를 선택하거나 편집합니다.">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                    Heading Style
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="dropdown-menu" id="heading-style-menu">
+                    <div class="dropdown-item-select">
+                        <label for="heading-preset-select">Heading Style 선택</label>
+                        <select id="heading-preset-select">
+                            <option value="github_classic">1. GitHub Classic</option>
+                            <option value="ocean_breeze">2. Ocean Breeze (오션)</option>
+                            <option value="emerald_forest">3. Emerald Forest (에메랄드)</option>
+                            <option value="crimson_elegant">4. Crimson Elegant (크림슨)</option>
+                            <option value="violet_modern">5. Violet Modern (바이올렛)</option>
+                        </select>
+                    </div>
+                    <button id="btn-edit-heading-style" class="dropdown-item" title="Heading 커스텀 세트 편집 모달을 엽니다.">
+                        ⚙️ Heading 스타일 편집...
+                    </button>
+                </div>
+            </div>
+
             <div class="dropdown" id="export-dropdown">
                 <button id="btn-export" class="btn btn-secondary" title="문서를 내보내거나 복사합니다.">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
@@ -354,6 +379,46 @@ greet('사용자');
             </div>
         </div>
     </div>
+
+    <!-- Heading Style 커스텀 편집 모달 -->
+    <div id="heading-modal" class="modal">
+        <div class="modal-content" style="max-width: 580px; padding: 14px 18px;">
+            <div class="modal-header" style="padding-bottom: 6px; margin-bottom: 8px;">
+                <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 Heading 스타일 세트 편집</h2>
+                <span class="close-modal" id="close-heading-modal">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-frame);">
+                    <label for="modal-heading-preset-select" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">Preset Set:</label>
+                    <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
+                    </select>
+                    <button id="btn-add-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; white-space: nowrap;">+ 새 세트</button>
+                </div>
+
+                <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 4px;">
+                    <!-- H1 ~ H6 컨트롤 생성 위치 -->
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid var(--border-frame); padding-top: 8px;">
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-reset-heading-presets" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #ef4444;" title="기본값 초기화">초기화</button>
+                        <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 세트 저장">세트 저장</button>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btn-delete-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #f59e0b;" title="세트 삭제">삭제</button>
+                        <button id="btn-save-heading-preset" class="btn btn-primary" title="저장 및 적용 후 모달 닫기" style="font-size: 0.75rem; padding: 5px 12px; display: flex; align-items: center; gap: 4px; background-color: #2563eb; color: #ffffff; font-weight: 700; border: 1px solid #3b82f6; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            저장 및 적용
+                        </button>
+                        <button id="btn-close-heading-modal" class="btn btn-secondary" title="모달 닫기" style="font-size: 0.75rem; padding: 4px 8px; display: flex; align-items: center; gap: 3px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            닫기
+                        </button>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     <!-- 라이브러리 스크립트 파일 로드 -->
     <script src="libs/marked.min.js"></script>
