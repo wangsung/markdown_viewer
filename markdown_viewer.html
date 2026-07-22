@@ -383,24 +383,24 @@ greet('사용자');
 
     <!-- Heading Style 커스텀 편집 모달 -->
     <div id="heading-modal" class="modal">
-        <div class="modal-content" style="max-width: 580px; padding: 14px 18px;">
-            <div class="modal-header" style="padding-bottom: 6px; margin-bottom: 8px;">
+        <div class="modal-content" style="max-width: 580px; padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
+            <div class="modal-header" style="padding-bottom: 4px; margin-bottom: 5px;"> <!-- 헤더 마진/패딩 축소 -->
                 <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 스타일 세트편집</h2>
                 <span class="close-modal" id="close-heading-modal">&times;</span>
             </div>
             <div class="modal-body" style="padding: 0;">
-                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-frame);">
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 5px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-frame);"> <!-- 프리셋 행 간격/패딩 축소 -->
                     <label for="modal-heading-preset-select" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">Preset Set:</label>
                     <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
                     </select>
                     <button id="btn-add-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; white-space: nowrap;">+ 새 세트</button>
                 </div>
 
-                <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 4px;">
+                <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
                     <!-- H1 ~ H6 컨트롤 생성 위치 -->
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid var(--border-frame); padding-top: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid var(--border-frame); padding-top: 5px;"> <!-- 하단 버튼 단락 마진/패딩 축소 -->
                     <div style="display: flex; gap: 6px;">
                         <button id="btn-reset-heading-presets" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #ef4444;" title="기본값 초기화">초기화</button>
                         <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 세트 저장">세트 저장</button>
@@ -430,6 +430,7 @@ greet('사용자');
     <script src="libs/codemirror/codemirror.min.js"></script>
     <script src="libs/codemirror/mode/xml/xml.min.js"></script>
     <script src="libs/codemirror/mode/markdown/markdown.min.js"></script>
+    <script src="style-editor.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

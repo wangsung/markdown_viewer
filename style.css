@@ -1551,8 +1551,9 @@ div.katex-error {
     backdrop-filter: none !important;
 }
 
-/* 스타일 편집기 다이얼로그 외곽 경계를 뒷배경과 뚜렷이 구분하기 위한 엣지 효과 */
+/* 스타일 편집기 다이얼로그 외곽 경계를 뒷배경과 뚜렷이 구분하기 위한 엣지 효과 및 상하 위치 밀착 */
 #heading-modal .modal-content {
+    margin: 4% auto !important; /* 상하 여백 조밀화로 화면 배치 최적화 */
     border: 2px solid var(--frame-accent-color) !important;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
                 0 25px 50px -12px rgba(0, 0, 0, 0.85),
