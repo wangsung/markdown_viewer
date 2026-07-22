@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 디버그용 전역 에러 핸들러 (localStorage 로그 기록 기능 포함)
     window.onerror = function(message, source, lineno, colno, error) {
+        // 브라우저의 CORS 및 로컬 파일보안 정책에 의한 무의미한 'Script error.' 필터링
+        if (message === "Script error." || !source) {
+            console.warn('Cross-Origin/Local 보안 제한으로 상세 디버그 정보 수집 제한 (무시 처리)');
+            return false;
+        }
+
         let errBox = document.getElementById('debug-error-banner');
         if (!errBox) {
             errBox = document.createElement('div');
@@ -368,6 +374,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 blockquote: { colorLight: '#4c1d95', colorDark: '#ddd6fe', borderLight: '#7c3aed', borderDark: '#a78bfa' },
                 line: { colorLight: '#7c3aed', colorDark: '#8b5cf6', border: '2px dashed #8b5cf6' }
             }
+        },
+        {
+            id: 'codemirror_classic',
+            name: '6. CodeMirror Classic',
+            styles: {
+                h1: { colorLight: '#1d4ed8', colorDark: '#3b82f6', size: '2em', border: '1px solid #334155' },
+                h2: { colorLight: '#0369a1', colorDark: '#0284c7', size: '1.5em', border: '1px solid #334155' },
+                h3: { colorLight: '#0f172a', colorDark: '#f1f5f9', size: '1.25em', border: 'none' },
+                h4: { colorLight: '#334155', colorDark: '#cbd5e1', size: '1em', border: 'none' },
+                h5: { colorLight: '#475569', colorDark: '#94a3b8', size: '0.875em', border: 'none' },
+                h6: { colorLight: '#64748b', colorDark: '#64748b', size: '0.85em', border: 'none' },
+                link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' },
+                strong: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                em: { colorLight: '#0f172a', colorDark: '#f8fafc' },
+                code: { colorLight: '#e11d48', colorDark: '#fb7185' },
+                blockquote: { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' },
+                line: { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' }
+            }
         }
     ];
 
@@ -389,6 +413,29 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
         } catch (e) {
             console.warn('Failed to save heading presets:', e);
+        }
+    }
+
+    function syncNewHeadingPresets() {
+        try {
+            const stored = localStorage.getItem('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    let changed = false;
+                    DEFAULT_HEADING_PRESETS.forEach(defPreset => {
+                        if (!parsed.some(p => p.id === defPreset.id)) {
+                            parsed.push(defPreset);
+                            changed = true;
+                        }
+                    });
+                    if (changed) {
+                        saveHeadingPresets(parsed);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to sync new heading presets:', e);
         }
     }
 
@@ -2896,6 +2943,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (exportMenu) exportMenu.classList.remove('show');
             if (mainMenu) mainMenu.classList.remove('show');
             if (headingStyleMenu) headingStyleMenu.classList.remove('show');
+            
+            // 스타일 편집 Dialog를 띄울 때 신규 프리셋이 누락되었는지 검사하여 추가
+            syncNewHeadingPresets();
+            
             updatePresetSelectOptions();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
