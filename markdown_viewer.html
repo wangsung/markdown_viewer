@@ -77,14 +77,20 @@
 
             <div class="menu-item">
                 <label for="font-size-select">크기</label>
-                <select id="font-size-select">
-                    <option value="12px">12px</option>
-                    <option value="14px">14px</option>
-                    <option value="16px" selected>16px</option>
-                    <option value="18px">18px</option>
-                    <option value="20px">20px</option>
-                    <option value="24px">24px</option>
-                </select>
+                <div class="font-size-container" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <select id="font-size-select" style="margin-right: 0;">
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
+                        <option value="18px">18px</option>
+                        <option value="20px">20px</option>
+                        <option value="24px">24px</option>
+                    </select>
+                    <div class="spin-buttons" style="display: flex; flex-direction: column; width: 18px; height: 28px; border: 1px solid var(--border-frame); border-radius: 4px; overflow: hidden; background: var(--bg-frame-secondary);">
+                        <button id="btn-font-size-up" title="폰트 크기 증가" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s; border-bottom: 1px solid var(--border-frame);">▲</button>
+                        <button id="btn-font-size-down" title="폰트 크기 감소" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s;">▼</button>
+                    </div>
+                </div>
             </div>
 
             <!-- 테마 토글 버튼 (Scroll Sync 왼쪽 배치) -->

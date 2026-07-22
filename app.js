@@ -923,6 +923,28 @@ document.addEventListener('DOMContentLoaded', () => {
         saveDocumentSession();
     });
 
+    // 2-2. Font Size Spin Buttons (Up/Down)
+    const btnFontSizeUp = document.getElementById('btn-font-size-up');
+    const btnFontSizeDown = document.getElementById('btn-font-size-down');
+
+    if (btnFontSizeUp && btnFontSizeDown && fontSizeSelect) {
+        btnFontSizeUp.addEventListener('click', () => {
+            const currentIndex = fontSizeSelect.selectedIndex;
+            if (currentIndex < fontSizeSelect.options.length - 1) {
+                fontSizeSelect.selectedIndex = currentIndex + 1;
+                fontSizeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+
+        btnFontSizeDown.addEventListener('click', () => {
+            const currentIndex = fontSizeSelect.selectedIndex;
+            if (currentIndex > 0) {
+                fontSizeSelect.selectedIndex = currentIndex - 1;
+                fontSizeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+
     // 3. Line Color Picker (Dynamic CSS Theme Variables)
     function updateThemeColors(colorHex) {
         document.documentElement.style.setProperty('--theme-color', colorHex);
@@ -2767,7 +2789,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.style.borderRadius = '4px';
 
             row.innerHTML = `
-                <span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--theme-color);"># ${tag.toUpperCase()}</span>
+                <span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># ${tag.toUpperCase()}</span>
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted);">크기:</label>
                 <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                 <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">색:</span>

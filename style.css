@@ -10,8 +10,13 @@
     --text-frame-muted: #94a3b8;       /* Slate 400 */
     --text-frame-inactive: #475569;    /* Slate 600 */
     --input-frame-bg: #0f172a;
+    
+    /* UI Frame 전용 독립 Accent 색상 (스타일세트와 무관하게 고정 작동) */
+    --frame-accent-color: #3b82f6;
+    --frame-accent-color-hover: #2563eb;
+    --frame-accent-rgb: 59, 130, 246;
 
-    /* Dynamic Theme Accent (JavaScript로 동적 업데이트됨) */
+    /* Dynamic Theme Accent (JavaScript로 동적 업데이트됨 - 마크다운 콘텐츠 영역 전용) */
     --theme-color: #3b82f6;      
     --theme-color-hover: #2563eb;
     --theme-color-rgb: 59, 130, 246;
@@ -128,7 +133,7 @@ body {
 }
 
 .file-badge svg {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     flex-shrink: 0;
 }
 
@@ -151,7 +156,7 @@ body {
     font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, var(--theme-color) 0%, #10b981 100%);
+    background: linear-gradient(135deg, var(--frame-accent-color) 0%, #10b981 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-right: 4px;
@@ -189,8 +194,8 @@ body {
 }
 
 .menu-item select:focus {
-    border-color: var(--theme-color);
-    box-shadow: 0 0 0 2px rgba(var(--theme-color-rgb), 0.2);
+    border-color: var(--frame-accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--frame-accent-rgb), 0.2);
 }
 
 /* Color Picker Styling */
@@ -256,7 +261,7 @@ body {
 }
 
 .toggle-control input[type="checkbox"]:checked {
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
 }
 
 .toggle-control input[type="checkbox"]:checked::before {
@@ -303,12 +308,12 @@ body {
 }
 
 .btn-primary {
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
     color: #ffffff;
 }
 
 .btn-primary:hover {
-    background-color: var(--theme-color-hover);
+    background-color: var(--frame-accent-color-hover);
     transform: translateY(-1px);
 }
 
@@ -484,7 +489,7 @@ body {
 
 /* Caret / Cursor */
 .CodeMirror-cursor {
-    border-left: 2px solid var(--theme-color) !important;
+    border-left: 2px solid var(--frame-accent-color) !important;
 }
 
 /* Gutters (Line Numbers Column) */
@@ -548,17 +553,17 @@ body {
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-track {
-    background: var(--bg-primary);
+    background: var(--editor-bg);
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: var(--border-frame);
     border-radius: 5px;
-    border: 2px solid var(--bg-primary);
+    border: 2px solid var(--editor-bg);
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--text-inactive);
+    background: var(--text-frame-muted);
 }
 
 /* CodeMirror Markdown Syntax Styling (Heading, bold, italic, code, links) */
@@ -603,12 +608,12 @@ body {
 
 .cm-strong {
     font-weight: bold;
-    color: var(--text-main);
+    color: var(--bold-color, var(--text-main)) !important;
 }
 
 .cm-em {
     font-style: italic;
-    color: var(--text-main);
+    color: var(--italic-color, var(--text-main)) !important;
 }
 
 .cm-comment, .cm-code {
@@ -616,11 +621,11 @@ body {
     background-color: rgba(255, 255, 255, 0.06);
     padding: 1px 4px;
     border-radius: 4px;
-    color: #f43f5e !important; /* Rose 500 */
+    color: var(--code-color, #f43f5e) !important;
 }
 
 .cm-link {
-    color: var(--theme-color) !important;
+    color: var(--link-color, var(--theme-color)) !important;
     text-decoration: underline;
 }
 
@@ -629,25 +634,27 @@ body {
 }
 
 .cm-quote {
-    color: var(--text-muted) !important;
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
     font-style: italic;
 }
 
 /* Dark Theme CodeMirror Syntax Overrides */
 [data-editor-theme="dark"] .cm-header-2 {
-    color: #38bdf8 !important;
+    color: var(--h2-color, #38bdf8) !important;
 }
 [data-editor-theme="dark"] .cm-header-3 {
-    color: #f1f5f9 !important;
+    color: var(--h3-color, #f1f5f9) !important;
 }
-[data-editor-theme="dark"] .cm-strong,
+[data-editor-theme="dark"] .cm-strong {
+    color: var(--bold-color, #f8fafc) !important;
+}
 [data-editor-theme="dark"] .cm-em {
-    color: #f8fafc !important;
+    color: var(--italic-color, #f8fafc) !important;
 }
 [data-editor-theme="dark"] .cm-comment, 
 [data-editor-theme="dark"] .cm-code {
     background-color: rgba(255, 255, 255, 0.08);
-    color: #fb7185 !important;
+    color: var(--code-color, #fb7185) !important;
 }
 [data-editor-theme="dark"] .cm-variable-2, 
 [data-editor-theme="dark"] .cm-variable-3, 
@@ -658,19 +665,21 @@ body {
 
 /* Light Theme CodeMirror Syntax Overrides */
 [data-editor-theme="light"] .cm-header-2 {
-    color: #0284c7 !important;
+    color: var(--h2-color, #0284c7) !important;
 }
 [data-editor-theme="light"] .cm-header-3 {
-    color: #0f172a !important;
+    color: var(--h3-color, #0f172a) !important;
 }
-[data-editor-theme="light"] .cm-strong,
+[data-editor-theme="light"] .cm-strong {
+    color: var(--bold-color, #0f172a) !important;
+}
 [data-editor-theme="light"] .cm-em {
-    color: #0f172a !important;
+    color: var(--italic-color, #0f172a) !important;
 }
 [data-editor-theme="light"] .cm-comment, 
 [data-editor-theme="light"] .cm-code {
     background-color: rgba(0, 0, 0, 0.06);
-    color: #e11d48 !important;
+    color: var(--code-color, #e11d48) !important;
 }
 [data-editor-theme="light"] .cm-variable-2, 
 [data-editor-theme="light"] .cm-variable-3, 
@@ -703,13 +712,13 @@ body {
 }
 
 .preview-viewport::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: var(--preview-border, #d1d5db);
     border-radius: 5px;
     border: 2px solid var(--preview-bg);
 }
 
 .preview-viewport::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--text-frame-muted, #9ca3af);
 }
 
 .markdown-body {
@@ -922,12 +931,12 @@ body {
     right: 10px;
     bottom: 10px;
     background-color: rgba(15, 23, 42, 0.95); /* UI bg와 투명도 유지 */
-    border: 2px dashed var(--theme-color);
+    border: 2px dashed var(--frame-accent-color);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     font-size: 1.05rem;
     font-weight: 600;
     pointer-events: none; /* 드롭 이벤트가 뒤쪽 텍스트 영역으로 흐를 수 있게 함 */
@@ -1246,7 +1255,7 @@ div.katex-error {
 }
 
 .toc-close-btn:focus-visible {
-    outline: 2px solid var(--theme-color);
+    outline: 2px solid var(--frame-accent-color);
     outline-offset: -2px;
 }
 
@@ -1301,11 +1310,11 @@ div.katex-error {
 
 /* 현재 읽는 위치 활성화 상태 (Active Highlight) */
 .toc-item.active {
-    background-color: rgba(var(--theme-color-rgb), 0.08);
+    background-color: rgba(var(--frame-accent-rgb), 0.08);
 }
 
 .toc-item.active a {
-    color: var(--theme-color) !important;
+    color: var(--frame-accent-color) !important;
     font-weight: 600;
 }
 
@@ -1317,7 +1326,7 @@ div.katex-error {
     top: 0;
     bottom: 0;
     width: 3px;
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
 }
 
 /* 세로 Bar 토글 버튼 (TOC 접혔을 때 전용) */
@@ -1350,11 +1359,11 @@ div.katex-error {
 .toc-toggle-bar:hover {
     width: 20px;
     background-color: var(--bg-secondary);
-    border-right-color: var(--theme-color);
+    border-right-color: var(--frame-accent-color);
 }
 
 .toc-toggle-bar:focus-visible {
-    outline: 2px solid var(--theme-color);
+    outline: 2px solid var(--frame-accent-color);
     outline-offset: -2px;
 }
 
@@ -1364,7 +1373,7 @@ div.katex-error {
 }
 
 .toc-toggle-bar:hover .toc-toggle-indicator {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     transform: scale(1.2);
 }
 
@@ -1455,7 +1464,7 @@ div.katex-error {
 }
 
 .dropdown-item:hover svg {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
 }
 
 .dropdown-item-toggle {
@@ -1525,6 +1534,15 @@ div.katex-error {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
+}
+
+/* Spin Buttons Styling for Font Size */
+.spin-buttons button:hover {
+    background-color: var(--border-frame) !important;
+    color: var(--text-frame-main) !important;
+}
+.spin-buttons button:active {
+    background-color: rgba(var(--frame-accent-rgb), 0.2) !important;
 }
 
 
