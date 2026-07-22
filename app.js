@@ -2997,9 +2997,407 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMarkdown();
         });
     }
-
     if (closeHeadingModal) closeHeadingModal.addEventListener('click', closeHeadingStyleModal);
     if (btnCloseHeadingModal) btnCloseHeadingModal.addEventListener('click', closeHeadingStyleModal);
+
+    // ==========================================================================
+    // 🎨 [x] / [v] 버튼 탑재 Canvas 기반 전문 커스텀 컬러피커 팝오버 모듈
+    // ==========================================================================
+    let activeColorInput = null;
+    let originalColorValue = null;
+    let currentH = 0, currentS = 100, currentV = 100; // 현재 HSV 상태값 보존
+
+    // HSV ↔ RGB ↔ HEX 변환 헬퍼 함수
+    function hexToHsv(hex) {
+        let r = parseInt(hex.slice(1, 3), 16) / 255;
+        let g = parseInt(hex.slice(3, 5), 16) / 255;
+        let b = parseInt(hex.slice(5, 7), 16) / 255;
+        
+        let max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, v = max;
+        
+        let d = max - min;
+        s = max === 0 ? 0 : d / max;
+        
+        if (max === min) {
+            h = 0;
+        } else {
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+            h /= 6;
+        }
+        return { h: h * 360, s: s * 100, v: v * 100 };
+    }
+
+    function hsvToHex(h, s, v) {
+        // Hue 값을 0 ~ 360 한계값 내로 안전하게 Clamping
+        h = ((h % 360) + 360) % 360;
+        h /= 360;
+        s /= 100;
+        v /= 100;
+        
+        let r = 0, g = 0, b = 0;
+        let i = Math.floor(h * 6);
+        let f = h * 6 - i;
+        let p = v * (1 - s);
+        let q = v * (1 - f * s);
+        let t = v * (1 - (1 - f) * s);
+        
+        switch (i % 6) {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+        }
+        
+        const toHex = x => {
+            const val = Math.max(0, Math.min(255, Math.round(x * 255)));
+            const hex = val.toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    function initCustomColorPicker() {
+        if (document.getElementById('custom-picker-popover')) return;
+
+        const popover = document.createElement('div');
+        popover.id = 'custom-picker-popover';
+        popover.className = 'custom-picker-popover';
+        popover.innerHTML = `
+            <div class="custom-picker-header">
+                <span class="custom-picker-title">색상 튜닝</span>
+                <span class="custom-picker-close-btn" title="변경 취소 및 닫기 [x]">✕</span>
+            </div>
+            <div class="custom-picker-body">
+                <!-- 1. 채도-명도 선택 판 (SV Canvas) -->
+                <canvas class="custom-picker-sv-canvas" width="190" height="80"></canvas>
+                <!-- 2. 색상 슬라이더 (Hue Slider) -->
+                <canvas class="custom-picker-hue-slider" width="190" height="12"></canvas>
+                <!-- 3. 프리셋 칩 -->
+                <div class="custom-picker-presets">
+                    <div class="custom-picker-preset-cell" style="background-color: #1d4ed8;" data-color="#1d4ed8" title="Royal Blue"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #3b82f6;" data-color="#3b82f6" title="Blue"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #0969da;" data-color="#0969da" title="GitHub Blue"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #38bdf8;" data-color="#38bdf8" title="Sky Blue"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #10b981;" data-color="#10b981" title="Emerald"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #059669;" data-color="#059669" title="Green"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #e11d48;" data-color="#e11d48" title="Rose Red"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #fb7185;" data-color="#fb7185" title="Rose Pink"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #0f172a;" data-color="#0f172a" title="Slate 900"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #f8fafc;" data-color="#f8fafc" title="Slate 50"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #4b5563;" data-color="#4b5563" title="Gray 600"></div>
+                    <div class="custom-picker-preset-cell" style="background-color: #cbd5e1;" data-color="#cbd5e1" title="Gray 300"></div>
+                </div>
+                <!-- 구분선 -->
+                <div class="custom-picker-divider"></div>
+                <!-- 4. 색상 수치 및 반영 & 미니 프리뷰 & 스포이드 -->
+                <div class="custom-picker-controls">
+                    <button class="custom-picker-dropper-btn" title="화면 색상 추출 (스포이드)">🧪</button>
+                    <div class="custom-picker-color-preview" title="현재 선택된 색상 미리보기"></div>
+                    <input type="text" class="custom-picker-hex-input" placeholder="#FFFFFF" maxlength="7">
+                    <button class="custom-picker-apply-btn" title="색상 반영 및 닫기 [v]">✓ 반영</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(popover);
+
+        const canvasSV = popover.querySelector('.custom-picker-sv-canvas');
+        const ctxSV = canvasSV.getContext('2d');
+        const canvasHue = popover.querySelector('.custom-picker-hue-slider');
+        const ctxHue = canvasHue.getContext('2d');
+
+        // 채도-명도(SV) 캔버스 드로잉
+        function drawSVCanvas() {
+            ctxSV.globalCompositeOperation = 'source-over';
+            ctxSV.clearRect(0, 0, canvasSV.width, canvasSV.height);
+
+            // 1. 현재 Hue 바탕 순수 원색 채우기
+            ctxSV.fillStyle = hsvToHex(currentH, 100, 100);
+            ctxSV.fillRect(0, 0, canvasSV.width, canvasSV.height);
+
+            // 2. 가로 흰색 그라디언트
+            const gradW = ctxSV.createLinearGradient(0, 0, canvasSV.width, 0);
+            gradW.addColorStop(0, '#ffffff');
+            gradW.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctxSV.fillStyle = gradW;
+            ctxSV.fillRect(0, 0, canvasSV.width, canvasSV.height);
+
+            // 3. 세로 검은색 그라디언트
+            const gradB = ctxSV.createLinearGradient(0, 0, 0, canvasSV.height);
+            gradB.addColorStop(0, 'rgba(0, 0, 0, 0)');
+            gradB.addColorStop(1, '#000000');
+            ctxSV.fillStyle = gradB;
+            ctxSV.fillRect(0, 0, canvasSV.width, canvasSV.height);
+
+            // 4. 선택 지점 원형 링(조준 마커) 그리기
+            const markerX = (currentS / 100) * canvasSV.width;
+            const markerY = (1 - (currentV / 100)) * canvasSV.height;
+            
+            ctxSV.strokeStyle = currentV > 50 && currentS < 50 ? '#000000' : '#ffffff';
+            ctxSV.lineWidth = 1.5;
+            ctxSV.beginPath();
+            ctxSV.arc(markerX, markerY, 4, 0, Math.PI * 2);
+            ctxSV.stroke();
+        }
+
+        // Hue 무지개 슬라이더 드로잉
+        function drawHueSlider() {
+            ctxHue.globalCompositeOperation = 'source-over';
+            ctxHue.clearRect(0, 0, canvasHue.width, canvasHue.height);
+
+            const gradH = ctxHue.createLinearGradient(0, 0, canvasHue.width, 0);
+            gradH.addColorStop(0, '#ff0000'); // 0 (Red)
+            gradH.addColorStop(0.17, '#ffff00'); // 60 (Yellow)
+            gradH.addColorStop(0.33, '#00ff00'); // 120 (Green)
+            gradH.addColorStop(0.5, '#00ffff'); // 180 (Cyan)
+            gradH.addColorStop(0.67, '#0000ff'); // 240 (Blue)
+            gradH.addColorStop(0.83, '#ff00ff'); // 300 (Magenta)
+            gradH.addColorStop(1, '#ff0000'); // 360 (Red)
+
+            ctxHue.fillStyle = gradH;
+            ctxHue.fillRect(0, 0, canvasHue.width, canvasHue.height);
+
+            // 현재 선택 Hue 위치 수직 조절선 그리기
+            const targetX = (currentH / 360) * canvasHue.width;
+            ctxHue.strokeStyle = '#ffffff';
+            ctxHue.lineWidth = 2;
+            ctxHue.beginPath();
+            ctxHue.moveTo(targetX, 0);
+            ctxHue.lineTo(targetX, canvasHue.height);
+            ctxHue.stroke();
+        }
+
+        // 전체 드로잉 동기화 팩토리 (requestAnimationFrame 탑재로 렌더링 씹힘 차단)
+        let drawingRequested = false;
+        window.refreshCustomPickerDrawings = function() {
+            if (drawingRequested) return;
+            drawingRequested = true;
+            requestAnimationFrame(() => {
+                drawSVCanvas();
+                drawHueSlider();
+                drawingRequested = false;
+            });
+        };
+
+        // SV 판 선택 동작
+        function pickSV(e) {
+            const rect = canvasSV.getBoundingClientRect();
+            const x = Math.max(0, Math.min(canvasSV.width - 1, e.clientX - rect.left));
+            const y = Math.max(0, Math.min(canvasSV.height - 1, e.clientY - rect.top));
+
+            currentS = Math.max(0, Math.min(100, Math.round((x / canvasSV.width) * 100)));
+            currentV = Math.max(0, Math.min(100, Math.round((1 - (y / canvasSV.height)) * 100)));
+
+            updateColorProgress(hsvToHex(currentH, currentS, currentV));
+        }
+
+        // Hue 슬라이더 선택 동작
+        function pickHue(e) {
+            const rect = canvasHue.getBoundingClientRect();
+            const x = Math.max(0, Math.min(canvasHue.width - 1, e.clientX - rect.left));
+
+            currentH = Math.max(0, Math.min(360, Math.round((x / canvasHue.width) * 360)));
+
+            updateColorProgress(hsvToHex(currentH, currentS, currentV));
+        }
+
+        // 드래그 제어
+        let isDraggingSV = false;
+        let isDraggingHue = false;
+
+        canvasSV.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // 브라우저 드래그앤드롭/선택 간섭 원천 배제
+            isDraggingSV = true;
+            pickSV(e);
+        });
+
+        canvasHue.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // 브라우저 드래그앤드롭/선택 간섭 원천 배제
+            isDraggingHue = true;
+            pickHue(e);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDraggingSV) pickSV(e);
+            if (isDraggingHue) pickHue(e);
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDraggingSV = false;
+            isDraggingHue = false;
+        });
+
+        // 프리셋 단추 클릭
+        popover.querySelectorAll('.custom-picker-preset-cell').forEach(cell => {
+            cell.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                const color = e.currentTarget.getAttribute('data-color');
+                const hsv = hexToHsv(color);
+                currentH = hsv.h;
+                currentS = hsv.s;
+                currentV = hsv.v;
+                updateColorProgress(color);
+            });
+        });
+
+        // Hex 입력 필드 변경
+        const hexInput = popover.querySelector('.custom-picker-hex-input');
+        hexInput.addEventListener('input', (e) => {
+            let val = e.target.value.trim();
+            if (val.length === 7 && /^#[0-9A-Fa-f]{6}$/.test(val)) {
+                const hsv = hexToHsv(val);
+                currentH = hsv.h;
+                currentS = hsv.s;
+                currentV = hsv.v;
+                updateColorProgress(val);
+            }
+        });
+        
+        // 스포이드 단추 클릭 시 EyeDropper 실행
+        const dropperBtn = popover.querySelector('.custom-picker-dropper-btn');
+        if (dropperBtn) {
+            if (!('EyeDropper' in window)) {
+                dropperBtn.style.display = 'none'; // 브라우저가 스포이드 미지원 시 숨김
+            } else {
+                dropperBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const eyeDropper = new EyeDropper();
+                    eyeDropper.open()
+                        .then(result => {
+                            const pickedHex = result.sRGBHex.toUpperCase();
+                            const hsv = hexToHsv(pickedHex);
+                            currentH = hsv.h;
+                            currentS = hsv.s;
+                            currentV = hsv.v;
+                            updateColorProgress(pickedHex);
+                        })
+                        .catch(err => {
+                            console.log('스포이드 컬러 추출 실패/취소:', err);
+                        });
+                });
+            }
+        }
+
+        // [x] 취소 단추
+        popover.querySelector('.custom-picker-close-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            cancelColorPicker();
+        });
+
+        // [v] 반영 단추
+        popover.querySelector('.custom-picker-apply-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyColorPicker();
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (popover.style.display === 'block') {
+                if (!popover.contains(e.target) && !e.target.closest('label')) {
+                    applyColorPicker();
+                }
+            }
+        });
+    }
+
+    function showCustomColorPicker(inputElement, labelElement) {
+        initCustomColorPicker();
+        activeColorInput = inputElement;
+        originalColorValue = inputElement.value;
+
+        // 초기 색상 분석 및 HSV 매핑
+        const hsv = hexToHsv(originalColorValue);
+        currentH = hsv.h;
+        currentS = hsv.s;
+        currentV = hsv.v;
+
+        const popover = document.getElementById('custom-picker-popover');
+        popover.querySelector('.custom-picker-hex-input').value = originalColorValue;
+        popover.querySelector('.custom-picker-color-preview').style.backgroundColor = originalColorValue;
+        popover.style.display = 'block';
+
+        // 드로잉 캐시 동기화
+        if (window.refreshCustomPickerDrawings) {
+            window.refreshCustomPickerDrawings();
+        }
+
+        const rect = labelElement.getBoundingClientRect();
+        let top = rect.bottom + window.scrollY + 6;
+        let left = rect.left + window.scrollX;
+
+        const popoverWidth = 210;
+        if (left + popoverWidth > window.innerWidth) {
+            left = window.innerWidth - popoverWidth - 10;
+        }
+
+        popover.style.top = top + 'px';
+        popover.style.left = left + 'px';
+    }
+
+    function updateColorProgress(colorHex) {
+        if (!activeColorInput) return;
+        activeColorInput.value = colorHex;
+        activeColorInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        const popover = document.getElementById('custom-picker-popover');
+        if (popover) {
+            const hexInput = popover.querySelector('.custom-picker-hex-input');
+            if (document.activeElement !== hexInput) {
+                hexInput.value = colorHex;
+            }
+            // 현재 색상 미리보기 영역 동기화
+            popover.querySelector('.custom-picker-color-preview').style.backgroundColor = colorHex;
+            
+            // 캔버스 마커 리드로잉
+            if (window.refreshCustomPickerDrawings) {
+                window.refreshCustomPickerDrawings();
+            }
+        }
+    }
+
+    function applyColorPicker() {
+        const popover = document.getElementById('custom-picker-popover');
+        if (popover) popover.style.display = 'none';
+
+        if (activeColorInput) {
+            activeColorInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        activeColorInput = null;
+        originalColorValue = null;
+    }
+
+    function cancelColorPicker() {
+        const popover = document.getElementById('custom-picker-popover');
+        if (popover) popover.style.display = 'none';
+
+        if (activeColorInput && originalColorValue) {
+            activeColorInput.value = originalColorValue;
+            activeColorInput.dispatchEvent(new Event('input', { bubbles: true }));
+            activeColorInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        activeColorInput = null;
+        originalColorValue = null;
+    }
+
+    if (headingStyleControls) {
+        headingStyleControls.addEventListener('click', (e) => {
+            const targetInput = e.target.closest('input[type="color"]');
+            if (targetInput) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const label = targetInput.closest('label');
+                if (label) {
+                    showCustomColorPicker(targetInput, label);
+                }
+            }
+        });
+    }
 
     function saveCurrentHeadingModalInputs() {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';

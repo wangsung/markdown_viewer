@@ -1559,4 +1559,175 @@ div.katex-error {
                 0 15px 30px -10px rgba(0, 0, 0, 0.85) !important;
 }
 
+/* 커스텀 컬러피커 팝오버 전용 스타일 */
+.custom-picker-popover {
+    position: absolute;
+    z-index: 10000;
+    width: 210px;
+    background-color: #1e293b; /* Slate 800 */
+    border: 2px solid var(--frame-accent-color); /* 모달 본체와 통일감 및 칼같은 경계 확보 */
+    border-radius: 8px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.85), 
+                0 5px 15px rgba(0, 0, 0, 0.85); /* 깊고 짙은 그림자로 공중 부양 */
+    padding: 6px 10px; /* 세로 여백 조밀화 */
+    display: none;
+    font-family: inherit;
+    user-select: none;
+}
+
+.custom-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px; /* 세로 여백 조밀화 */
+    border-bottom: 1px solid #334155;
+    padding-bottom: 4px; /* 세로 여백 조밀화 */
+}
+
+.custom-picker-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.custom-picker-close-btn {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ef4444; /* 빨간색 [x] */
+    cursor: pointer;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    line-height: 1;
+    transition: all 0.15s;
+}
+
+.custom-picker-close-btn:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+.custom-picker-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* 세로 요소 간격 조밀화 */
+}
+
+/* 채도-명도 선택 Canvas */
+.custom-picker-sv-canvas {
+    width: 100%;
+    height: 80px;
+    border-radius: 4px;
+    cursor: crosshair;
+    border: 1px solid #334155;
+}
+
+/* 색상 Hue 슬라이더 Canvas */
+.custom-picker-hue-slider {
+    width: 100%;
+    height: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid #334155;
+}
+
+/* 하단 Hex 입력란 & 반영 버튼 & 현재 색상 프리뷰 */
+.custom-picker-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.custom-picker-color-preview {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid #475569;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* 스포이드 단추 전용 스타일 */
+.custom-picker-dropper-btn {
+    background-color: #334155;
+    border: 1px solid #475569;
+    color: #f1f5f9;
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 0;
+    transition: all 0.15s;
+    box-sizing: border-box;
+}
+
+.custom-picker-dropper-btn:hover {
+    background-color: #475569;
+    border-color: #94a3b8;
+}
+
+.custom-picker-hex-input {
+    flex: 1;
+    background-color: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 3px 4px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    box-sizing: border-box;
+    width: 60px;
+}
+
+.custom-picker-apply-btn {
+    background-color: #10b981; /* 초록색 [v] */
+    color: #fff;
+    border: 1px solid #059669;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s;
+    white-space: nowrap; /* 줄바꿈 절대 방지 */
+}
+
+.custom-picker-apply-btn:hover {
+    background-color: #059669;
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
+}
+
+/* 컬러피커 하단 구분선 */
+.custom-picker-divider {
+    height: 1px;
+    background-color: #475569; /* 회색실선 대비 선명화 */
+    margin: 3px 0 1px 0; /* 세로 여백 조밀화 */
+}
+
+/* 프리셋 팔레트 미니 그리드 */
+.custom-picker-presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px; /* 가로세로 간격 조밀화 */
+}
+
+.custom-picker-preset-cell {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: transform 0.15s;
+}
+
+.custom-picker-preset-cell:hover {
+    transform: scale(1.15);
+    border-color: #fff;
+}
+
 
