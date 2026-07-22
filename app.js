@@ -1563,13 +1563,43 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
-    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수
-    function downloadCurrentContent() {
+    // 에디터 내용을 마크다운 파일(.md)로 다운로드 및 저장하는 헬퍼 함수
+    async function downloadCurrentContent() {
         const text = cm.getValue();
-        const blob = new Blob([text], { type: 'text/markdown' });
+
+        // 1) Modern File System Access API 지원 브라우저 (실제 지정/선택한 파일 이름 반환)
+        if (typeof window.showSaveFilePicker === 'function') {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: currentFilename || 'untitled.md',
+                    types: [{
+                        description: 'Markdown Document',
+                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
+                    }]
+                });
+                const writable = await handle.createWritable();
+                await writable.write(text);
+                await writable.close();
+
+                // 저장이 성공했을 때 실제 사용자가 저장한 파일이름을 topmenu 파일이름에 반영
+                const savedName = handle.name;
+                updateFilenameDisplay(savedName, false);
+                saveDocumentSession();
+                showToast(`"${savedName}" 파일이 저장되었습니다.`);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    // 사용자가 저장 창에서 취소를 클릭한 경우 아무 작업도 하지 않음
+                    return;
+                }
+                console.warn('showSaveFilePicker 실패 fallback 다운로드 시도:', err);
+            }
+        }
+
+        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         
-        // chrome.downloads API를 사용하여 무조건 다른 이름으로 저장 대화상자(SaveAs)를 직접 호출
+        // 2) chrome.downloads API를 사용하여 무조건 다른 이름으로 저장 대화상자(SaveAs)를 직접 호출
         if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
             chrome.downloads.download({
                 url: url,
@@ -1581,9 +1611,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     fallbackDownload(url, currentFilename);
                 } else {
                     updateFilenameDisplay(currentFilename, false);
+                    saveDocumentSession();
+                    showToast(`"${currentFilename}" 파일이 저장되었습니다.`);
                 }
             });
         } else {
+            // 3) Fallback 다운로드
             fallbackDownload(url, currentFilename);
         }
     }
@@ -1598,6 +1631,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         updateFilenameDisplay(filename, false);
+        saveDocumentSession();
+        showToast(`"${filename}" 파일이 저장되었습니다.`);
     }
 
     // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
