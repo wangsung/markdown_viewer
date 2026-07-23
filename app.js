@@ -186,8 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 에디터 파일 관련 변수 및 상태 플래그
     let currentFilename = '제목 없음.md';
     let isDirty = false;
-    let isSyncing = false;
     let enableScrollSync = true;
+    let scrollSync = null;
 
     // 파일 이름 표시 및 상태 변경 함수
     function updateFilenameDisplay(name, isModified) {
@@ -711,11 +711,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // 렌더링 완료 후 초기 주요 헤더들로 키프레임 목록 구축
-            rebuildInitialKeyframes();
-            
-            // 렌더링 완료 후 커서가 있는 줄의 프리뷰 가시성 자동 보정 실행
-            syncPreviewToCursor();
+            // 렌더링 완료 후 스크롤 싱크 키프레임 목록 재구축
+            if (scrollSync) {
+                scrollSync.rebuildKeyframes();
+            }
 
             // 에디터 텍스트 파싱을 통한 TOC 목록 동적 빌드
             buildTOC();
@@ -1743,10 +1742,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastEditorScrollTop = -1;  // 중복 스크롤 업데이트 필터용
     let lastPreviewScrollTop = -1; // 중복 스크롤 업데이트 필터용
 
+    function setEditorScrollSource() {
+        activeScrollSource = 'editor';
+    }
+
+    function setPreviewScrollSource() {
+        activeScrollSource = 'preview';
+    }
+
     // 마우스 위치에 따른 스크롤 주도권(Source) 설정
-    cm.getWrapperElement().addEventListener('mouseenter', () => { activeScrollSource = 'editor'; });
+    cm.getWrapperElement().addEventListener('mouseenter', setEditorScrollSource);
     if (previewViewport) {
-        previewViewport.addEventListener('mouseenter', () => { activeScrollSource = 'preview'; });
+        previewViewport.addEventListener('mouseenter', setPreviewScrollSource);
     }
 
     // 텍스트 라인 및 Heading 정제 헬퍼 함수
@@ -1767,6 +1774,49 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const isHeading = /^#+\s/.test(rawLine);
         return cleanTextForIdentifier(rawLine, isHeading);
+    }
+
+    // ==========================================================================
+    // 실시간 키프레임 디버깅 패널 렌더링 함수
+    // ==========================================================================
+    function updateDebugPanelUI(keyframesList, activeSource) {
+        if (!debugPanel || debugPanel.style.display === 'none') return;
+        
+        const list = keyframesList || [];
+        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+            <span>🔑 Keyframes Debug List (${list.length})</span>
+            <span style="color: var(--theme-color);">Active: ${activeSource || 'None'}</span>
+        </div>`;
+        
+        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
+                    <th style="padding: 2px;">Line</th>
+                    <th style="padding: 2px;">ID (Text)</th>
+                    <th style="padding: 2px; text-align: right;">Ed%</th>
+                    <th style="padding: 2px; text-align: right;">Pr%</th>
+                    <th style="padding: 2px; text-align: right;">Y(px)</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            
+        list.forEach((kf) => {
+            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
+            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
+            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
+            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
+            
+            html += `<tr style="color: ${rowColor}; border-bottom: 1px dashed #1e293b;">
+                <td style="padding: 3px 2px;">${kf.line.toFixed(1)}</td>
+                <td style="padding: 3px 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
+                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
+                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
+                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table>`;
+        debugPanel.innerHTML = html;
     }
 
     // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색 (고유 ID 접미사 _line_줄번호 분리 처리)
@@ -1835,40 +1885,9 @@ document.addEventListener('DOMContentLoaded', () => {
             a.textContent = heading.text;
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-
-                const line = heading.line; // 0-based
-                isSyncing = true;
-
-                // 에디터 커서 이동 및 포커스
-                cm.setCursor({line: line, ch: 0});
-                cm.focus();
-
-                // 에디터 스크롤 연동 (화면 중앙 부근에 오도록 정렬)
-                const charCoords = cm.charCoords({line: line, ch: 0}, 'local');
-                const editorHeight = cm.getWrapperElement().clientHeight;
-                const targetEditorScrollTop = Math.max(0, charCoords.top - editorHeight / 2);
-                cm.scrollTo(null, targetEditorScrollTop);
-                lastEditorScrollTop = targetEditorScrollTop;
-
-                // 프리뷰 뷰포트 스크롤 연동 (중앙 뷰 스크롤 연동, 스냅백 방지를 위해 behavior: 'auto' 적용)
-                const targetEl = preview.querySelector(`[data-line="${line + 1}"]`);
-                if (targetEl && previewViewport) {
-                    const targetScrollTop = previewViewport.scrollTop + targetEl.getBoundingClientRect().top - previewViewport.getBoundingClientRect().top - previewViewport.clientHeight / 2 + targetEl.clientHeight / 2;
-                    const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-                    const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxPreviewScrollY));
-
-                    previewViewport.scrollTo({
-                        top: clampedScrollTop,
-                        behavior: 'auto'
-                    });
-                    lastPreviewScrollTop = clampedScrollTop;
+                if (scrollSync) {
+                    scrollSync.scrollToLine(heading.line + 1);
                 }
-
-                // 이동 트랜지션 완료 고려하여 300ms 후 동기화 상태 원복
-                setTimeout(() => {
-                    isSyncing = false;
-                    updateActiveTOCItem();
-                }, 300);
             });
 
             li.appendChild(a);
@@ -2184,14 +2203,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 커서 이동/클릭/입력에 따른 가시성 검사 등록
-    cm.on('cursorActivity', () => {
+    function handleEditorCursorActivity() {
         syncPreviewToCursor();
-    });
+    }
 
-    cm.on('focus', () => {
+    function handleEditorFocus() {
         activeScrollSource = 'editor';
-    });
+    }
+
+    // 커서 이동/클릭/입력에 따른 가시성 검사 등록
+    cm.on('cursorActivity', handleEditorCursorActivity);
+    cm.on('focus', handleEditorFocus);
 
     // 8. 에디터 -> 프리뷰 방향 스크롤 매핑 함수 (비율 기반 보간)
     function getPreviewScrollForEditor(editorScrollTop) {
@@ -2276,8 +2298,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     */
 
-    // 에디터 스크롤 이벤트 바인딩 (상대적 델타 기반 동기화 로직)
-    cm.on('scroll', () => {
+    // 에디터 스크롤 이벤트 처리 서브루틴 (상대적 델타 기반 동기화)
+    function handleEditorScroll() {
         if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
         if (isSyncing) return;
         if (activeScrollSource !== 'editor' || !previewViewport) return;
@@ -2350,30 +2372,37 @@ document.addEventListener('DOMContentLoaded', () => {
         
         updateDebugPanel();
         updateActiveTOCItem();
-    });
-
-    // 프리뷰 스크롤 이벤트 바인딩
-    if (previewViewport) {
-        previewViewport.addEventListener('scroll', () => {
-            if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
-            if (isSyncing) return;
-            if (activeScrollSource !== 'preview') return;
-            if (previewViewport.scrollTop === lastPreviewScrollTop) return; // 변경사항이 없다면 동기화 스킵
-            
-            lastPreviewScrollTop = previewViewport.scrollTop;
-            const targetScroll = getEditorScrollForPreview(previewViewport.scrollTop);
-            lastEditorScrollTop = targetScroll;
-            cm.scrollTo(null, targetScroll);
-            updateDebugPanel();
-            updateActiveTOCItem();
-        });
     }
 
-    // 프리뷰 영역의 크기/레이아웃 변화(이미지 로드, 폰트 적용, 창 크기 변경 등)를 감지하여 키프레임 캐시 재구축
+    // 프리뷰 스크롤 이벤트 처리 서브루틴
+    function handlePreviewScroll() {
+        if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
+        if (isSyncing) return;
+        if (activeScrollSource !== 'preview') return;
+        if (previewViewport.scrollTop === lastPreviewScrollTop) return; // 변경사항이 없다면 동기화 스킵
+        
+        lastPreviewScrollTop = previewViewport.scrollTop;
+        const targetScroll = getEditorScrollForPreview(previewViewport.scrollTop);
+        lastEditorScrollTop = targetScroll;
+        cm.scrollTo(null, targetScroll);
+        updateDebugPanel();
+        updateActiveTOCItem();
+    }
+
+    // 프리뷰 ResizeObserver 처리 서브루틴
+    function handlePreviewResize() {
+        recalculateKeyframePositions();
+    }
+
+    // 에디터/프리뷰 스크롤 및 ResizeObserver 이벤트 바인딩
+    cm.on('scroll', handleEditorScroll);
+    if (previewViewport) {
+        previewViewport.addEventListener('scroll', handlePreviewScroll);
+    }
+
+    // 프리뷰 영역의 크기/레이아웃 변화 감지 바인딩
     if (preview && typeof ResizeObserver !== 'undefined') {
-        const resizeObserver = new ResizeObserver(() => {
-            recalculateKeyframePositions();
-        });
+        const resizeObserver = new ResizeObserver(handlePreviewResize);
         resizeObserver.observe(preview);
     }
 
@@ -2818,5 +2847,49 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePresetSelectOptions();
     const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
     applyHeadingPreset(activePreset);
+
+    // ScrollSync 인스턴스 생성 및 초기화 (최하단 배치)
+    scrollSync = new ScrollSync({
+        cm: cm,
+        previewViewport: document.querySelector('.preview-viewport'),
+        previewContainer: preview,
+        enableScrollSync: enableScrollSync,
+        onActiveLineChange: (lineNum) => {
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(item => {
+                if (parseInt(item.getAttribute('data-line'), 10) === lineNum) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        },
+        onDebugUpdate: (keyframes, activeSource) => {
+            updateDebugPanelUI(keyframes, activeSource);
+        },
+        onToast: (msg) => {
+            if (typeof showToast === 'function') {
+                showToast(msg, 2000);
+            }
+        }
+    });
+    scrollSync.init();
+    if (cm && typeof cm.refresh === 'function') {
+        cm.refresh();
+    }
+
+    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거)
+    window.addEventListener('load', () => {
+        if (scrollSync) {
+            scrollSync.rebuildKeyframes();
+        }
+    });
+
+    // 100ms 비동기 페인트 후 안전 재구축
+    setTimeout(() => {
+        if (scrollSync) {
+            scrollSync.rebuildKeyframes();
+        }
+    }, 100);
 });
 
