@@ -2728,14 +2728,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     function handlePresetChange(presetId) {
         applyHeadingPreset(presetId);
-        renderMarkdown();
     }
 
     function handleLivePreview() {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
         applyHeadingPreset(currentId, tempStyles);
-        renderMarkdown();
     }
 
     function handleModalScroll(clientX, deltaY) {
@@ -2760,7 +2758,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handlePresetSave(presetName) {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
-        renderMarkdown();
         showToast(`'${presetName}' 세트 스타일이 저장되었습니다.`);
     }
 
@@ -2768,7 +2765,6 @@ document.addEventListener('DOMContentLoaded', () => {
         closeHeadingStyleModal();
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
-        renderMarkdown();
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
         if (typeof cm !== 'undefined' && cm) {
@@ -2785,7 +2781,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePresetSelectOptions();
         applyHeadingPreset(newId);
         renderHeadingModalControls(newId);
-        renderMarkdown();
         showToast(`'${newName}' 세트가 생성되었습니다.`);
     }
 
@@ -2793,14 +2788,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePresetSelectOptions();
         applyHeadingPreset(nextId);
         renderHeadingModalControls(nextId);
-        renderMarkdown();
         showToast(`'${deletedName}' 세트가 삭제되었습니다.`);
     }
 
     function handlePresetReset(presetId, presetName) {
         applyHeadingPreset(presetId);
         renderHeadingModalControls(presetId);
-        renderMarkdown();
         showToast(`'${presetName}' 세트가 초기 기본값으로 복원되었습니다.`);
     }
 
