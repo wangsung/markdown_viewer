@@ -421,9 +421,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (headingSelect) headingSelect.value = presetId;
         if (modalSelect) modalSelect.value = presetId;
 
-        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시
+        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시 (비동기 렌더 딜레이 보장)
         if (typeof cm !== 'undefined' && cm) {
-            cm.refresh();
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    cm.refresh();
+                }, 50);
+            });
         }
     }
 
@@ -2743,6 +2747,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
                 applyHeadingPreset(currentId);
                 renderMarkdown();
+                
+                // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
+                if (typeof cm !== 'undefined' && cm) {
+                    cm.focus();
+                    requestAnimationFrame(() => {
+                        cm.refresh();
+                    });
+                }
+                
                 showToast(`'${presetName}' 세트가 적용되었습니다.`);
             },
             onAddPreset: (newId, newName) => {
