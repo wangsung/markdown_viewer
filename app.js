@@ -331,12 +331,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function applyHeadingPreset(presetId) {
+    function applyHeadingPreset(presetId, tempStyles = null) {
         const presets = getHeadingPresets();
         const found = presets.find(p => p.id === presetId) || presets[0];
         if (!found || !found.styles) return;
 
-        const styles = found.styles;
+        const styles = tempStyles || found.styles;
         const root = document.documentElement;
         const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
 
@@ -420,6 +420,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalSelect = document.getElementById('modal-heading-preset-select');
         if (headingSelect) headingSelect.value = presetId;
         if (modalSelect) modalSelect.value = presetId;
+
+        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시
+        if (typeof cm !== 'undefined' && cm) {
+            cm.refresh();
+        }
     }
 
     function updatePresetSelectOptions() {
@@ -2721,7 +2726,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onLivePreview: () => {
                 // 컬러피커 실시간 드래그 시 뷰어 실시간 동기화
                 const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-                applyHeadingPreset(currentId);
+                const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
+                applyHeadingPreset(currentId, tempStyles);
                 renderMarkdown();
             },
             getPresetsData: () => getHeadingPresets(),

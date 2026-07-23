@@ -639,17 +639,36 @@ body {
 }
 
 /* Dark Theme CodeMirror Syntax Overrides */
+[data-editor-theme="dark"] .cm-header-1 {
+    color: var(--h1-color, var(--theme-color)) !important;
+}
 [data-editor-theme="dark"] .cm-header-2 {
     color: var(--h2-color, #38bdf8) !important;
 }
 [data-editor-theme="dark"] .cm-header-3 {
     color: var(--h3-color, #f1f5f9) !important;
 }
+[data-editor-theme="dark"] .cm-header-4 {
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-header-5 {
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-header-6 {
+    color: var(--h6-color, var(--text-muted)) !important;
+}
 [data-editor-theme="dark"] .cm-strong {
     color: var(--bold-color, #f8fafc) !important;
 }
 [data-editor-theme="dark"] .cm-em {
     color: var(--italic-color, #f8fafc) !important;
+}
+[data-editor-theme="dark"] .cm-link {
+    color: var(--link-color, var(--theme-color)) !important;
+    text-decoration: var(--link-decoration, underline) !important;
+}
+[data-editor-theme="dark"] .cm-quote {
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
 }
 [data-editor-theme="dark"] .cm-comment, 
 [data-editor-theme="dark"] .cm-code {
@@ -664,17 +683,36 @@ body {
 }
 
 /* Light Theme CodeMirror Syntax Overrides */
+[data-editor-theme="light"] .cm-header-1 {
+    color: var(--h1-color, var(--theme-color)) !important;
+}
 [data-editor-theme="light"] .cm-header-2 {
     color: var(--h2-color, #0284c7) !important;
 }
 [data-editor-theme="light"] .cm-header-3 {
     color: var(--h3-color, #0f172a) !important;
 }
+[data-editor-theme="light"] .cm-header-4 {
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-header-5 {
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-header-6 {
+    color: var(--h6-color, var(--text-muted)) !important;
+}
 [data-editor-theme="light"] .cm-strong {
     color: var(--bold-color, #0f172a) !important;
 }
 [data-editor-theme="light"] .cm-em {
     color: var(--italic-color, #0f172a) !important;
+}
+[data-editor-theme="light"] .cm-link {
+    color: var(--link-color, var(--theme-color)) !important;
+    text-decoration: var(--link-decoration, underline) !important;
+}
+[data-editor-theme="light"] .cm-quote {
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
 }
 [data-editor-theme="light"] .cm-comment, 
 [data-editor-theme="light"] .cm-code {
