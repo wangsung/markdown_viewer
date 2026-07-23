@@ -2738,6 +2738,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyHeadingPreset(currentId, tempStyles);
                 renderMarkdown();
             },
+            onScroll: (clientX, deltaY) => {
+                // 실시간으로 중앙 구분선(drag-divider)의 물리적 left 위치 획득
+                const dragDivider = document.getElementById('drag-divider');
+                const boundaryX = dragDivider 
+                    ? dragDivider.getBoundingClientRect().left 
+                    : window.innerWidth / 2;
+                    
+                if (clientX < boundaryX) {
+                    // 마우스 포인터가 좌측 에디터 프레임 영역 위에 오버 중인 경우 -> 에디터 스크롤
+                    if (typeof cm !== 'undefined' && cm) {
+                        const scrollInfo = cm.getScrollInfo();
+                        cm.scrollTo(null, scrollInfo.top + deltaY);
+                    }
+                } else {
+                    // 마우스 포인터가 우측 프리뷰 프레임 영역 위에 오버 중인 경우 -> 프리뷰 스크롤
+                    const previewViewport = document.querySelector('.preview-viewport');
+                    if (previewViewport) {
+                        previewViewport.scrollTop += deltaY;
+                    }
+                }
+            },
             getPresetsData: () => getHeadingPresets(),
             savePresetsData: (presets) => saveHeadingPresets(presets),
             onSave: (presetName) => {

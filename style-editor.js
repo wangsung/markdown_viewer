@@ -557,6 +557,26 @@
                     });
                 }
             }
+ 
+            // 🎨 모달 다이얼로그 바깥 백드롭 영역 마우스 휠 이벤트 가로채기 & 리디렉션
+            const headingModal = document.getElementById('heading-modal');
+            if (headingModal) {
+                headingModal.addEventListener('wheel', (e) => {
+                    const modalContent = headingModal.querySelector('.modal-content');
+                    
+                    // [1] 다이얼로그 본체 내부에서의 휠 스크롤 -> 완벽히 무시 (scroll block)
+                    if (modalContent && modalContent.contains(e.target)) {
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // [2] 다이얼로그 바깥 백드롭 영역 휠 스크롤 -> 전역 프레임 매니저(app.js)에 콜백 방출
+                    e.preventDefault();
+                    if (options && typeof options.onScroll === 'function') {
+                        options.onScroll(e.clientX, e.deltaY);
+                    }
+                }, { passive: false });
+            }
 
             // 컬러피커 가로채기 마운트
             if (options.controlsContainer) {
