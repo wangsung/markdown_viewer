@@ -2693,6 +2693,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeHeadingStyleModal() {
         if (headingModal) {
             headingModal.style.display = 'none';
+            // 모달 닫기 시 드래그 누적 위치 및 인라인 transform 원복 리셋
+            if (window.StyleEditor && typeof window.StyleEditor.resetModalPosition === 'function') {
+                window.StyleEditor.resetModalPosition();
+            }
         }
     }
 

@@ -124,6 +124,10 @@
     let originalColorValue = null;
     let currentH = 0, currentS = 100, currentV = 100;
 
+    // 모달 드래그 상태 변수
+    let dragX = 0;
+    let dragY = 0;
+
     // HSV ↔ RGB ↔ HEX 변환 헬퍼 함수
     function hexToHsv(hex) {
         let r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -497,11 +501,62 @@
         },
 
         /**
+         * 모달 드래그 오프셋 누적값 및 인라인 스타일 원상 리셋
+         */
+        resetModalPosition: function() {
+            dragX = 0;
+            dragY = 0;
+            const modalContent = document.querySelector('#heading-modal .modal-content');
+            if (modalContent) {
+                modalContent.style.transform = '';
+            }
+        },
+
+        /**
          * 모듈 초기 시동 바인딩
          */
         init: function(opt) {
             options = opt;
             const self = this;
+
+            // 🎨 모달 다이얼로그 마우스 드래그 이동(Draggable) 연동 구현 (CSS transform 기반 무중력 드래그)
+            const modalContent = document.querySelector('#heading-modal .modal-content');
+            if (modalContent) {
+                const header = modalContent.querySelector('.modal-header');
+                if (header) {
+                    header.style.cursor = 'move';
+                    header.addEventListener('mousedown', (e) => {
+                        // 닫기 단추(X) 클릭 시에는 드래그 무시
+                        if (e.target.closest('.close-modal')) return;
+                        
+                        e.preventDefault();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+                        
+                        const initialX = dragX;
+                        const initialY = dragY;
+                        
+                        function onMouseMove(moveEvent) {
+                            const deltaX = moveEvent.clientX - startX;
+                            const deltaY = moveEvent.clientY - startY;
+                            
+                            dragX = initialX + deltaX;
+                            dragY = initialY + deltaY;
+                            
+                            // 기존 layout margin/position 건드리지 않고 transform을 통하여 부드럽고 튐 없는 드래그 연출
+                            modalContent.style.transform = `translate(${dragX}px, ${dragY}px)`;
+                        }
+                        
+                        function onMouseUp() {
+                            document.removeEventListener('mousemove', onMouseMove);
+                            document.removeEventListener('mouseup', onMouseUp);
+                        }
+                        
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    });
+                }
+            }
 
             // 컬러피커 가로채기 마운트
             if (options.controlsContainer) {
