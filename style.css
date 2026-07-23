@@ -484,7 +484,7 @@ body {
 }
 
 .CodeMirror-lines {
-    padding: 24px !important;
+    padding: 24px 0 !important;
 }
 
 /* Caret / Cursor */
@@ -499,11 +499,25 @@ body {
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
+/* 라인 번호 영역과 거터 컬럼들의 배경색을 일관되게 일치 */
+.CodeMirror-gutter,
+.CodeMirror-linenumbers,
+.CodeMirror-foldgutter,
+.CodeMirror-linenumber {
+    background-color: var(--editor-gutter-bg) !important;
+}
+
 .CodeMirror-linenumber {
     color: var(--editor-gutter-text) !important;
-    padding: 0 6px 0 8px;
+    padding: 0 5px 0 3px;
     text-align: right;
     transition: color 0.25s ease;
+    font-size: calc(var(--editor-font-size, 14px) - 2px) !important;
+}
+
+/* 거터와 본문 코드 에디터 글자 시작선 사이를 16px 만큼 이격 */
+.CodeMirror-line {
+    padding-left: 16px !important;
 }
 
 /* Active Line background & Selection */
