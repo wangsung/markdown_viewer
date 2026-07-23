@@ -474,6 +474,11 @@
         }
         activeColorInput = null;
         originalColorValue = null;
+
+        // 최종 반영된 색상 본문 Live Preview 갱신 동기화
+        if (typeof options.onLivePreview === 'function') {
+            options.onLivePreview();
+        }
     }
 
     function cancelColorPicker() {
@@ -487,6 +492,11 @@
         }
         activeColorInput = null;
         originalColorValue = null;
+
+        // 취소 복원된 원래 색상 본문 Live Preview 갱신 동기화 (롤백 실행)
+        if (typeof options.onLivePreview === 'function') {
+            options.onLivePreview();
+        }
     }
 
     // =========================================================================
