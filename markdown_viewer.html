@@ -394,6 +394,7 @@ greet('사용자');
                     <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
                     </select>
                     <button id="btn-add-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; white-space: nowrap;">+ 새 스타일</button>
+                    <button id="btn-delete-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #f59e0b; white-space: nowrap;" title="스타일 삭제">삭제</button>
                 </div>
 
                 <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
@@ -403,10 +404,9 @@ greet('사용자');
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid var(--border-frame); padding-top: 5px;"> <!-- 하단 버튼 단락 마진/패딩 축소 -->
                     <div style="display: flex; gap: 6px;">
                         <button id="btn-reset-heading-presets" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #ef4444;" title="기본값 초기화">초기화</button>
-                        <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 스타일 저장">저장</button>
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <button id="btn-delete-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #f59e0b;" title="스타일 삭제">삭제</button>
+                        <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 스타일 저장">저장</button>
                         <button id="btn-save-heading-preset" class="btn btn-primary" title="저장 및 적용 후 모달 닫기" style="font-size: 0.75rem; padding: 5px 12px; display: flex; align-items: center; gap: 4px; background-color: #2563eb; color: #ffffff; font-weight: 700; border: 1px solid #3b82f6; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             저장 및 적용

@@ -642,31 +642,33 @@
                 });
             }
 
-            // [3] 새 세트 추가 버튼 리스너
+            // [3] 새 스타일 추가 버튼 리스너
             const btnAdd = document.getElementById('btn-add-heading-preset');
             if (btnAdd) {
                 btnAdd.addEventListener('click', () => {
-                    const name = prompt('새로운 Heading Style의 이름을 입력하세요:', '새 스타일');
+                    const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
+                    const currentId = options.presetSelect ? options.presetSelect.value : '';
+                    const currentPreset = presets.find(p => p.id === currentId);
+                    
+                    // 현재 편집 중인 세트 이름에서 숫자 접두사(예: '1. ')를 걷어낸 본문 이름 획득
+                    const rawName = currentPreset 
+                        ? currentPreset.name.replace(/^\d+\.\s*/, '') 
+                        : '새 스타일';
+                    const suggestedName = `${rawName} 복사본`;
+
+                    const name = prompt('새로운 Heading Style의 이름을 입력하세요:', suggestedName);
                     if (name && name.trim()) {
                         const newId = 'custom_' + Date.now();
-                        const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
+                        
+                        // 현재 다이얼로그 입력창들의 실시간 색상/크기 값을 그대로 복제 수집
+                        const copiedStyles = self.collectCurrentInputs 
+                            ? self.collectCurrentInputs() 
+                            : (currentPreset ? JSON.parse(JSON.stringify(currentPreset.styles)) : {});
+
                         const newPreset = {
                             id: newId,
                             name: `${presets.length + 1}. ${name.trim()}`,
-                            styles: {
-                                h1: { colorLight: '#1d4ed8', colorDark: '#3b82f6', size: '2.2em', border: '2px solid #3b82f6' },
-                                h2: { colorLight: '#0369a1', colorDark: '#60a5fa', size: '1.6em', border: '1px solid #60a5fa' },
-                                h3: { colorLight: '#0ea5e9', colorDark: '#93c5fd', size: '1.3em', border: 'none' },
-                                h4: { colorLight: '#38bdf8', colorDark: '#cbd5e1', size: '1.1em', border: 'none' },
-                                h5: { colorLight: '#7dd3fc', colorDark: '#94a3b8', size: '0.9em', border: 'none' },
-                                h6: { colorLight: '#bae6fd', colorDark: '#64748b', size: '0.85em', border: 'none' },
-                                link: { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' },
-                                strong: { colorLight: '#0f172a', colorDark: '#f8fafc' },
-                                em: { colorLight: '#0f172a', colorDark: '#f8fafc' },
-                                code: { colorLight: '#0969da', colorDark: '#38bdf8' },
-                                blockquote: { colorLight: '#475569', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' },
-                                line: { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' }
-                            }
+                            styles: copiedStyles
                         };
                         presets.push(newPreset);
                         if (typeof options.savePresetsData === 'function') {
@@ -898,11 +900,11 @@
                 <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 인용문 글자 색상">
                     🌙<input type="color" id="modal-blockquote-color-dark" value="${bqObj.colorDark || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
                 </label>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 4px;">테두리:</span>
-                <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 인용문 테두리 색상">
+                <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 4px;">들여쓰기 막대:</span>
+                <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 인용문 들여쓰기 막대 색상">
                     ☀️<input type="color" id="modal-blockquote-border-light" value="${bqObj.borderLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
                 </label>
-                <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 인용문 테두리 색상">
+                <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 인용문 들여쓰기 막대 색상">
                     🌙<input type="color" id="modal-blockquote-border-dark" value="${bqObj.borderDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
                 </label>
             `;
