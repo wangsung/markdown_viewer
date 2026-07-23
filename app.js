@@ -2723,86 +2723,101 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 🎨 [style-editor.js] 연계 커스텀 컬러피커 및 스타일 다이얼로그 초기 바인딩
     // ==========================================================================
+    // ==========================================================================
+    // 🎨 스타일 편집 다이얼로그 콜백 핸들러 리액티브 명명 함수 정의 (리팩토링)
+    // ==========================================================================
+    function handlePresetChange(presetId) {
+        applyHeadingPreset(presetId);
+        renderMarkdown();
+    }
+
+    function handleLivePreview() {
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
+        applyHeadingPreset(currentId, tempStyles);
+        renderMarkdown();
+    }
+
+    function handleModalScroll(clientX, deltaY) {
+        const dragDivider = document.getElementById('drag-divider');
+        const boundaryX = dragDivider 
+            ? dragDivider.getBoundingClientRect().left 
+            : window.innerWidth / 2;
+            
+        if (clientX < boundaryX) {
+            if (typeof cm !== 'undefined' && cm) {
+                const scrollInfo = cm.getScrollInfo();
+                cm.scrollTo(null, scrollInfo.top + deltaY);
+            }
+        } else {
+            const previewViewport = document.querySelector('.preview-viewport');
+            if (previewViewport) {
+                previewViewport.scrollTop += deltaY;
+            }
+        }
+    }
+
+    function handlePresetSave(presetName) {
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        applyHeadingPreset(currentId);
+        renderMarkdown();
+        showToast(`'${presetName}' 세트 스타일이 저장되었습니다.`);
+    }
+
+    function handlePresetSaveAndClose(presetName) {
+        closeHeadingStyleModal();
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        applyHeadingPreset(currentId);
+        renderMarkdown();
+        
+        // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
+        if (typeof cm !== 'undefined' && cm) {
+            cm.focus();
+            requestAnimationFrame(() => {
+                cm.refresh();
+            });
+        }
+        
+        showToast(`'${presetName}' 세트가 적용되었습니다.`);
+    }
+
+    function handlePresetAdd(newId, newName) {
+        updatePresetSelectOptions();
+        applyHeadingPreset(newId);
+        renderHeadingModalControls(newId);
+        renderMarkdown();
+        showToast(`'${newName}' 세트가 생성되었습니다.`);
+    }
+
+    function handlePresetDelete(nextId, deletedName) {
+        updatePresetSelectOptions();
+        applyHeadingPreset(nextId);
+        renderHeadingModalControls(nextId);
+        renderMarkdown();
+        showToast(`'${deletedName}' 세트가 삭제되었습니다.`);
+    }
+
+    function handlePresetReset(presetId, presetName) {
+        applyHeadingPreset(presetId);
+        renderHeadingModalControls(presetId);
+        renderMarkdown();
+        showToast(`'${presetName}' 세트가 초기 기본값으로 복원되었습니다.`);
+    }
+
     if (window.StyleEditor) {
         window.StyleEditor.init({
             controlsContainer: headingStyleControls,
             presetSelect: modalHeadingSelect,
-            onPresetChange: (presetId) => {
-                applyHeadingPreset(presetId);
-                renderMarkdown();
-            },
-            onLivePreview: () => {
-                // 컬러피커 실시간 드래그 시 뷰어 실시간 동기화
-                const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-                const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
-                applyHeadingPreset(currentId, tempStyles);
-                renderMarkdown();
-            },
-            onScroll: (clientX, deltaY) => {
-                // 실시간으로 중앙 구분선(drag-divider)의 물리적 left 위치 획득
-                const dragDivider = document.getElementById('drag-divider');
-                const boundaryX = dragDivider 
-                    ? dragDivider.getBoundingClientRect().left 
-                    : window.innerWidth / 2;
-                    
-                if (clientX < boundaryX) {
-                    // 마우스 포인터가 좌측 에디터 프레임 영역 위에 오버 중인 경우 -> 에디터 스크롤
-                    if (typeof cm !== 'undefined' && cm) {
-                        const scrollInfo = cm.getScrollInfo();
-                        cm.scrollTo(null, scrollInfo.top + deltaY);
-                    }
-                } else {
-                    // 마우스 포인터가 우측 프리뷰 프레임 영역 위에 오버 중인 경우 -> 프리뷰 스크롤
-                    const previewViewport = document.querySelector('.preview-viewport');
-                    if (previewViewport) {
-                        previewViewport.scrollTop += deltaY;
-                    }
-                }
-            },
-            getPresetsData: () => getHeadingPresets(),
-            savePresetsData: (presets) => saveHeadingPresets(presets),
-            onSave: (presetName) => {
-                const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-                applyHeadingPreset(currentId);
-                renderMarkdown();
-                showToast(`'${presetName}' 세트 스타일이 저장되었습니다.`);
-            },
-            onSaveAndClose: (presetName) => {
-                closeHeadingStyleModal();
-                const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-                applyHeadingPreset(currentId);
-                renderMarkdown();
-                
-                // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
-                if (typeof cm !== 'undefined' && cm) {
-                    cm.focus();
-                    requestAnimationFrame(() => {
-                        cm.refresh();
-                    });
-                }
-                
-                showToast(`'${presetName}' 세트가 적용되었습니다.`);
-            },
-            onAddPreset: (newId, newName) => {
-                updatePresetSelectOptions();
-                applyHeadingPreset(newId);
-                renderHeadingModalControls(newId);
-                renderMarkdown();
-                showToast(`'${newName}' 세트가 생성되었습니다.`);
-            },
-            onDeletePreset: (nextId, deletedName) => {
-                updatePresetSelectOptions();
-                applyHeadingPreset(nextId);
-                renderHeadingModalControls(nextId);
-                renderMarkdown();
-                showToast(`'${deletedName}' 세트가 삭제되었습니다.`);
-            },
-            onResetPreset: (presetId, presetName) => {
-                applyHeadingPreset(presetId);
-                renderHeadingModalControls(presetId);
-                renderMarkdown();
-                showToast(`'${presetName}' 세트가 초기 기본값으로 복원되었습니다.`);
-            }
+            getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
+            savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
+            onPresetChange: handlePresetChange,
+            onLivePreview: handleLivePreview,
+            onScroll: handleModalScroll,
+            onSave: handlePresetSave,
+            onSaveAndClose: handlePresetSaveAndClose,
+            onAddPreset: handlePresetAdd,
+            onDeletePreset: handlePresetDelete,
+            onResetPreset: handlePresetReset
         });
     }
 
