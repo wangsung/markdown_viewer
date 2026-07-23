@@ -646,7 +646,7 @@
             const btnAdd = document.getElementById('btn-add-heading-preset');
             if (btnAdd) {
                 btnAdd.addEventListener('click', () => {
-                    const name = prompt('새로운 Heading Style Set의 이름을 입력하세요:', '새 스타일 세트');
+                    const name = prompt('새로운 Heading Style의 이름을 입력하세요:', '새 스타일');
                     if (name && name.trim()) {
                         const newId = 'custom_' + Date.now();
                         const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
@@ -691,7 +691,7 @@
                     }
                     const foundIdx = presets.findIndex(p => p.id === currentId);
                     if (foundIdx !== -1) {
-                        if (confirm(`'${presets[foundIdx].name}' 세트를 삭제하시겠습니까?`)) {
+                        if (confirm(`'${presets[foundIdx].name}' 스타일을 삭제하시겠습니까?`)) {
                             const deletedName = presets[foundIdx].name;
                             presets.splice(foundIdx, 1);
                             if (typeof options.savePresetsData === 'function') {
@@ -715,7 +715,7 @@
                     const defaultPreset = DEFAULT_HEADING_PRESETS.find(p => p.id === currentId);
 
                     if (defaultPreset) {
-                        if (confirm(`'${defaultPreset.name}' 스타일 세트를 초기 기본값으로 복원하시겠습니까?`)) {
+                        if (confirm(`'${defaultPreset.name}' 스타일을 초기 기본값으로 복원하시겠습니까?`)) {
                             const foundIdx = presets.findIndex(p => p.id === currentId);
                             if (foundIdx !== -1) {
                                 presets[foundIdx] = JSON.parse(JSON.stringify(defaultPreset));

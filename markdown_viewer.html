@@ -385,7 +385,7 @@ greet('사용자');
     <div id="heading-modal" class="modal">
         <div class="modal-content" style="max-width: 580px; padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
             <div class="modal-header" style="padding-bottom: 4px; margin-bottom: 5px;"> <!-- 헤더 마진/패딩 축소 -->
-                <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 스타일 세트편집</h2>
+                <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 스타일 편집</h2>
                 <span class="close-modal" id="close-heading-modal">&times;</span>
             </div>
             <div class="modal-body" style="padding: 0;">
@@ -393,7 +393,7 @@ greet('사용자');
                     <label for="modal-heading-preset-select" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">Preset Set:</label>
                     <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
                     </select>
-                    <button id="btn-add-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; white-space: nowrap;">+ 새 세트</button>
+                    <button id="btn-add-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; white-space: nowrap;">+ 새 스타일</button>
                 </div>
 
                 <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
@@ -403,17 +403,13 @@ greet('사용자');
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid var(--border-frame); padding-top: 5px;"> <!-- 하단 버튼 단락 마진/패딩 축소 -->
                     <div style="display: flex; gap: 6px;">
                         <button id="btn-reset-heading-presets" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #ef4444;" title="기본값 초기화">초기화</button>
-                        <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 세트 저장">세트 저장</button>
+                        <button id="btn-save-only-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" title="현재 스타일 저장">저장</button>
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <button id="btn-delete-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #f59e0b;" title="세트 삭제">삭제</button>
+                        <button id="btn-delete-heading-preset" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #f59e0b;" title="스타일 삭제">삭제</button>
                         <button id="btn-save-heading-preset" class="btn btn-primary" title="저장 및 적용 후 모달 닫기" style="font-size: 0.75rem; padding: 5px 12px; display: flex; align-items: center; gap: 4px; background-color: #2563eb; color: #ffffff; font-weight: 700; border: 1px solid #3b82f6; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             저장 및 적용
-                        </button>
-                        <button id="btn-close-heading-modal" class="btn btn-secondary" title="모달 닫기" style="font-size: 0.75rem; padding: 4px 8px; display: flex; align-items: center; gap: 3px;">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            닫기
                         </button>
                     </div>
                     </div>

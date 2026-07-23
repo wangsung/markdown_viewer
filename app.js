@@ -2758,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handlePresetSave(presetName) {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
-        showToast(`'${presetName}' 세트 스타일이 저장되었습니다.`);
+        showToast(`'${presetName}' 스타일이 저장되었습니다.`);
     }
 
     function handlePresetSaveAndClose(presetName) {
@@ -2774,27 +2774,27 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        showToast(`'${presetName}' 세트가 적용되었습니다.`);
+        showToast(`'${presetName}' 스타일이 적용되었습니다.`);
     }
 
     function handlePresetAdd(newId, newName) {
         updatePresetSelectOptions();
         applyHeadingPreset(newId);
         renderHeadingModalControls(newId);
-        showToast(`'${newName}' 세트가 생성되었습니다.`);
+        showToast(`'${newName}' 스타일이 생성되었습니다.`);
     }
 
     function handlePresetDelete(nextId, deletedName) {
         updatePresetSelectOptions();
         applyHeadingPreset(nextId);
         renderHeadingModalControls(nextId);
-        showToast(`'${deletedName}' 세트가 삭제되었습니다.`);
+        showToast(`'${deletedName}' 스타일이 삭제되었습니다.`);
     }
 
     function handlePresetReset(presetId, presetName) {
         applyHeadingPreset(presetId);
         renderHeadingModalControls(presetId);
-        showToast(`'${presetName}' 세트가 초기 기본값으로 복원되었습니다.`);
+        showToast(`'${presetName}' 스타일이 초기 기본값으로 복원되었습니다.`);
     }
 
     if (window.StyleEditor) {
