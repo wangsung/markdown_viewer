@@ -416,7 +416,7 @@ body {
 /* CodeMirror Editor Styles */
 .CodeMirror {
     width: 100%;
-    height: 100%;
+    height: 100% !important;
     background-color: var(--bg-primary) !important;
     color: #e2e8f0 !important;
     font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;

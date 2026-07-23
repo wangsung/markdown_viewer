@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lineNumbers: true,
         lineWrapping: true,
         theme: 'default',
-        viewportMargin: Infinity,
         extraKeys: {
             "Tab": function(cm) {
                 cm.replaceSelection("    ");
