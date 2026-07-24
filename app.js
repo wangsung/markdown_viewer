@@ -77,31 +77,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 cm.replaceSelection("    ");
             },
             "Cmd-B": function(cmInstance) {
-                EditorManager.insertFormatting(cmInstance, 'bold', () => {
+                EditorManager.insert_formatting(cmInstance, 'bold', () => {
                     updateFilenameDisplay(currentFilename, true);
                     renderMarkdown();
                 });
             },
             "Ctrl-B": function(cmInstance) {
-                EditorManager.insertFormatting(cmInstance, 'bold', () => {
+                EditorManager.insert_formatting(cmInstance, 'bold', () => {
                     updateFilenameDisplay(currentFilename, true);
                     renderMarkdown();
                 });
             },
             "Cmd-I": function(cmInstance) {
-                EditorManager.insertFormatting(cmInstance, 'italic', () => {
+                EditorManager.insert_formatting(cmInstance, 'italic', () => {
                     updateFilenameDisplay(currentFilename, true);
                     renderMarkdown();
                 });
             },
             "Ctrl-I": function(cmInstance) {
-                EditorManager.insertFormatting(cmInstance, 'italic', () => {
+                EditorManager.insert_formatting(cmInstance, 'italic', () => {
                     updateFilenameDisplay(currentFilename, true);
                     renderMarkdown();
                 });
             },
             "Alt-Q": function(cmInstance) {
-                EditorManager.applyParagraphJoin(cmInstance, () => {
+                EditorManager.apply_paragraph_join(cmInstance, () => {
                     renderMarkdown();
                 });
             }
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = e.currentTarget;
             const markdownType = target.getAttribute('data-markdown');
             if (markdownType) {
-                EditorManager.insertFormatting(cm, markdownType, () => {
+                EditorManager.insert_formatting(cm, markdownType, () => {
                     updateFilenameDisplay(currentFilename, true);
                     renderMarkdown();
                 });
@@ -1206,7 +1206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 문단 모으기 버튼 클릭 이벤트 핸들러 바인딩
     if (btnJoinParagraphs) {
         btnJoinParagraphs.addEventListener('click', () => {
-            EditorManager.applyParagraphJoin(cm, () => {
+            EditorManager.apply_paragraph_join(cm, () => {
                 renderMarkdown();
             });
         });
