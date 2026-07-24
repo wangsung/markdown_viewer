@@ -223,20 +223,29 @@ const ExportManager = (function() {
             border-radius: 0 6px 6px 0;
         }
 
-        .markdown-body code {
-            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-            background-color: var(--preview-code-bg, rgba(0,0,0,0.05));
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: var(--code-color, inherit) !important;
+        .markdown-body pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: var(--preview-code-bg, rgba(0,0,0,0.05)) !important;
+            border-radius: 6px;
+            border: 1px solid var(--preview-border, rgba(255,255,255,0.1)) !important;
+            margin-top: 0;
+            margin-bottom: 16px;
         }
 
         .markdown-body pre code {
             padding: 0;
-            background-color: transparent;
+            margin: 0;
+            font-size: 100%;
+            word-break: normal;
+            white-space: pre;
+            background: transparent !important;
+            border: 0;
         }
 
-        .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body table, .markdown-body pre {
+        .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body table {
             margin-top: 0;
             margin-bottom: 16px;
         }
