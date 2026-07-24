@@ -1453,13 +1453,17 @@ document.addEventListener('DOMContentLoaded', () => {
         debugPanel.innerHTML = html;
     }
 
-    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링
-    function buildTOC() {
-        const tocList = document.getElementById('toc-list');
-        if (!tocList) return;
+    /**
+     * [Refactoring 2단계] Pure Sub-function: 마크다운 텍스트에서 헤더(#)를 추출하는 100% 순수 텍스트 연산 함수.
+     * 리팩토링 목적: 전역 변수(cm) 의존성을 배제하고 인자로 텍스트를 전달받아 TOC 구조 데이터를 반환함.
+     * @param {string} text - 마크다운 원문 텍스트
+     * @returns {Array<{line: number, level: number, text: string}>} 추출된 헤더 객체 배열
+     */
+    function build_toc(text) {
+        if (!text || typeof text !== 'string') return [];
 
-        const text = cm.getValue().replace(/\r\n/g, '\n');
-        const lines = text.split('\n');
+        const normalized = text.replace(/\r\n/g, '\n');
+        const lines = normalized.split('\n');
         const headings = [];
         let inCodeBlock = false;
 
@@ -1482,6 +1486,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
+
+        return headings;
+    }
+    if (typeof window !== 'undefined') {
+        window.build_toc = build_toc;
+    }
+
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링
+    function buildTOC() {
+        const tocList = document.getElementById('toc-list');
+        if (!tocList || !cm) return;
+
+        const text = cm.getValue();
+        const headings = build_toc(text);
 
         tocList.innerHTML = '';
         headings.forEach(heading => {

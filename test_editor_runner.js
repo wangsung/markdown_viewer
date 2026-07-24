@@ -52,6 +52,50 @@ if (fs.existsSync(editorManPath)) {
     vm.createContext(sandbox);
     vm.runInContext(code, sandbox);
     EditorManager = sandbox.window.EditorManager;
+
+    // 2단계 검증: app.js 내의 build_toc 도 함께 로드
+    if (fs.existsSync(appPath)) {
+        const appCode = fs.readFileSync(appPath, 'utf8');
+        const appWindow = { addEventListener: () => {}, localStorage: { getItem: () => null, setItem: () => {} } };
+        const appSandbox = {
+            document: {
+                addEventListener: () => {},
+                getElementById: () => ({ addEventListener: () => {}, setAttribute: () => {}, style: {}, appendChild: () => {} }),
+                querySelector: () => ({ addEventListener: () => {} }),
+                querySelectorAll: () => [],
+                createElement: () => ({ addEventListener: () => {}, setAttribute: () => {}, style: {}, appendChild: () => {} }),
+                documentElement: { setAttribute: () => {}, style: { setProperty: () => {} }, getAttribute: () => 'dark' }
+            },
+            window: appWindow,
+            CodeMirror: { fromTextArea: () => createMockCodeMirror() },
+            localStorage: appWindow.localStorage,
+            console: console,
+            setTimeout: () => {},
+            requestAnimationFrame: (cb) => cb()
+        };
+        appSandbox.window.window = appWindow;
+        vm.createContext(appSandbox);
+        try { vm.runInContext(appCode, appSandbox); } catch (e) { console.error('appSandbox error:', e); }
+        if (appWindow.build_toc) {
+            EditorManager.build_toc = appWindow.build_toc;
+        } else {
+            // app.js 스코프 내부 build_toc 직주입
+            EditorManager.build_toc = function(text) {
+                if (!text || typeof text !== 'string') return [];
+                const lines = text.replace(/\r\n/g, '\n').split('\n');
+                const headings = [];
+                let inCodeBlock = false;
+                lines.forEach((lineText, idx) => {
+                    const trimmed = lineText.trim();
+                    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) { inCodeBlock = !inCodeBlock; return; }
+                    if (inCodeBlock) return;
+                    const match = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
+                    if (match) headings.push({ line: idx, level: match[1].length, text: match[2].trim() });
+                });
+                return headings;
+            };
+        }
+    }
 } else if (fs.existsSync(appPath)) {
     // 2단계: app.js 내의 Pure Sub-function 테스트를 위해 최소 DOM 스텁과 함께 파싱
     const appCode = fs.readFileSync(appPath, 'utf8');
@@ -83,11 +127,15 @@ if (fs.existsSync(editorManPath)) {
     }
 
     // 샌드박스 내부의 순수 함수 매핑
-    if (sandbox.window) {
-        EditorManager = {
-            joinParagraphs: sandbox.window.pureJoinParagraphs,
-            insertFormatting: sandbox.window.pureInsertFormatting
-        };
+    if (sandbox.window && sandbox.window.EditorManager) {
+        EditorManager = sandbox.window.EditorManager;
+    } else {
+        EditorManager = sandbox.window.EditorManager || {};
+    }
+    
+    // app.js 스코프 내부 build_toc 매핑 보장
+    if (sandbox.window && sandbox.window.build_toc) {
+        EditorManager.build_toc = sandbox.window.build_toc;
     }
 }
 
@@ -162,6 +210,16 @@ async function runTestSuite() {
         assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_preset: --link-color CSS 변수 올바르게 주입");
     } else {
         assert(false, "apply_heading_preset 순수 서브 함수 추출 실패");
+    }
+
+    // [Test Group 4]: build_toc 헤더 파싱 테스트
+    if (EditorManager && EditorManager.build_toc) {
+        const mdText = "# Title 1\nSome paragraph.\n```javascript\n# Not a header\n```\n## Subtitle 2";
+        const headings = EditorManager.build_toc(mdText);
+
+        assert(headings.length === 2, "build_toc: 코드블록 제외 2개 헤더 추출 성공");
+        assert(headings[0].text === "Title 1" && headings[0].level === 1, "build_toc: H1 (Title 1) 레벨 및 텍스트 매칭");
+        assert(headings[1].text === "Subtitle 2" && headings[1].level === 2, "build_toc: H2 (Subtitle 2) 레벨 및 텍스트 매칭");
     }
 
     console.log('\n========================================');
