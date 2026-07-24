@@ -141,8 +141,8 @@ async function runTestSuite() {
         assert(false, "insert_formatting 서식 주입 함수 추출 실패");
     }
 
-    // [Test Group 3]: apply_heading_styles 순수 스타일 바인딩 테스트
-    if (EditorManager && EditorManager.apply_heading_styles) {
+    // [Test Group 3]: apply_heading_preset 순수 스타일 바인딩 테스트
+    if (EditorManager && EditorManager.apply_heading_preset) {
         const styleVars = {};
         const mockTargetEl = {
             style: {
@@ -155,13 +155,13 @@ async function runTestSuite() {
             link: { colorDark: '#38bdf8', decoration: 'underline' }
         };
 
-        EditorManager.apply_heading_styles(mockTargetEl, mockStyles, 'dark');
+        EditorManager.apply_heading_preset(mockTargetEl, mockStyles, 'dark');
 
-        assert(styleVars['--h1-color'] === '#3b82f6', "apply_heading_styles: --h1-color CSS 변수 올바르게 주입");
-        assert(styleVars['--h1-size'] === '2.2em', "apply_heading_styles: --h1-size CSS 변수 올바르게 주입");
-        assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_styles: --link-color CSS 변수 올바르게 주입");
+        assert(styleVars['--h1-color'] === '#3b82f6', "apply_heading_preset: --h1-color CSS 변수 올바르게 주입");
+        assert(styleVars['--h1-size'] === '2.2em', "apply_heading_preset: --h1-size CSS 변수 올바르게 주입");
+        assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_preset: --link-color CSS 변수 올바르게 주입");
     } else {
-        assert(false, "apply_heading_styles 순수 서브 함수 추출 실패");
+        assert(false, "apply_heading_preset 순수 서브 함수 추출 실패");
     }
 
     console.log('\n========================================');

@@ -260,7 +260,7 @@ window.EditorManager = (function() {
      * @param {Object} styles - 프리셋에 정의된 스타일 데이터 객체
      * @param {string} [currentTheme='dark'] - 현재 테마 ('dark' | 'light')
      */
-    function apply_heading_styles(targetEl, styles, currentTheme = 'dark') {
+    function apply_heading_preset(targetEl, styles, currentTheme = 'dark') {
         if (!targetEl || !styles || typeof styles !== 'object') return;
 
         ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
@@ -342,6 +342,6 @@ window.EditorManager = (function() {
         join_paragraphs,
         apply_paragraph_join,
         insert_formatting,
-        apply_heading_styles
+        apply_heading_preset
     };
 })();

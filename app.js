@@ -352,8 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const root = document.documentElement;
         const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
 
-        // 순수 서브 함수 EditorManager.apply_heading_styles로 스타일 바인딩 호출
-        EditorManager.apply_heading_styles(root, styles, currentTheme);
+        // 순수 서브 함수 EditorManager.apply_heading_preset로 스타일 바인딩 호출
+        EditorManager.apply_heading_preset(root, styles, currentTheme);
 
         if (!tempStyles) {
             localStorage.setItem('markvi_active_heading_preset', presetId);
