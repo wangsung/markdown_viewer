@@ -338,10 +338,48 @@ window.EditorManager = (function() {
         }
     }
 
+    /**
+     * [Refactoring] Pure Sub-function: 마크다운 원문 텍스트에서 헤더(#) 항목들을 파싱하여 목차(TOC) 객체 배열을 생성하는 순수 서브 함수.
+     * 리팩토링 목적: DOM 조작 및 에디터 인스턴스 의존성을 배제하고, 마크다운 원문 텍스트만 수신하여 TOC 구조 데이터만 생성함.
+     * @param {string} text - 마크다운 원문 텍스트
+     * @returns {Array<{line: number, level: number, text: string}>} 헤더 정보 객체 배열
+     */
+    function build_toc(text) {
+        if (!text || typeof text !== 'string') return [];
+
+        const normalized = text.replace(/\r\n/g, '\n');
+        const lines = normalized.split('\n');
+        const headings = [];
+        let inCodeBlock = false;
+
+        lines.forEach((lineText, idx) => {
+            const trimmed = lineText.trim();
+            if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+                inCodeBlock = !inCodeBlock;
+                return;
+            }
+            if (inCodeBlock) return;
+
+            const match = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
+            if (match) {
+                const level = match[1].length;
+                const textVal = match[2].trim();
+                headings.push({
+                    line: idx,
+                    level: level,
+                    text: textVal
+                });
+            }
+        });
+
+        return headings;
+    }
+
     return {
         join_paragraphs,
         apply_paragraph_join,
         insert_formatting,
-        apply_heading_preset
+        apply_heading_preset,
+        build_toc
     };
 })();
