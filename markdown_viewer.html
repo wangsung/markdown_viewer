@@ -317,73 +317,8 @@ greet('사용자');
         </section>
     </main>
 
-    <!-- 설정 모달 다이얼로그 -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚙️ 설정</h2>
-                <span class="close-btn" id="close-settings">&times;</span>
-            </div>
-            <div class="modal-body">
-                <!-- Windows 탐색기 연결 설정 -->
-                <div class="settings-section">
-                    <h3>📂 Windows 탐색기 연결 설정</h3>
-                    <p class="settings-description">탐색기에서 마크다운 파일(.md)을 더블 클릭했을 때, 웹 브라우저로 바로 실행되도록 연결을 설정합니다. (크롬/엣지 확장 프로그램이 감지하여 자동으로 프리뷰를 실행합니다.)</p>
-                    
-                    <div class="assoc-methods" style="margin-bottom: 12px;">
-                        <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 1. 윈도우 우클릭으로 연결하기</h4>
-                        <ol class="guide-steps" style="margin-bottom: 12px;">
-                            <li>마크다운 파일(.md)을 <strong>마우스 우클릭</strong>합니다.</li>
-                            <li><strong>[연결 프로그램]</strong> → <strong>[다른 앱 선택]</strong>을 클릭합니다.</li>
-                            <li>사용할 웹 브라우저(예: <strong>Google Chrome</strong> 또는 <strong>Microsoft Edge</strong>)를 선택합니다.</li>
-                            <li>하단의 <strong>'항상 .md 파일을 열 때 이 앱 사용'</strong> 체크박스를 활성화하고 확인을 누릅니다.</li>
-                        </ol>
-                    </div>
-
-                    <div class="assoc-methods" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
-                        <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 2. 레지스트리(.reg) 등록 파일 다운로드</h4>
-                        <p class="settings-description" style="margin-bottom: 10px; font-size: 0.775rem;">원클릭으로 연결 확장자를 레지스트리에 자동 등록하는 설정 파일을 다운로드합니다.</p>
-                        <div class="settings-action" style="flex-direction: row; gap: 8px;">
-                            <button id="btn-reg-chrome" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);">
-                                Chrome(크롬) 연결 등록
-                            </button>
-                            <button id="btn-reg-edge" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; background-color: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);">
-                                Edge(엣지) 연결 등록
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chrome Extension 설치 안내 -->
-                <div class="settings-section" style="margin-top: 16px;">
-                    <h3>🔌 Chrome 확장 프로그램 설치 안내</h3>
-                    <p class="settings-description">브라우저 빈 화면에 마크다운 파일(.md)을 드래그 앤 드롭했을 때 자동으로 본 뷰어가 구동되도록 연동합니다.</p>
-                    
-                    <div class="extension-guide-tabs">
-                        <div class="guide-sub-section">
-                            <h4>방법 1. 크롬 웹 스토어 공식 설치 (권장)</h4>
-                            <ol class="guide-steps">
-                                <li>크롬 웹 스토어에서 뷰어를 검색하여 <strong>[Chrome에 추가]</strong>를 누릅니다.</li>
-                                <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
-                                <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="guide-sub-section" style="margin-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
-                            <h4>방법 2. 수동 설치 (개발자 모드 배포)</h4>
-                            <ol class="guide-steps">
-                                <li>배포된 뷰어 소스 패키지(ZIP)의 압축을 풉니다.</li>
-                                <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
-                                <li>우측 상단 <strong>[개발자 모드]</strong> 스위치를 켭니다.</li>
-                                <li>왼쪽 상단 <strong>[압축해제된 확장 프로그램 로드]</strong>를 눌러 뷰어 폴더를 선택합니다.</li>
-                                <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 설정 모달 다이얼로그 (SettingsManager 동적 템플릿 주입) -->
+    <div id="settings-modal" class="modal"></div>
 
     <!-- Heading Style 커스텀 편집 모달 -->
     <div id="heading-modal" class="modal">
@@ -433,6 +368,8 @@ greet('사용자');
     <script src="style-editor.js"></script>
     <script src="scroll-sync.js"></script>
     <script src="export-man.js"></script>
+    <script src="editor-man.js"></script>
+    <script src="settings-man.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
