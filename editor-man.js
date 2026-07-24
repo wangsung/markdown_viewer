@@ -10,7 +10,7 @@ window.EditorManager = (function() {
      * @param {string} text - 변환 대상 텍스트
      * @returns {string} 결합 완료된 텍스트
      */
-    function joinParagraphs(text) {
+    function join_paragraphs(text) {
         if (!text || typeof text !== 'string') return '';
 
         const lines = text.split(/\r?\n/);
@@ -133,15 +133,15 @@ window.EditorManager = (function() {
      * @param {Object} cmInstance - CodeMirror 에디터 인스턴스
      * @param {Function} [onComplete] - 완료 후 렌더링 및 UI 상태 갱신을 위한 콜백 함수
      */
-    function applyParagraphJoin(cmInstance, onComplete) {
+    function apply_paragraph_join(cmInstance, onComplete) {
         if (!cmInstance) return;
         const selection = cmInstance.getSelection();
         if (selection) {
-            const joinedText = joinParagraphs(selection);
+            const joinedText = join_paragraphs(selection);
             cmInstance.replaceSelection(joinedText);
         } else {
             const fullText = cmInstance.getValue();
-            const joinedText = joinParagraphs(fullText);
+            const joinedText = join_paragraphs(fullText);
             cmInstance.setValue(joinedText);
         }
         
@@ -159,7 +159,7 @@ window.EditorManager = (function() {
      * @param {string} type - 마크다운 서식 종류 ('bold', 'italic', 'h1'~'h3', 'link', 'image', 'code', 'codeblock', 'quote', 'ul', 'ol', 'hr', 'table')
      * @param {Function} [onComplete] - 완료 후 파일명 뱃지 갱신 및 렌더링을 위한 콜백 함수
      */
-    function insertFormatting(cmInstance, type, onComplete) {
+    function insert_formatting(cmInstance, type, onComplete) {
         if (!cmInstance) return;
         const selectedText = cmInstance.getSelection();
         
@@ -253,9 +253,95 @@ window.EditorManager = (function() {
         }
     }
 
+    /**
+     * [Refactoring] Pure Sub-function: 확정된 Heading styles 객체를 전달받아 대상 DOM 요소의 CSS 커스텀 변수를 순수 바인딩하는 서브 함수.
+     * 리팩토링 목적: 프리셋 조회의 비즈니스 로직과 스타일 렌더링을 격리하고, 매개변수로 targetEl, styles, currentTheme만을 수신함.
+     * @param {HTMLElement} targetEl - CSS 변수를 적용할 대상 엘리먼트 (예: document.documentElement)
+     * @param {Object} styles - 프리셋에 정의된 스타일 데이터 객체
+     * @param {string} [currentTheme='dark'] - 현재 테마 ('dark' | 'light')
+     */
+    function apply_heading_styles(targetEl, styles, currentTheme = 'dark') {
+        if (!targetEl || !styles || typeof styles !== 'object') return;
+
+        ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
+            if (styles[tag]) {
+                const styleObj = styles[tag];
+                const targetColor = currentTheme === 'light'
+                    ? (styleObj.colorLight || styleObj.color || '#1d4ed8')
+                    : (styleObj.colorDark || styleObj.color || '#3b82f6');
+
+                targetEl.style.setProperty(`--${tag}-color`, targetColor);
+                if (styleObj.size) targetEl.style.setProperty(`--${tag}-size`, styleObj.size);
+                if (styleObj.border) targetEl.style.setProperty(`--${tag}-border`, styleObj.border);
+            }
+        });
+
+        // 🔗 HyperLink / 대괄호 적용
+        if (styles.link) {
+            const linkObj = styles.link;
+            const targetLinkColor = currentTheme === 'light'
+                ? (linkObj.colorLight || linkObj.color || '#0969da')
+                : (linkObj.colorDark || linkObj.color || '#38bdf8');
+            targetEl.style.setProperty('--link-color', targetLinkColor);
+            targetEl.style.setProperty('--link-decoration', linkObj.decoration || 'underline');
+        }
+
+        // 💪 굵게 (Strong / Bold)
+        if (styles.strong) {
+            const boldObj = styles.strong;
+            const targetBoldColor = currentTheme === 'light'
+                ? (boldObj.colorLight || boldObj.color || '#0f172a')
+                : (boldObj.colorDark || boldObj.color || '#f8fafc');
+            targetEl.style.setProperty('--bold-color', targetBoldColor);
+        }
+
+        // ✨ 기울임 (Em / Italic)
+        if (styles.em) {
+            const emObj = styles.em;
+            const targetItalicColor = currentTheme === 'light'
+                ? (emObj.colorLight || emObj.color || '#0f172a')
+                : (emObj.colorDark || emObj.color || '#f8fafc');
+            targetEl.style.setProperty('--italic-color', targetItalicColor);
+        }
+
+        // 💻 ` ` Inline code
+        if (styles.code) {
+            const codeObj = styles.code;
+            const targetCodeColor = currentTheme === 'light'
+                ? (codeObj.colorLight || codeObj.color || '#0969da')
+                : (codeObj.colorDark || codeObj.color || '#38bdf8');
+            targetEl.style.setProperty('--code-color', targetCodeColor);
+        }
+
+        // 💬 인용문 (Blockquote)
+        if (styles.blockquote) {
+            const bqObj = styles.blockquote;
+            const targetBqColor = currentTheme === 'light'
+                ? (bqObj.colorLight || bqObj.color || '#475569')
+                : (bqObj.colorDark || bqObj.color || '#cbd5e1');
+            const targetBqBorder = currentTheme === 'light'
+                ? (bqObj.borderLight || bqObj.borderColor || '#0969da')
+                : (bqObj.borderDark || bqObj.borderColor || '#38bdf8');
+            targetEl.style.setProperty('--blockquote-text-color', targetBqColor);
+            targetEl.style.setProperty('--blockquote-border-color', targetBqBorder);
+        }
+
+        // ➖ Line (선 색상/구분선) 적용
+        if (styles.line) {
+            const lineObj = styles.line;
+            const targetLineColor = currentTheme === 'light'
+                ? (lineObj.colorLight || lineObj.color || '#cbd5e1')
+                : (lineObj.colorDark || lineObj.color || '#334155');
+            targetEl.style.setProperty('--line-color', targetLineColor);
+            targetEl.style.setProperty('--line-border', lineObj.border || '1px solid #334155');
+            targetEl.style.setProperty('--theme-color', targetLineColor);
+        }
+    }
+
     return {
-        joinParagraphs,
-        applyParagraphJoin,
-        insertFormatting
+        join_paragraphs,
+        apply_paragraph_join,
+        insert_formatting,
+        apply_heading_styles
     };
 })();

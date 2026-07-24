@@ -94,51 +94,74 @@ if (fs.existsSync(editorManPath)) {
 async function runTestSuite() {
     console.log('🚀 Running Editor Functions Unit Test Suite...\n');
 
-    // [Test Group 1]: pureJoinParagraphs 텍스트 변환 테스트
-    const joinFn = EditorManager ? EditorManager.joinParagraphs : null;
+    // [Test Group 1]: join_paragraphs 텍스트 변환 테스트
+    const joinFn = EditorManager ? EditorManager.join_paragraphs : null;
     
     if (joinFn) {
         // Test 1-1: 한글 일반 문장 결합
         const korInput = "이것은 첫 번째 문장입니다.\n이것은 같은 문단의 두 번째 문장입니다.";
         const korOutput = joinFn(korInput);
-        assert(korOutput === "이것은 첫 번째 문장입니다. 이것은 같은 문단의 두 번째 문장입니다.", "pureJoinParagraphs: 한글 일반 문장 1회 개행 결합");
+        assert(korOutput === "이것은 첫 번째 문장입니다. 이것은 같은 문단의 두 번째 문장입니다.", "join_paragraphs: 한글 일반 문장 1회 개행 결합");
 
         // Test 1-2: 영문 소문자 시작 문장 결합
         const engInput = "This is line one\nand this is line two.";
         const engOutput = joinFn(engInput);
-        assert(engOutput === "This is line one and this is line two.", "pureJoinParagraphs: 영문 소문자 이어진 문장 결합");
+        assert(engOutput === "This is line one and this is line two.", "join_paragraphs: 영문 소문자 이어진 문장 결합");
 
         // Test 1-3: 빈 줄(2회 개행) 문단 구분 보존
         const paragraphInput = "첫 번째 문단입니다.\n\n두 번째 문단입니다.";
         const paragraphOutput = joinFn(paragraphInput);
-        assert(paragraphOutput === "첫 번째 문단입니다.\n\n두 번째 문단입니다.", "pureJoinParagraphs: 빈 줄(2회 개행) 문단 구분 보존");
+        assert(paragraphOutput === "첫 번째 문단입니다.\n\n두 번째 문단입니다.", "join_paragraphs: 빈 줄(2회 개행) 문단 구분 보존");
 
         // Test 1-4: 마크다운 헤더(#) 결합 금지
         const headerInput = "앞쪽 본문 텍스트입니다.\n# 제목 1";
         const headerOutput = joinFn(headerInput);
-        assert(headerOutput === "앞쪽 본문 텍스트입니다.\n# 제목 1", "pureJoinParagraphs: 마크다운 헤더(#) 이전 문장과 결합 방지");
+        assert(headerOutput === "앞쪽 본문 텍스트입니다.\n# 제목 1", "join_paragraphs: 마크다운 헤더(#) 이전 문장과 결합 방지");
 
         // Test 1-5: HTML <br> 태그 결합 금지
         const brInput = "강제 개행 태그가 있습니다.<br>\n다음 줄 텍스트입니다.";
         const brOutput = joinFn(brInput);
-        assert(brOutput === "강제 개행 태그가 있습니다.<br>\n다음 줄 텍스트입니다.", "pureJoinParagraphs: <br> 태그 직후 결합 방지");
+        assert(brOutput === "강제 개행 태그가 있습니다.<br>\n다음 줄 텍스트입니다.", "join_paragraphs: <br> 태그 직후 결합 방지");
     } else {
-        assert(false, "EditorManager 또는 pureJoinParagraphs 함수 추출 실패");
+        assert(false, "EditorManager 또는 join_paragraphs 함수 추출 실패");
     }
 
-    // [Test Group 2]: pureInsertFormatting 서식 주입 테스트
-    if (EditorManager && EditorManager.insertFormatting) {
+    // [Test Group 2]: insert_formatting 서식 주입 테스트
+    if (EditorManager && EditorManager.insert_formatting) {
         const cmMock = createMockCodeMirror("Hello World", "World");
         let callbackExecuted = false;
 
-        EditorManager.insertFormatting(cmMock, 'bold', () => {
+        EditorManager.insert_formatting(cmMock, 'bold', () => {
             callbackExecuted = true;
         });
 
-        assert(cmMock.getValue().includes('**World**'), "pureInsertFormatting: selection에 bold (**World**) 주입");
-        assert(callbackExecuted === true, "pureInsertFormatting: onComplete 콜백 정상 호출");
+        assert(cmMock.getValue().includes('**World**'), "insert_formatting: selection에 bold (**World**) 주입");
+        assert(callbackExecuted === true, "insert_formatting: onComplete 콜백 정상 호출");
     } else {
-        assert(false, "pureInsertFormatting 서식 주입 함수 추출 실패");
+        assert(false, "insert_formatting 서식 주입 함수 추출 실패");
+    }
+
+    // [Test Group 3]: apply_heading_styles 순수 스타일 바인딩 테스트
+    if (EditorManager && EditorManager.apply_heading_styles) {
+        const styleVars = {};
+        const mockTargetEl = {
+            style: {
+                setProperty: (key, val) => { styleVars[key] = val; }
+            }
+        };
+
+        const mockStyles = {
+            h1: { colorDark: '#3b82f6', size: '2.2em', border: '2px solid #3b82f6' },
+            link: { colorDark: '#38bdf8', decoration: 'underline' }
+        };
+
+        EditorManager.apply_heading_styles(mockTargetEl, mockStyles, 'dark');
+
+        assert(styleVars['--h1-color'] === '#3b82f6', "apply_heading_styles: --h1-color CSS 변수 올바르게 주입");
+        assert(styleVars['--h1-size'] === '2.2em', "apply_heading_styles: --h1-size CSS 변수 올바르게 주입");
+        assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_styles: --link-color CSS 변수 올바르게 주입");
+    } else {
+        assert(false, "apply_heading_styles 순수 서브 함수 추출 실패");
     }
 
     console.log('\n========================================');
