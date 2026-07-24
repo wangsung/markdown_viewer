@@ -29,4 +29,8 @@
 - 모든 단위 테스트 및 검수용 테스트 스크립트는 `node -e "..."` 와 같은 긴 인라인 코맨드 방식 대신 **독립된 테스트 파일(`.js` 또는 `.html`)로 항상 작성하여 보관 및 저장**해야 합니다.
 - 테스트 스크립트를 파일로 관리하여 반복적이고 지속 가능한 자동화 테스트 및 재검증에 활용합니다.
 
+## 순수 서브 함수 네이밍 규칙 (Pure Sub-function Naming Convention)
+- **상위 비즈니스/상태 관리 함수**: camelCase (예: `applyHeadingPreset`, `handleSaveCurrentDocument`)
+- **순수 하위 서브 함수 (Pure Sub-function)**: 착오 방지를 위해 **모두 소문자 snake_case (예: `apply_heading_styles`, `join_paragraphs`, `insert_formatting`)**로 정의 및 표기해야 합니다.
+
 
