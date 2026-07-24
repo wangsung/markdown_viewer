@@ -711,9 +711,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // 렌더링 완료 후 스크롤 싱크 키프레임 목록 재구축
+            // 렌더링 완료 후 스크롤 싱크 키프레임 목록 재구축 (Stage 1)
             if (scrollSync) {
-                scrollSync.rebuildKeyframes();
+                scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
             }
 
             // 에디터 텍스트 파싱을 통한 TOC 목록 동적 빌드
@@ -1734,50 +1734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 식별자 및 비율 기반 비례 재조정(Proportional Rescaling) 스크롤 동기화 로직
-    // ==========================================================================
-    const previewViewport = document.querySelector('.preview-viewport');
-    let activeScrollSource = null; // 'editor' 또는 'preview'
-    let keyframes = [];            // [ { id: string, line: number, editorPercent: number, previewPercent: number, previewScrollY: number }, ... ]
-    let lastEditorScrollTop = -1;  // 중복 스크롤 업데이트 필터용
-    let lastPreviewScrollTop = -1; // 중복 스크롤 업데이트 필터용
-
-    function setEditorScrollSource() {
-        activeScrollSource = 'editor';
-    }
-
-    function setPreviewScrollSource() {
-        activeScrollSource = 'preview';
-    }
-
-    // 마우스 위치에 따른 스크롤 주도권(Source) 설정
-    cm.getWrapperElement().addEventListener('mouseenter', setEditorScrollSource);
-    if (previewViewport) {
-        previewViewport.addEventListener('mouseenter', setPreviewScrollSource);
-    }
-
-    // 텍스트 라인 및 Heading 정제 헬퍼 함수
-    function cleanTextForIdentifier(text, isHeading) {
-        let cleanText = text
-            .replace(/^[#>\s\-*+]+/g, '')   // 헤더, 인용구, 목록 불릿 기호만 제거
-            .replace(/[*_`~]/g, '')         // 볼드, 이탤릭, 인라인 코드, 취소선 기호 제거 (대괄호/소괄호는 유지)
-            .trim();
-        return isHeading ? cleanText : cleanText.substring(0, 30);
-    }
-
-    // 1. 텍스트 라인 식별자 추출 헬퍼 함수
-    function getLineIdentifier(lineNum) {
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        if (lineNum <= 0 || lineNum > lines.length) return '';
-        const rawLine = lines[lineNum - 1].trim();
-        if (!rawLine) return '';
-        
-        const isHeading = /^#+\s/.test(rawLine);
-        return cleanTextForIdentifier(rawLine, isHeading);
-    }
-
-    // ==========================================================================
-    // 실시간 키프레임 디버깅 패널 렌더링 함수
+    // 실시간 키프레임 디버깅 패널 렌더링 함수 (ScrollSync 연동)
     // ==========================================================================
     function updateDebugPanelUI(keyframesList, activeSource) {
         if (!debugPanel || debugPanel.style.display === 'none') return;
@@ -1796,6 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <th style="padding: 2px; text-align: right;">Ed%</th>
                     <th style="padding: 2px; text-align: right;">Pr%</th>
                     <th style="padding: 2px; text-align: right;">Y(px)</th>
+                    <th style="padding: 2px; text-align: right;">ScaleFactor</th>
                 </tr>
             </thead>
             <tbody>`;
@@ -1805,42 +1763,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
             const isBoundary = kf.id === '[START]' || kf.id === '[END]';
             const rowColor = isBoundary ? '#64748b' : '#38bdf8';
+            const sfVal = kf.scaleFactor !== null ? kf.scaleFactor : '-';
             
-            html += `<tr style="color: ${rowColor}; border-bottom: 1px dashed #1e293b;">
-                <td style="padding: 3px 2px;">${kf.line.toFixed(1)}</td>
-                <td style="padding: 3px 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
+            const sfHighlight = kf.isActiveSegment 
+                ? `background: #0284c7; color: #ffffff; padding: 1px 5px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);` 
+                : `color: ${rowColor};`;
+
+            const rowBg = kf.isActiveSegment ? 'background: rgba(2, 132, 199, 0.15);' : '';
+
+            html += `<tr style="color: ${rowColor}; ${rowBg} border-bottom: 1px dashed #1e293b;">
+                <td style="padding: 3px 2px;">${Math.round(kf.line)}</td>
+                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
                 <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
                 <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
                 <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
+                <td style="padding: 3px 2px; text-align: right;"><span style="${sfHighlight}">${sfVal}</span></td>
             </tr>`;
         });
         
         html += `</tbody></table>`;
         debugPanel.innerHTML = html;
-    }
-
-    // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색 (고유 ID 접미사 _line_줄번호 분리 처리)
-    function findPreviewElementByIdentifier(id) {
-        if (!id || id === '[START]' || id === '[END]') return null;
-        
-        const candidates = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table');
-        
-        // 고유 ID 접미사 (_line_숫자) 분리 처리
-        let baseId = id;
-        const lineSuffixMatch = id.match(/(.+)_line_\d+$/);
-        if (lineSuffixMatch) {
-            baseId = lineSuffixMatch[1];
-        }
-        
-        const cleanId = baseId.trim().toLowerCase();
-        
-        for (let el of candidates) {
-            const text = el.textContent.trim().toLowerCase();
-            if (text.startsWith(cleanId) || cleanId.startsWith(text.substring(0, 30))) {
-                return el;
-            }
-        }
-        return null;
     }
 
     // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링
@@ -1861,13 +1803,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (inCodeBlock) return;
 
-            // Heading 1~6에 해당하는 정규식 패턴 검사 (닫는 # 기호 제외)
             const match = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
             if (match) {
                 const level = match[1].length;
                 const textVal = match[2].trim();
                 headings.push({
-                    line: idx, // 0-based index
+                    line: idx,
                     level: level,
                     text: textVal
                 });
@@ -1878,7 +1819,7 @@ document.addEventListener('DOMContentLoaded', () => {
         headings.forEach(heading => {
             const li = document.createElement('li');
             li.className = `toc-item toc-h${heading.level}`;
-            li.setAttribute('data-line', heading.line + 1); // data-line은 1-based
+            li.setAttribute('data-line', heading.line + 1);
 
             const a = document.createElement('a');
             a.href = '#';
@@ -1893,517 +1834,6 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(a);
             tocList.appendChild(li);
         });
-
-        updateActiveTOCItem();
-    }
-
-    // 현재 보고 있는 프리뷰 위치에 따라 TOC 아이템 active 상태 업데이트
-    function updateActiveTOCItem() {
-        if (!previewViewport) return;
-        const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
-        if (headings.length === 0) return;
-
-        const viewportRect = previewViewport.getBoundingClientRect();
-        let activeHeading = null;
-
-        for (let i = 0; i < headings.length; i++) {
-            const el = headings[i];
-            const rect = el.getBoundingClientRect();
-
-            // 뷰포트 상단으로부터 약 100px 이내 영역에 헤더가 있는 경우를 활성화 기준으로 처리
-            if (rect.top - viewportRect.top <= 100) {
-                activeHeading = el;
-            } else {
-                break;
-            }
-        }
-
-        if (!activeHeading && headings.length > 0) {
-            activeHeading = headings[0];
-        }
-
-        if (activeHeading) {
-            const line = activeHeading.getAttribute('data-line');
-            const tocItems = document.querySelectorAll('.toc-item');
-            tocItems.forEach(item => {
-                if (item.getAttribute('data-line') === line) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        }
-    }
-
-    // 3. 초기 렌더링 시 Heading들을 추출하여 초기 키프레임 자동 구축
-    function rebuildInitialKeyframes() {
-        if (!previewViewport) return;
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        const totalLines = lines.length;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        
-        const rawKeyframes = [];
-        
-        // 시작 지점 경계 노드
-        rawKeyframes.push({
-            id: '[START]',
-            line: 0,
-            editorPercent: 0,
-            previewPercent: 0,
-            previewScrollY: 0
-        });
-        
-        // 프리뷰 내 주요 Heading 요소들(h1~h6) 중 data-line 속성을 가진 노드 추출
-        const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
-        headings.forEach(el => {
-            const line = parseInt(el.getAttribute('data-line'), 10);
-            const cleanText = cleanTextForIdentifier(el.textContent, true);
-            if (!isNaN(line) && cleanText) {
-                const id = `${cleanText}_line_${line}`;
-                const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
-                
-                // 초기 previewPercent를 editorPercent와 비례하게(동일하게) 세팅
-                const previewPercent = editorPercent;
-                const previewScrollY = previewPercent * maxPreviewScrollY;
-                
-                rawKeyframes.push({
-                    id: id,
-                    line: line,
-                    editorPercent: editorPercent,
-                    previewPercent: previewPercent,
-                    previewScrollY: previewScrollY
-                });
-            }
-        });
-        
-        // 끝 지점 경계 노드
-        rawKeyframes.push({
-            id: '[END]',
-            line: totalLines,
-            editorPercent: 1.0,
-            previewPercent: 1.0,
-            previewScrollY: Math.max(0, maxPreviewScrollY)
-        });
-        
-        // 줄 번호 오름차순 정렬
-        rawKeyframes.sort((a, b) => a.line - b.line);
-        
-        // 중복 제거
-        keyframes = [];
-        const seenIds = new Set();
-        rawKeyframes.forEach(kf => {
-            if (kf.id === '[START]' || kf.id === '[END]' || !seenIds.has(kf.id)) {
-                seenIds.add(kf.id);
-                keyframes.push(kf);
-            }
-        });
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 4. 프리뷰 높이 변화 갱신(Reflow) 시 각 키프레임 위치 캐시 일괄 업데이트
-    function recalculateKeyframePositions() {
-        if (!previewViewport) return;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        const totalLines = lines.length;
-        
-        keyframes.forEach(kf => {
-            if (kf.id === '[START]') {
-                kf.previewScrollY = 0;
-                kf.previewPercent = 0;
-                kf.editorPercent = 0;
-            } else if (kf.id === '[END]') {
-                kf.previewScrollY = Math.max(0, maxPreviewScrollY);
-                kf.previewPercent = 1.0;
-                kf.editorPercent = 1.0;
-                kf.line = totalLines;
-            } else {
-                // 비율 비례 배분에 기반하므로, 기존 비율(previewPercent)을 유지하면서
-                // 갱신된 maxPreviewScrollY에 맞게 absolute Y 캐시만 동기화합니다.
-                kf.previewScrollY = kf.previewPercent * maxPreviewScrollY;
-                kf.editorPercent = totalLines > 1 ? (kf.line - 1) / (totalLines - 1) : 0;
-            }
-        });
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 5. 키프레임 추가/갱신 및 비례 비율 조정(Proportional Re-scaling)
-    function addOrUpdateKeyframe(id, line, newPercent, targetScrollTop) {
-        if (!id) return;
-        
-        const totalLines = cm.getValue().replace(/\r\n/g, '\n').split('\n').length;
-        const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        
-        let pivotIndex = keyframes.findIndex(kf => kf.id === id);
-        let oldPercent = 0;
-        
-        if (pivotIndex !== -1) {
-            oldPercent = keyframes[pivotIndex].previewPercent;
-            
-            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
-            const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
-            const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
-            const minAllowed = kfBefore.previewPercent;
-            const maxAllowed = kfAfter.previewPercent;
-            
-            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
-            targetScrollTop = newPercent * maxPreviewScrollY;
-
-            keyframes[pivotIndex].line = line;
-            keyframes[pivotIndex].editorPercent = editorPercent;
-            keyframes[pivotIndex].previewPercent = newPercent;
-            keyframes[pivotIndex].previewScrollY = targetScrollTop;
-        } else {
-            const newKf = {
-                id: id,
-                line: line,
-                editorPercent: editorPercent,
-                previewPercent: newPercent,
-                previewScrollY: targetScrollTop
-            };
-            keyframes.push(newKf);
-            keyframes.sort((a, b) => a.line - b.line);
-            
-            pivotIndex = keyframes.findIndex(kf => kf.id === id);
-            const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
-            const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
-            
-            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
-            const minAllowed = kfBefore.previewPercent;
-            const maxAllowed = kfAfter.previewPercent;
-            
-            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
-            targetScrollTop = newPercent * maxPreviewScrollY;
-            
-            keyframes[pivotIndex].previewPercent = newPercent;
-            keyframes[pivotIndex].previewScrollY = targetScrollTop;
-
-            const dist = kfAfter.line - kfBefore.line;
-            const ratio = dist > 0 ? (line - kfBefore.line) / dist : 0.5;
-            oldPercent = kfBefore.previewPercent + ratio * (kfAfter.previewPercent - kfBefore.previewPercent);
-        }
-        
-        rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent);
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 6. 비례 비율 조절 연산 적용 함수
-    function rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent) {
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const N = keyframes.length;
-        
-        // 0부터 pivotIndex - 1 까지 (상단 영역)
-        for (let j = 1; j < pivotIndex; j++) {
-            if (oldPercent > 0) {
-                let adjustedPercent = keyframes[j].previewPercent * (newPercent / oldPercent);
-                // 범위 제한 (Clamping)
-                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
-                
-                keyframes[j].previewPercent = adjustedPercent;
-                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
-            }
-        }
-        
-        // pivotIndex + 1부터 N - 2 까지 (하단 영역)
-        for (let j = pivotIndex + 1; j < N - 1; j++) {
-            const denom = 1.0 - oldPercent;
-            if (denom > 0) {
-                const ratio = (keyframes[j].previewPercent - oldPercent) / denom;
-                let adjustedPercent = newPercent + ratio * (1.0 - newPercent);
-                // 범위 제한 (Clamping)
-                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
-                
-                keyframes[j].previewPercent = adjustedPercent;
-                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
-            }
-        }
-        
-        // 시작과 끝 경계선 키프레임 보존 강제화
-        keyframes[0].previewPercent = 0;
-        keyframes[0].previewScrollY = 0;
-        keyframes[N - 1].previewPercent = 1.0;
-        keyframes[N - 1].previewScrollY = Math.max(0, maxPreviewScrollY);
-    }
-
-    // 7. 커서/선택영역 가시성 보정 및 비율 보정 키프레임 등록
-    function syncPreviewToCursor() {
-        if (!enableScrollSync) return;
-        const hasSelection = cm.somethingSelected();
-        const cursor = cm.getCursor('start');
-        const cursorLine = cursor.line + 1;
-        
-        // 프리뷰 내에 현재 커서 라인과 인접한 data-line 엘리먼트 탐색
-        const elements = Array.from(preview.querySelectorAll('[data-line]'));
-        if (elements.length === 0) return;
-        
-        let targetEl = null;
-        for (let i = 0; i < elements.length; i++) {
-            const el = elements[i];
-            const line = parseInt(el.getAttribute('data-line'), 10);
-            if (line <= cursorLine) {
-                targetEl = el;
-            } else {
-                break;
-            }
-        }
-        
-        if (!targetEl || !previewViewport) return;
-        
-        // getBoundingClientRect를 활용하여 프리뷰 뷰포트 내의 상대적 위치 계산
-        const elRect = targetEl.getBoundingClientRect();
-        const viewportRect = previewViewport.getBoundingClientRect();
-        
-        const relativeTop = elRect.top - viewportRect.top;
-        const relativeBottom = elRect.bottom - viewportRect.top;
-        const viewportHeight = previewViewport.clientHeight;
-        
-        let targetScrollTop = -1;
-        
-        // 이미 가시 범위 내에 노출되어 있다면 추가 스크롤 보정을 일절 수행하지 않음 (20px 패딩 버퍼)
-        if (relativeTop < 20) {
-            targetScrollTop = previewViewport.scrollTop + relativeTop - 20;
-        } else if (relativeBottom > viewportHeight - 20) {
-            targetScrollTop = previewViewport.scrollTop + relativeBottom - viewportHeight + 20;
-        }
-        
-        if (targetScrollTop !== -1) {
-            // 스크롤 상단/하단 경계 보정
-            const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-            targetScrollTop = Math.max(0, Math.min(targetScrollTop, maxPreviewScrollY));
-            
-            isSyncing = true;
-            previewViewport.scrollTop = targetScrollTop;
-            
-            // 수동 스크롤 조작 위치를 기록하여 redundant 스크롤 이벤트 자동 무시 처리
-            lastPreviewScrollTop = targetScrollTop;
-            lastEditorScrollTop = cm.getScrollInfo().top;
-            
-            // 에디터 포커스 및 커서 이동 시 스크롤 보정이 실질적으로 발생했다면, 
-            // 뷰포트 정렬 왜곡 방지를 위해 해당 키프레임의 실제 스크롤 비율을 함께 보정 업데이트합니다.
-            const cleanText = getLineIdentifier(cursorLine);
-            if (cleanText) {
-                const id = `${cleanText}_line_${cursorLine}`;
-                const newPercent = maxPreviewScrollY > 0 ? targetScrollTop / maxPreviewScrollY : 0;
-                addOrUpdateKeyframe(id, cursorLine, newPercent, targetScrollTop);
-            }
-            
-            setTimeout(() => {
-                isSyncing = false;
-            }, 200); // 200ms 동안 비동기 브라우저 클릭 스크롤 이벤트가 오동작을 유발하는 현상 차단
-        }
-    }
-
-    function handleEditorCursorActivity() {
-        syncPreviewToCursor();
-    }
-
-    function handleEditorFocus() {
-        activeScrollSource = 'editor';
-    }
-
-    // 커서 이동/클릭/입력에 따른 가시성 검사 등록
-    cm.on('cursorActivity', handleEditorCursorActivity);
-    cm.on('focus', handleEditorFocus);
-
-    // 8. 에디터 -> 프리뷰 방향 스크롤 매핑 함수 (비율 기반 보간)
-    function getPreviewScrollForEditor(editorScrollTop) {
-        if (keyframes.length === 0) return 0;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        const currentPercent = maxEditorScrollTop > 0 ? editorScrollTop / maxEditorScrollTop : 0;
-        
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.editorPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-        
-        if (kfBefore === kfAfter) {
-            return kfBefore.previewScrollY;
-        }
-        
-        const denom = kfAfter.editorPercent - kfBefore.editorPercent;
-        const ratio = denom > 0 ? (currentPercent - kfBefore.editorPercent) / denom : 0;
-        
-        return kfBefore.previewScrollY + ratio * (kfAfter.previewScrollY - kfBefore.previewScrollY);
-    }
-
-    // 9. 프리뷰 -> 에디터 방향 스크롤 매핑 함수 (비율 기반 보간)
-    function getEditorScrollForPreview(previewScrollTop) {
-        if (keyframes.length === 0) return 0;
-        
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const currentPercent = maxPreviewScrollY > 0 ? previewScrollTop / maxPreviewScrollY : 0;
-        
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.previewPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-        
-        const scrollInfo = cm.getScrollInfo();
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        
-        if (kfBefore === kfAfter) {
-            return kfBefore.editorPercent * maxEditorScrollTop;
-        }
-        
-        const denom = kfAfter.previewPercent - kfBefore.previewPercent;
-        const ratio = denom > 0 ? (currentPercent - kfBefore.previewPercent) / denom : 0;
-        const targetEditorPercent = kfBefore.editorPercent + ratio * (kfAfter.editorPercent - kfBefore.editorPercent);
-        
-        return targetEditorPercent * maxEditorScrollTop;
-    }
-
-    /* 기존 절대 매핑 스크롤 동기화 로직 주석 처리
-    // 에디터 스크롤 이벤트 바인딩
-    cm.on('scroll', () => {
-        if (isSyncing) return;
-        if (activeScrollSource !== 'editor' || !previewViewport) return;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const scrollTop = scrollInfo.top;
-        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
-        
-        lastEditorScrollTop = scrollTop;
-        const targetScroll = getPreviewScrollForEditor(scrollTop);
-        lastPreviewScrollTop = targetScroll;
-        previewViewport.scrollTop = targetScroll;
-        updateDebugPanel();
-    });
-    */
-
-    // 에디터 스크롤 이벤트 처리 서브루틴 (상대적 델타 기반 동기화)
-    function handleEditorScroll() {
-        if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
-        if (isSyncing) return;
-        if (activeScrollSource !== 'editor' || !previewViewport) return;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const scrollTop = scrollInfo.top;
-        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
-        
-        // 최초 스크롤 이벤트 시 lastEditorScrollTop 초기화 처리 (튀지 않도록 방지)
-        if (lastEditorScrollTop === -1) {
-            lastEditorScrollTop = scrollTop;
-            return;
-        }
-
-        const deltaY_ed = scrollTop - lastEditorScrollTop;
-        lastEditorScrollTop = scrollTop;
-
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-
-        // 예외 처리: 완전한 최상단/최하단 도달 시 강제 정렬 (누적 오차 해결)
-        if (scrollTop <= 0) {
-            previewViewport.scrollTop = 0;
-            lastPreviewScrollTop = 0;
-            updateDebugPanel();
-            updateActiveTOCItem();
-            return;
-        }
-        if (scrollTop >= maxEditorScrollTop) {
-            previewViewport.scrollTop = maxPreviewScrollY;
-            lastPreviewScrollTop = maxPreviewScrollY;
-            updateDebugPanel();
-            updateActiveTOCItem();
-            return;
-        }
-
-        // 현재 스크롤 비율 계산
-        const currentPercent = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
-        
-        // 보간 구간 탐색
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.editorPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-
-        // 현재 구간의 스크롤 배율(S) 계산
-        const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
-        const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
-        
-        // Division by zero 방지
-        const scaleFactor = height_ed_range > 0 ? height_pr_range / height_ed_range : 1.0;
-
-        // 프리뷰 이동할 델타 및 새로운 스크롤탑 적용
-        const deltaY_pr = deltaY_ed * scaleFactor;
-        let newPreviewScrollTop = previewViewport.scrollTop + deltaY_pr;
-
-        // 범위 값 제한 (Clamping)
-        newPreviewScrollTop = Math.max(0, Math.min(newPreviewScrollTop, maxPreviewScrollY));
-
-        lastPreviewScrollTop = newPreviewScrollTop;
-        previewViewport.scrollTop = newPreviewScrollTop;
-        
-        updateDebugPanel();
-        updateActiveTOCItem();
-    }
-
-    // 프리뷰 스크롤 이벤트 처리 서브루틴
-    function handlePreviewScroll() {
-        if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
-        if (isSyncing) return;
-        if (activeScrollSource !== 'preview') return;
-        if (previewViewport.scrollTop === lastPreviewScrollTop) return; // 변경사항이 없다면 동기화 스킵
-        
-        lastPreviewScrollTop = previewViewport.scrollTop;
-        const targetScroll = getEditorScrollForPreview(previewViewport.scrollTop);
-        lastEditorScrollTop = targetScroll;
-        cm.scrollTo(null, targetScroll);
-        updateDebugPanel();
-        updateActiveTOCItem();
-    }
-
-    // 프리뷰 ResizeObserver 처리 서브루틴
-    function handlePreviewResize() {
-        recalculateKeyframePositions();
-    }
-
-    // 에디터/프리뷰 스크롤 및 ResizeObserver 이벤트 바인딩
-    cm.on('scroll', handleEditorScroll);
-    if (previewViewport) {
-        previewViewport.addEventListener('scroll', handlePreviewScroll);
-    }
-
-    // 프리뷰 영역의 크기/레이아웃 변화 감지 바인딩
-    if (preview && typeof ResizeObserver !== 'undefined') {
-        const resizeObserver = new ResizeObserver(handlePreviewResize);
-        resizeObserver.observe(preview);
     }
 
     // ==========================================================================
@@ -2434,7 +1864,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDebug.addEventListener('click', () => {
             if (debugPanel.style.display === 'none') {
                 debugPanel.style.display = 'block';
-                updateDebugPanel();
+                if (scrollSync) {
+                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                }
             } else {
                 debugPanel.style.display = 'none';
             }
@@ -2878,17 +2310,17 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
-    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거)
+    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거 Stage 3)
     window.addEventListener('load', () => {
         if (scrollSync) {
-            scrollSync.rebuildKeyframes();
+            scrollSync.rebuildKeyframes('Stage 3: window.onload');
         }
     });
 
-    // 100ms 비동기 페인트 후 안전 재구축
+    // 100ms 비동기 페인트 후 안전 재구축 (Stage 2)
     setTimeout(() => {
         if (scrollSync) {
-            scrollSync.rebuildKeyframes();
+            scrollSync.rebuildKeyframes('Stage 2: setTimeout 100ms');
         }
     }, 100);
 });

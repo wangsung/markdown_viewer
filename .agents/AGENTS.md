@@ -7,9 +7,12 @@
 ## 깃 원격 제어 규칙 (Git Remote Operation Rules)
 - `git push` 및 모든 GitHub 원격 전송 명령은 절대로 자동 실행하지 않으며, 반드시 실행 전 사용자에게 명령 줄을 노출하고 명시적인 동의/승인을 득한 뒤에만 수동으로 수행해야 합니다.
 
-## 깃 브랜치 및 워크트리 병합 규칙 (Git Branch & Worktree Merge Rules)
+## 깃 브랜치 및 워크트리 병합 및 삭제 지침 (Git Branch & Worktree Merge & Removal Rules)
 - 워크트리 또는 기능 브랜치(feature/*)의 작업물을 메인 브랜치(main)에 병합(merge)할 때는, 반드시 테스트 검증을 완료하고 사용자의 명시적인 승인/동의를 득한 뒤에만 병합을 수행해야 합니다.
-- **워크트리 삭제 제한 규칙**: 병합 및 푸시 완료 여부와 무관하게, 생성된 Git Worktree를 삭제(예: `git worktree remove`)할 때는 반드시 사전에 사용자의 명시적인 승인/동의를 득해야 합니다. (명시적인 확인 없이는 어떠한 워크트리도 임의로 삭제하지 마십시오.)
+- **워크트리 삭제 절차 지침 (Worktree Removal & Unpushed Check Policy)**:
+  1. 워크트리를 닫거나 삭제할 때는 먼저 아직 원격 저장소(`origin`)에 `push`되지 않은 작업 내역(미푸시 커밋 및 uncommitted 변경사항)이 있는지 반드시 사전 확인해야 합니다.
+  2. 아직 `push`되지 않은 작업 내역이 있는 경우, 닫기 전 해당 미푸시 내역을 사용자에게 먼저 명확하게 보여주고, 남아있는 작업 내역을 버리는 명령어(예: `git worktree remove --force` 또는 `git reset --hard`)를 먼저 안내해야 합니다.
+  3. 해당 워크트리의 모든 내역이 원격 저장소에 100% `push`되어 있음이 확인된 경우에만 워크트리를 닫습니다.
 
 ## 프로젝트 다이얼로그 인터페이스 지침 (Project Dialog Interface Guidelines)
 - **관심사 분리 및 캡슐화**: 다이얼로그 모달 제어 로직을 리팩토링할 때는 다이얼로그 렌더링, 수치 수집, 컬러피커 등 로컬 UI 동작은 서브 모듈(예: `style-editor.js`)에 완전히 캡슐화하고, `app.js`는 데이터 상태 동기화 및 전역 뷰 렌더링만 전담하도록 분리합니다.
@@ -17,4 +20,7 @@
 - **양방향 상태 동기화 (Data Callbacks)**: 프리셋 등의 로컬 데이터 읽기/쓰기는 전적 상태 소유자인 `app.js`가 주입하는 콜백(`getPresetsData`, `savePresetsData`)을 경유해서만 처리합니다.
 - **이벤트 리액티브 훅 (Reactive Hooks)**: 사용자 행동의 최종 CRUD 반영(저장, 적용, 추가, 삭제, 초기화) 완료 시에는 전용 콜백 훅(`onSave`, `onSaveAndClose`, `onAddPreset`, `onDeletePreset`, `onResetPreset`)을 쏘아 `app.js` 측 뷰어를 렌더링하고 사용자 알림을 띄우는 이벤트 통지식 구조로 설계합니다.
 - **이벤트 버블링 차단 (Event Isolation)**: 오버레이 컬러피커 등 외부 간섭 위험이 있는 컴포넌트는 `stopPropagation()` 및 `preventDefault()`를 적용해 이벤트를 격리 고립시킵니다.
+
+## 테스트 URL 표기 지침 (Test URL Presentation Rules)
+- Antigravity 인터페이스 특성상 마크다운 링크 클릭이 브라우저로 직접 연결되지 않을 수 있으므로, 테스트 URL이나 파일 경로를 안내할 때는 항상 사용자가 주소창에 복사/붙여넣기할 수 있는 raw text 형식의 Full Path (`file:///C:/...`) 및 파일 절대 경로를 함께 명시해야 합니다.
 

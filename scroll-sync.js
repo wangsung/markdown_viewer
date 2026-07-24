@@ -98,30 +98,23 @@ class ScrollSync {
 
   /**
    * Rebuild initial keyframe list from headings in editor and preview
+   * @param {string} triggerName Source stage name for empirical verification logging
    */
-  rebuildKeyframes() {
+  rebuildKeyframes(triggerName = 'Init') {
     if (!this.previewViewport || !this.cm) return;
     const lines = this.cm.getValue().replace(/\r\n/g, '\n').split('\n');
-    const totalLines = lines.length;
+    const totalLines = Math.max(1, lines.length);
     const maxPreviewScrollY = this.previewViewport.scrollHeight - this.previewViewport.clientHeight;
 
     const rawKeyframes = [];
 
-    // 1. Start boundary node
-    rawKeyframes.push({
-      id: '[START]',
-      line: 0,
-      editorPercent: 0,
-      previewPercent: 0,
-      previewScrollY: 0
-    });
-
-    // 2. Heading elements with data-line attributes
+    // 1. Heading elements with data-line attributes (Integer Line numbers)
     const headings = Array.from(this.previewContainer.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
     headings.forEach(el => {
-      const line = parseInt(el.getAttribute('data-line'), 10);
+      const rawLine = parseInt(el.getAttribute('data-line'), 10);
       const cleanText = this.cleanTextForIdentifier(el.textContent, true);
-      if (!isNaN(line) && cleanText) {
+      if (!isNaN(rawLine) && cleanText) {
+        const line = Math.max(1, Math.round(rawLine)); // Enforce integer line number
         const id = `${cleanText}_line_${line}`;
         const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
         const previewPercent = editorPercent;
@@ -137,41 +130,69 @@ class ScrollSync {
       }
     });
 
-    // 3. End boundary node
-    rawKeyframes.push({
-      id: '[END]',
-      line: totalLines,
-      editorPercent: 1.0,
-      previewPercent: 1.0,
-      previewScrollY: Math.max(0, maxPreviewScrollY)
-    });
-
-    // Sort by line number
+    // Sort by integer line number
     rawKeyframes.sort((a, b) => a.line - b.line);
+
+    // 2. Check if a node on line 1 or <= 1 exists
+    const hasStartNode = rawKeyframes.some(kf => kf.line <= 1);
+    if (!hasStartNode) {
+      // If no heading on line 1, add a clean Line 1 boundary node instead of redundant [START]
+      rawKeyframes.unshift({
+        id: '[START]',
+        line: 1,
+        editorPercent: 0,
+        previewPercent: 0,
+        previewScrollY: 0
+      });
+    }
+
+    // 3. End boundary node (Integer line number)
+    const hasEndNode = rawKeyframes.some(kf => kf.line >= totalLines);
+    if (!hasEndNode) {
+      rawKeyframes.push({
+        id: '[END]',
+        line: totalLines,
+        editorPercent: 1.0,
+        previewPercent: 1.0,
+        previewScrollY: Math.max(0, maxPreviewScrollY)
+      });
+    }
 
     // Deduplicate keyframes
     this.keyframes = [];
     const seenIds = new Set();
+    const seenLines = new Set();
     rawKeyframes.forEach(kf => {
-      if (!seenIds.has(kf.id)) {
+      if (!seenIds.has(kf.id) && !seenLines.has(kf.line)) {
         seenIds.add(kf.id);
+        seenLines.add(kf.line);
         this.keyframes.push(kf);
       }
     });
 
-    // Guarantee minimum [START] and [END] boundary anchors
+    // Guarantee minimum 2 boundary anchors
     if (this.keyframes.length < 2) {
       this.keyframes = [
-        { id: '[START]', line: 0, editorPercent: 0, previewPercent: 0, previewScrollY: 0 },
+        { id: '[START]', line: 1, editorPercent: 0, previewPercent: 0, previewScrollY: 0 },
         { id: '[END]', line: totalLines, editorPercent: 1.0, previewPercent: 1.0, previewScrollY: Math.max(0, maxPreviewScrollY) }
       ];
     }
+
+    // Sync last scroll positions to prevent initial scroll freeze
+    if (this.cm && this.previewViewport) {
+      this.lastEditorScrollTop = this.cm.getScrollInfo().top;
+      this.lastPreviewScrollTop = this.previewViewport.scrollTop;
+    }
+
+    // Empirical Verification Trace Log
+    const traceMsg = `[Keyframe Verification - ${triggerName}] Headings: ${headings.length}, Keyframes: ${this.keyframes.length}, MaxScrollY: ${Math.round(maxPreviewScrollY)}px`;
+    console.log(`%c${traceMsg}`, 'color: #38bdf8; font-weight: bold;');
 
     // If headings were expected but DOM wasn't painted yet, retry on next frame
     if (headings.length === 0 && !this._hasRetriedBuild) {
       this._hasRetriedBuild = true;
       requestAnimationFrame(() => {
-        this.rebuildKeyframes();
+        this.rebuildKeyframes('Stage 4: rAF Retry');
         this._hasRetriedBuild = false;
       });
     }
@@ -465,11 +486,12 @@ class ScrollSync {
     const scrollTop = scrollInfo.top;
     if (scrollTop === this.lastEditorScrollTop) return;
 
-    if (this.lastEditorScrollTop === -1) {
-      this.lastEditorScrollTop = scrollTop;
+    let prevEditorScrollTop = this.lastEditorScrollTop;
+    if (prevEditorScrollTop === -1) {
+      prevEditorScrollTop = 0; // Assume 0 if uninitialized so first scroll stroke produces deltaY
     }
 
-    const deltaY_ed = scrollTop - this.lastEditorScrollTop;
+    const deltaY_ed = scrollTop - prevEditorScrollTop;
     this.lastEditorScrollTop = scrollTop;
 
     const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
@@ -596,13 +618,43 @@ class ScrollSync {
   }
 
   /**
-   * Helper to trigger onDebugUpdate callback
+   * Notify debug panel listener with enhanced real-time scaleFactor and active segment state
    * @private
    */
   _notifyDebug() {
-    if (typeof this.onDebugUpdate === 'function') {
-      this.onDebugUpdate(this.keyframes, this.activeScrollSource);
+    if (typeof this.onDebugUpdate !== 'function') return;
+
+    const scrollInfo = this.cm ? this.cm.getScrollInfo() : { top: 0, height: 1, clientHeight: 1 };
+    const maxEditorScrollTop = Math.max(1, scrollInfo.height - scrollInfo.clientHeight);
+    const currentPercent = scrollInfo.top / maxEditorScrollTop;
+
+    let activeSegmentIndex = -1;
+    for (let i = 0; i < this.keyframes.length - 1; i++) {
+      if (this.keyframes[i].editorPercent <= currentPercent && currentPercent < this.keyframes[i + 1].editorPercent) {
+        activeSegmentIndex = i;
+        break;
+      }
     }
+    if (activeSegmentIndex === -1 && this.keyframes.length > 0) {
+      activeSegmentIndex = Math.max(0, this.keyframes.length - 2);
+    }
+
+    const enhancedKeyframes = this.keyframes.map((kf, index) => {
+      let sf = null;
+      if (index < this.keyframes.length - 1) {
+        const nextKf = this.keyframes[index + 1];
+        const height_ed = (nextKf.editorPercent - kf.editorPercent) * maxEditorScrollTop;
+        const height_pr = nextKf.previewScrollY - kf.previewScrollY;
+        sf = height_ed > 0 && height_pr > 0 ? (height_pr / height_ed).toFixed(2) : '1.00';
+      }
+      return {
+        ...kf,
+        scaleFactor: sf,
+        isActiveSegment: index === activeSegmentIndex
+      };
+    });
+
+    this.onDebugUpdate(enhancedKeyframes, this.activeScrollSource);
   }
 
   /**
