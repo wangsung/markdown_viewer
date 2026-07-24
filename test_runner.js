@@ -9,6 +9,10 @@ global.window = global;
 global.alert = (msg) => { console.log('🔔 [ALERT Mock]:', msg); };
 global.getSelection = () => ({ removeAllRanges: () => {}, addRange: () => {} });
 global.document = {
+    documentElement: {
+        getAttribute: (attr) => (attr === 'data-editor-theme' ? 'dark' : null),
+        style: {}
+    },
     createElement: (tag) => ({
         setAttribute: () => {},
         style: {},
@@ -77,15 +81,35 @@ async function runTestSuite() {
     assert(global.lastOpts && global.lastOpts.filename === 'doc.md', 'ExportManager.triggerFileDownload routes filename correctly');
 
     // Test 5: HTML Export Content Formatting
-    const html = await ExportManager.generatePreviewHtmlContent(previewEl, 'report.md', '#ff0000');
+    const mockOptions = {
+        theme: 'dark',
+        lineColor: '#ff0000',
+        styleVars: { '--h1-color': '#1d4ed8', '--theme-color': '#ff0000', '--preview-bg': '#1e293b' }
+    };
+    const html = await ExportManager.generatePreviewHtmlContent(previewEl, 'report.md', mockOptions);
     assert(html.includes('<title>report - Preview Export</title>'), 'ExportManager.generatePreviewHtmlContent formats title properly');
     assert(html.includes('--theme-color: #ff0000'), 'ExportManager.generatePreviewHtmlContent injects custom line color');
+    assert(html.includes('--h1-color: #1d4ed8'), 'ExportManager.generatePreviewHtmlContent injects passed styleVars CSS vars');
+    assert(html.includes('data-editor-theme="dark"'), 'ExportManager.generatePreviewHtmlContent sets passed theme mode attribute');
     assert(html.includes('<h1>Title</h1>'), 'ExportManager.generatePreviewHtmlContent includes preview HTML content');
 
     // Test 6: HTML Download Target Filename
     global.lastOpts = null;
-    await ExportManager.downloadPreviewHtml(previewEl, 'report_full.md', '#00ff00');
+    await ExportManager.downloadPreviewHtml(previewEl, 'report_full.md', mockOptions);
     assert(global.lastOpts && global.lastOpts.filename === 'report_full.html', 'ExportManager.downloadPreviewHtml computes .html target filename');
+
+    // Test 7: Default Preview Window Export
+    let openedHtml = null;
+    global.window.open = () => ({
+        document: {
+            open: () => {},
+            write: (content) => { openedHtml = content; },
+            close: () => {}
+        }
+    });
+    await ExportManager.openDefaultPreviewHtmlInNewWindow(previewEl, 'default_report.md');
+    assert(openedHtml && openedHtml.includes('<title>default_report - Preview (기본)</title>'), 'ExportManager.openDefaultPreviewHtmlInNewWindow generates raw default HTML title');
+    assert(openedHtml && !openedHtml.includes('--theme-color:'), 'ExportManager.openDefaultPreviewHtmlInNewWindow excludes theme CSS styling');
 
     console.log('\n========================================');
     console.log(`📊 TEST SUMMARY | Total: ${passCount + failCount} | Passed: ${passCount} | Failed: ${failCount}`);

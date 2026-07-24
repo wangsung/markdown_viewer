@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportMenu = document.getElementById('export-menu');
     const btnExportHtml = document.getElementById('btn-export-html');
     const btnOpenNewWindow = document.getElementById('btn-open-new-window');
+    const btnOpenNewWindowDefault = document.getElementById('btn-open-new-window-default');
     const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
     
     const viewDropdown = document.getElementById('view-dropdown');
@@ -1167,13 +1168,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
+    function collectExportOptions() {
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+        const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
+        const computedStyle = getComputedStyle(root);
+        
+        // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
+        const cssVarList = [
+            '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
+            '--preview-code-bg', '--preview-blockquote-bg', '--preview-blockquote-text',
+            '--h1-color', '--h1-size', '--h1-border',
+            '--h2-color', '--h2-size', '--h2-border',
+            '--h3-color', '--h3-size', '--h3-border',
+            '--h4-color', '--h4-size', '--h4-border',
+            '--h5-color', '--h5-size', '--h5-border',
+            '--h6-color', '--h6-size', '--h6-border',
+            '--link-color', '--link-decoration',
+            '--bold-color', '--italic-color', '--code-color',
+            '--blockquote-text-color', '--blockquote-border-color',
+            '--line-color', '--line-border',
+            '--preview-font-family', '--preview-font-size'
+        ];
+
+        const styleVars = {};
+        cssVarList.forEach(varName => {
+            const val = computedStyle.getPropertyValue(varName).trim();
+            if (val) styleVars[varName] = val;
+        });
+
+        return {
+            theme: currentTheme,
+            lineColor: activeLineColor,
+            styleVars: styleVars
+        };
+    }
+
     if (btnExportHtml) {
         btnExportHtml.addEventListener('click', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
-            ExportManager.downloadPreviewHtml(preview, currentFilename, activeLineColor);
+            const exportOptions = collectExportOptions();
+            ExportManager.downloadPreviewHtml(preview, currentFilename, exportOptions);
         });
     }
 
@@ -1182,8 +1220,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
-            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, activeLineColor);
+            const exportOptions = collectExportOptions();
+            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, exportOptions);
+        });
+    }
+
+    if (btnOpenNewWindowDefault) {
+        btnOpenNewWindowDefault.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+            ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
         });
     }
 

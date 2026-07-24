@@ -104,78 +104,194 @@ const ExportManager = (function() {
     }
 
     /**
-     * 글로벌 DOM/변수 직접 의존성을 없애고, 전달받은 프리뷰 엘리먼트와 테마/파일명 설정을 바탕으로 단독 실행 가능한 HTML 문자열을 동적 생성하는 서브 함수.
+     * 순수 서브 함수: 글로벌 Scope/DOM 변수 접근 없이 매개변수로 필요한 프리뷰 DOM, 파일명 및 config options 객체를 주입받아 독립 HTML 문자열을 생성하는 서브 함수.
      * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
-     * @param {string} filename - 현재 문서 파일명
-     * @param {string} lineColor - 선택된 테마 라인 색상
+     * @param {string} filename - 파일명
+     * @param {Object} [options={}] - 내보내기 설정 객체 ({ theme, lineColor, styleVars })
      * @returns {Promise<string|null>} 생성된 HTML 문자열 또는 null
      */
-    async function generatePreviewHtmlContent(previewEl, filename, lineColor) {
+    async function generatePreviewHtmlContent(previewEl, filename, options = {}) {
         if (!previewEl || previewEl.children.length === 0) {
             return null;
         }
 
+        const {
+            theme = 'dark',
+            lineColor = '#3b82f6',
+            styleVars = {}
+        } = options;
+
         let githubCss = '';
         let katexCss = '';
-        let styleCss = '';
 
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
-            githubCss = await res.text();
-        } catch (e) {
-            console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
+        // DOM 수집 또는 로컬 Chrome extension fetch
+        if (typeof document !== 'undefined' && document.styleSheets) {
+            try {
+                const sheets = Array.from(document.styleSheets);
+                sheets.forEach(sheet => {
+                    try {
+                        const rules = Array.from(sheet.cssRules || sheet.rules || []);
+                        const cssText = rules.map(r => r.cssText).join('\n');
+                        if (sheet.href && sheet.href.includes('github.min.css')) {
+                            githubCss += cssText + '\n';
+                        } else if (sheet.href && sheet.href.includes('katex.min.css')) {
+                            katexCss += cssText + '\n';
+                        }
+                    } catch (e) {}
+                });
+            } catch (err) {}
         }
 
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
-            let rawKatex = await res.text();
-            katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
-        } catch (e) {
-            console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
+        if (!githubCss) {
+            try {
+                const res = await fetch(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL('libs/github.min.css') : 'libs/github.min.css');
+                githubCss = await res.text();
+            } catch (e) {}
         }
 
-        try {
-            const res = await fetch(chrome.runtime.getURL('style.css'));
-            styleCss = await res.text();
-        } catch (e) {
-            console.warn('style.css fetch 실패.', e);
+        if (!katexCss) {
+            try {
+                const res = await fetch(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL('libs/katex/katex.min.css') : 'libs/katex/katex.min.css');
+                let rawKatex = await res.text();
+                katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
+            } catch (e) {}
         }
 
-        const fontStyle = getComputedStyle(previewEl).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
-        const fontSizeStyle = getComputedStyle(previewEl).getPropertyValue('font-size').trim() || '16px';
-        const activeLineColor = lineColor || '#3b82f6';
+        githubCss = githubCss.replace(/@import\s+url\([^)]+\);?/g, '');
+        katexCss = katexCss.replace(/@import\s+url\([^)]+\);?/g, '');
+
+        // 경량화된 마크다운 본문 및 H1~H6 타이포그래피 핵심 전용 CSS 템플릿
+        const coreMarkdownCss = `
+        .markdown-body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 48px;
+            color: var(--preview-text, #1f2937);
+            font-family: var(--preview-font-family, system-ui, sans-serif);
+            font-size: var(--preview-font-size, 16px);
+            line-height: 1.7;
+            word-wrap: break-word;
+        }
+
+        .markdown-body h1,
+        .markdown-body h2,
+        .markdown-body h3,
+        .markdown-body h4,
+        .markdown-body h5,
+        .markdown-body h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            line-height: 1.25;
+            color: var(--preview-heading, inherit);
+        }
+
+        .markdown-body h1 {
+            font-size: var(--h1-size, 2em);
+            color: var(--h1-color, var(--preview-heading, inherit)) !important;
+            padding-bottom: 0.3em;
+            border-bottom: var(--h1-border, 1px solid var(--preview-border, #e5e7eb)) !important;
+        }
+
+        .markdown-body h2 {
+            font-size: var(--h2-size, 1.5em);
+            color: var(--h2-color, var(--preview-heading, inherit)) !important;
+            padding-bottom: 0.3em;
+            border-bottom: var(--h2-border, 1px solid var(--preview-border, #e5e7eb)) !important;
+        }
+
+        .markdown-body h3 { font-size: var(--h3-size, 1.25em); color: var(--h3-color, var(--preview-heading, inherit)) !important; border-bottom: var(--h3-border, none) !important; }
+        .markdown-body h4 { font-size: var(--h4-size, 1em); color: var(--h4-color, var(--preview-heading, inherit)) !important; border-bottom: var(--h4-border, none) !important; }
+        .markdown-body h5 { font-size: var(--h5-size, 0.875em); color: var(--h5-color, var(--preview-heading, inherit)) !important; border-bottom: var(--h5-border, none) !important; }
+        .markdown-body h6 { font-size: var(--h6-size, 0.85em); color: var(--h6-color, var(--preview-heading, inherit)) !important; border-bottom: var(--h6-border, none) !important; }
+
+        .markdown-body strong { font-weight: 600; color: var(--bold-color, inherit) !important; }
+        .markdown-body em { font-style: italic; color: var(--italic-color, inherit) !important; }
+
+        .markdown-body a,
+        .markdown-body .md-bracket-link {
+            color: var(--link-color, var(--theme-color, #3b82f6)) !important;
+            text-decoration: var(--link-decoration, underline) !important;
+        }
+
+        .markdown-body blockquote {
+            padding: 10px 20px;
+            margin: 0 0 16px 0;
+            color: var(--blockquote-text-color, var(--preview-text, inherit)) !important;
+            border-left: 4px solid var(--blockquote-border-color, var(--theme-color, #3b82f6)) !important;
+            background-color: var(--preview-blockquote-bg, rgba(0,0,0,0.03)) !important;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .markdown-body code {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            background-color: var(--preview-code-bg, rgba(0,0,0,0.05));
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--code-color, inherit) !important;
+        }
+
+        .markdown-body pre code {
+            padding: 0;
+            background-color: transparent;
+        }
+
+        .markdown-body p, .markdown-body ul, .markdown-body ol, .markdown-body table, .markdown-body pre {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        `;
+
+        const fontStyle = styleVars['--preview-font-family'] || 'system-ui, -apple-system, sans-serif';
+        const fontSizeStyle = styleVars['--preview-font-size'] || '16px';
+        const activeLineColor = lineColor || styleVars['--theme-color'] || '#3b82f6';
+        const currentTheme = theme || 'dark';
         const safeTitle = (filename || 'untitled.md').replace(/\.[^/.]+$/, "");
 
+        // 동적 CSS 변수 조립 (options.styleVars 객체로부터 100% 순수 인라인화)
+        let injectedCssVars = '';
+        if (styleVars && typeof styleVars === 'object') {
+            Object.keys(styleVars).forEach(varName => {
+                if (styleVars[varName]) {
+                    injectedCssVars += `${varName}: ${styleVars[varName]} !important;\n            `;
+                }
+            });
+        }
+
         return `<!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" data-editor-theme="${currentTheme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${safeTitle} - Preview Export</title>
     <style>
-        :root {
-            --theme-color: ${activeLineColor};
-            --preview-bg: #ffffff;
-            --preview-text: #1f2937;
-            --preview-heading: #111827;
-            --preview-border: #e5e7eb;
-            --preview-code-bg: #f3f4f6;
-            --preview-blockquote-bg: #f9fafb;
-            --preview-font-family: ${fontStyle};
-            --preview-font-size: ${fontSizeStyle};
+        /* 1. Syntax Highlighting CSS */
+        ${githubCss}
+
+        /* 2. KaTeX Math CSS */
+        ${katexCss}
+
+        /* 3. Core Markdown Typography CSS (Lightweight 1KB Template) */
+        ${coreMarkdownCss}
+
+        /* 4. Dynamic Style Themes & Root Override */
+        :root, [data-editor-theme="${currentTheme}"] {
+            --theme-color: ${activeLineColor} !important;
+            --preview-font-family: ${fontStyle} !important;
+            --preview-font-size: ${fontSizeStyle} !important;
+            ${injectedCssVars}
         }
         
         body {
-            background-color: var(--preview-bg);
-            color: var(--preview-text);
-            font-family: var(--preview-font-family);
-            font-size: var(--preview-font-size);
+            background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'}) !important;
+            color: var(--preview-text, ${currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}) !important;
+            font-family: var(--preview-font-family) !important;
+            font-size: var(--preview-font-size) !important;
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
+            min-height: 100vh;
         }
 
         .export-container {
@@ -183,32 +299,31 @@ const ExportManager = (function() {
             max-width: 800px;
             padding: 40px 24px;
             box-sizing: border-box;
+            background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'}) !important;
         }
-
-        ${githubCss}
-        ${katexCss}
-        ${styleCss}
     </style>
 </head>
-<body>
-    <div class="export-container">
-        <article class="markdown-body">
-            ${previewEl.innerHTML}
-        </article>
+<body data-editor-theme="${currentTheme}">
+    <div class="preview-viewport" style="width:100%; display:flex; justify-content:center; background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'});">
+        <div class="export-container">
+            <article class="markdown-body">
+                ${previewEl.innerHTML}
+            </article>
+        </div>
     </div>
 </body>
 </html>`;
     }
 
     /**
-     * 매개변수로 주입받은 프리뷰 및 파일 정보를 이용해 HTML 파일 다운로드를 처리하는 서브 함수.
+     * 매개변수로 주입받은 프리뷰, 파일명 및 options 객체를 이용해 HTML 파일 다운로드를 처리하는 서브 함수.
      * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
      * @param {string} filename - 저장에 사용할 기준 파일명
-     * @param {string} lineColor - 테마 라인 색상
+     * @param {Object} [options={}] - 설정 옵션 객체 ({ theme, lineColor, styleVars })
      */
-    async function downloadPreviewHtml(previewEl, filename, lineColor) {
+    async function downloadPreviewHtml(previewEl, filename, options = {}) {
         try {
-            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, lineColor);
+            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, options);
             if (!htmlContent) {
                 alert('내보낼 프리뷰 내용이 없습니다.');
                 return;
@@ -228,12 +343,12 @@ const ExportManager = (function() {
     }
 
     /**
-     * 매개변수로 필요한 뷰와 파일 설정을 수집받아 독립 새 창으로 프리뷰 HTML을 출력하는 서브 함수.
+     * 매개변수로 주입받은 프리뷰, 파일명 및 options 객체를 이용해 독립 새 창으로 프리뷰 HTML을 출력하는 순수 서브 함수.
      * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
      * @param {string} filename - 기준 파일명
-     * @param {string} lineColor - 테마 라인 색상
+     * @param {Object} [options={}] - 설정 옵션 객체 ({ theme, lineColor, styleVars })
      */
-    async function openPreviewHtmlInNewWindow(previewEl, filename, lineColor) {
+    async function openPreviewHtmlInNewWindow(previewEl, filename, options = {}) {
         const newWindow = window.open('about:blank', '_blank');
         if (!newWindow) {
             alert('팝업 차단이 감지되었습니다. 팝업 차단을 해제해 주세요.');
@@ -241,7 +356,7 @@ const ExportManager = (function() {
         }
 
         try {
-            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, lineColor);
+            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, options);
             if (!htmlContent) {
                 alert('새 창으로 띄울 프리뷰 내용이 없습니다.');
                 newWindow.close();
@@ -302,6 +417,52 @@ const ExportManager = (function() {
         });
     }
 
+    /**
+     * [기존 동작]: 매개변수로 주입받은 프리뷰 DOM 콘텐츠를 스타일시트 없이 순수 기본 HTML 구조만으로 새 창에 출력하는 서브 함수.
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
+     * @param {string} filename - 기준 파일명
+     */
+    async function openDefaultPreviewHtmlInNewWindow(previewEl, filename) {
+        const newWindow = window.open('about:blank', '_blank');
+        if (!newWindow) {
+            alert('팝업 차단이 감지되었습니다. 팝업 차단을 해제해 주세요.');
+            return;
+        }
+
+        try {
+            if (!previewEl || previewEl.children.length === 0) {
+                alert('새 창으로 띄울 프리뷰 내용이 없습니다.');
+                newWindow.close();
+                return;
+            }
+
+            const safeTitle = (filename || 'untitled.md').replace(/\.[^/.]+$/, "");
+            const defaultHtmlContent = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${safeTitle} - Preview (기본)</title>
+</head>
+<body>
+    <div class="export-container">
+        <article class="markdown-body">
+            ${previewEl.innerHTML}
+        </article>
+    </div>
+</body>
+</html>`;
+
+            newWindow.document.open();
+            newWindow.document.write(defaultHtmlContent);
+            newWindow.document.close();
+        } catch (err) {
+            console.error('기본 HTML 새 창 열기 실패:', err);
+            alert('HTML 새 창 열기에 실패했습니다.');
+            newWindow.close();
+        }
+    }
+
     // 외부로 공개하는 모듈 API
     return {
         copyPreviewToClipboard,
@@ -309,6 +470,7 @@ const ExportManager = (function() {
         generatePreviewHtmlContent,
         downloadPreviewHtml,
         openPreviewHtmlInNewWindow,
+        openDefaultPreviewHtmlInNewWindow,
         downloadCurrentContent
     };
 })();
