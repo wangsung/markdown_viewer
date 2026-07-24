@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Copy & Save Sub-functions Unit Test Suite</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background: #0f172a; color: #f8fafc; }
+        h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        .summary { margin: 15px 0; padding: 12px 18px; border-radius: 8px; font-weight: bold; }
+        .summary.pass { background: #064e3b; color: #34d399; border: 1px solid #059669; }
+        .summary.fail { background: #7f1d1d; color: #f87171; border: 1px solid #dc2626; }
+        .test-case { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 12px; margin-bottom: 10px; }
+        .test-case.pass { border-left: 5px solid #10b981; }
+        .test-case.fail { border-left: 5px solid #ef4444; }
+        .test-title { font-size: 15px; font-weight: 600; }
+        .test-title.pass { color: #34d399; }
+        .test-title.fail { color: #f87171; }
+        .test-detail { font-family: monospace; font-size: 13px; margin-top: 6px; color: #94a3b8; white-space: pre-wrap; }
+        #sandbox { display: none; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Copy & Save Sub-functions Unit Test Suite</h1>
+    <div id="summary" class="summary">Running unit tests...</div>
+    <div id="test-results"></div>
+
+    <!-- Hidden DOM Sandbox for Testing -->
+    <div id="sandbox">
+        <div id="test-preview">
+            <h1>Hello World</h1>
+            <p>This is a unit test preview content.</p>
+        </div>
+        <div id="test-empty-preview"></div>
+        <div id="test-export-menu" class="show"></div>
+        <button id="test-btn-export">Export</button>
+    </div>
+
+    <script>
+        // Fake chrome API stub for testing
+        window.chrome = window.chrome || {};
+        window.chrome.runtime = window.chrome.runtime || {
+            getURL: (path) => path
+        };
+        
+        let lastDownloadedOptions = null;
+        window.chrome.downloads = {
+            download: (options, callback) => {
+                lastDownloadedOptions = options;
+                if (typeof callback === 'function') callback(12345);
+            }
+        };
+
+        // Assert Helper
+        const resultsEl = document.getElementById('test-results');
+        const summaryEl = document.getElementById('summary');
+        let totalTests = 0;
+        let passCount = 0;
+        let failCount = 0;
+
+        function assert(condition, message) {
+            totalTests++;
+            const item = document.createElement('div');
+            item.className = 'test-case ' + (condition ? 'pass' : 'fail');
+            
+            const title = document.createElement('div');
+            title.className = 'test-title ' + (condition ? 'pass' : 'fail');
+            title.textContent = (condition ? '✅ PASS: ' : '❌ FAIL: ') + message;
+            item.appendChild(title);
+
+            if (!condition) {
+                failCount++;
+                const detail = document.createElement('div');
+                detail.className = 'test-detail';
+                detail.textContent = 'Assertion failed';
+                item.appendChild(detail);
+            } else {
+                passCount++;
+            }
+
+            resultsEl.appendChild(item);
+        }
+
+        function updateSummary() {
+            summaryEl.textContent = `Total: ${totalTests} | Passed: ${passCount} | Failed: ${failCount}`;
+            summaryEl.className = 'summary ' + (failCount === 0 ? 'pass' : 'fail');
+        }
+    </script>
+
+    <!-- Load Target ExportManager Module -->
+    <script src="export-man.js"></script>
+
+    <!-- Test Suites -->
+    <script>
+        async function runTests() {
+            const previewEl = document.getElementById('test-preview');
+            const emptyPreviewEl = document.getElementById('test-empty-preview');
+            const exportMenuEl = document.getElementById('test-export-menu');
+            const feedbackBtnEl = document.getElementById('test-btn-export');
+
+            // Unit Test 1: ExportManager.copyPreviewToClipboard Validation on Empty Preview
+            const copyEmptyResult = ExportManager.copyPreviewToClipboard(emptyPreviewEl, exportMenuEl, feedbackBtnEl);
+            assert(copyEmptyResult === false, "ExportManager.copyPreviewToClipboard should return false for empty previewEl");
+
+            // Unit Test 2: ExportManager.copyPreviewToClipboard Valid Copy & Menu Hide
+            assert(exportMenuEl.classList.contains('show') === true, "exportMenuEl initially has 'show' class");
+            ExportManager.copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl);
+            assert(exportMenuEl.classList.contains('show') === false, "ExportManager.copyPreviewToClipboard should remove 'show' class from exportMenuEl");
+
+            // Unit Test 3: ExportManager.triggerFileDownload with Chrome Downloads API
+            lastDownloadedOptions = null;
+            let downloadCallbackCalled = false;
+            const testBlob = new Blob(["# Unit Test Data"], { type: 'text/markdown' });
+            ExportManager.triggerFileDownload(testBlob, "test_file.md", (name) => {
+                downloadCallbackCalled = true;
+                assert(name === "test_file.md", "onSuccess callback receives correct filename");
+            });
+            assert(lastDownloadedOptions !== null && lastDownloadedOptions.filename === "test_file.md", "ExportManager.triggerFileDownload routes filename to chrome.downloads API");
+            assert(downloadCallbackCalled === true, "ExportManager.triggerFileDownload triggers onSuccess callback");
+
+            // Unit Test 4: ExportManager.generatePreviewHtmlContent Pure Output
+            const htmlString = await ExportManager.generatePreviewHtmlContent(previewEl, "sample-document.md", "#ff0000");
+            assert(htmlString.includes("<title>sample-document - Preview Export</title>"), "ExportManager.generatePreviewHtmlContent correctly formats title without extension");
+            assert(htmlString.includes("--theme-color: #ff0000"), "ExportManager.generatePreviewHtmlContent correctly injects custom lineColor argument");
+            assert(htmlString.includes("<h1>Hello World</h1>"), "ExportManager.generatePreviewHtmlContent includes preview HTML inner content");
+
+            // Unit Test 5: ExportManager.downloadPreviewHtml Target Filename Calculation
+            lastDownloadedOptions = null;
+            await ExportManager.downloadPreviewHtml(previewEl, "my_report.markdown", "#00ff00");
+            assert(lastDownloadedOptions !== null && lastDownloadedOptions.filename === "my_report.html", "ExportManager.downloadPreviewHtml computes correct target filename extension .html");
+
+            // Unit Test 6: ExportManager.downloadCurrentContent Pure Sub-function
+            let saveCallbackName = null;
+            await ExportManager.downloadCurrentContent("# Hello Antigravity", "my_document.md", (savedName) => {
+                saveCallbackName = savedName;
+            });
+            assert(saveCallbackName === "my_document.md", "ExportManager.downloadCurrentContent passes text and filename to triggerFileDownload and fires callback");
+
+            updateSummary();
+        }
+
+        window.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

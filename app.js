@@ -1012,26 +1012,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard Shortcuts handled natively by CodeMirror extraKeys option
 
     // ==========================================================================
-    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
     // ==========================================================================
+    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사 서브 함수)
     // ==========================================================================
-    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
-    // ==========================================================================
-    btnCopy.addEventListener('click', () => {
+
+    /**
+     * [리팩토링 목적]: 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 순수 서브 함수로 모듈화하여 재사용성과 가독성을 높임.
+     * @param {HTMLElement} previewEl - 복사 대상 프리뷰 엘리먼트
+     * @param {HTMLElement|null} exportMenuEl - 닫을 내보내기 메뉴 엘리먼트
+     * @param {HTMLElement|null} feedbackBtnEl - 복사 완료 성공 표시를 해줄 버튼 엘리먼트
+     */
+    function copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl) {
         // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
-        if (!preview || preview.children.length === 0) {
+        if (!previewEl || previewEl.children.length === 0) {
             alert('복사할 프리뷰 내용이 없습니다.');
             return;
         }
 
         // 드롭다운 메뉴 닫기
-        if (exportMenu) {
-            exportMenu.classList.remove('show');
+        if (exportMenuEl) {
+            exportMenuEl.classList.remove('show');
         }
 
         // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
         const range = document.createRange();
-        range.selectNodeContents(preview);
+        range.selectNodeContents(previewEl);
 
         // 이전 선택 범위를 지우고 새로운 범위 추가
         const selection = window.getSelection();
@@ -1042,20 +1047,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
             const successful = document.execCommand('copy');
             if (successful) {
-                // 내보내기 버튼(btnExport)에 복사 성공 피드백 표시
-                if (btnExport) {
-                    const originalHTML = btnExport.innerHTML;
-                    btnExport.innerHTML = `
+                // 내보내기 버튼에 복사 성공 피드백 표시
+                if (feedbackBtnEl) {
+                    const originalHTML = feedbackBtnEl.innerHTML;
+                    feedbackBtnEl.innerHTML = `
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         복사 완료!
                     `;
-                    btnExport.style.borderColor = '#10b981';
-                    btnExport.style.color = '#10b981';
+                    feedbackBtnEl.style.borderColor = '#10b981';
+                    feedbackBtnEl.style.color = '#10b981';
                     
                     setTimeout(() => {
-                        btnExport.innerHTML = originalHTML;
-                        btnExport.style.borderColor = '';
-                        btnExport.style.color = '';
+                        feedbackBtnEl.innerHTML = originalHTML;
+                        feedbackBtnEl.style.borderColor = '';
+                        feedbackBtnEl.style.color = '';
                     }, 2000);
                 }
             } else {
@@ -1068,7 +1073,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // 복사 완료 후 선택 영역 해제 (시각적 잔상 제거 및 정리)
             selection.removeAllRanges();
         }
-    });
+    }
+
+    if (btnCopy) {
+        btnCopy.addEventListener('click', () => {
+            ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
+        });
+    }
 
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
@@ -1161,7 +1172,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            downloadPreviewHtml();
+            const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
+            ExportManager.downloadPreviewHtml(preview, currentFilename, activeLineColor);
         });
     }
 
@@ -1170,184 +1182,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            openPreviewHtmlInNewWindow();
+            const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
+            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, activeLineColor);
         });
-    }
-
-    // 프리뷰의 스타일을 취합하여 standalone HTML 콘텐츠를 빌드하는 공통 함수
-    async function generatePreviewHtmlContent() {
-        if (!preview || preview.children.length === 0) {
-            return null;
-        }
-
-        // CSS 파일들을 읽어온다 (실패 시 CDN 주소 폴백 또는 빈 문자열 처리)
-        let githubCss = '';
-        let katexCss = '';
-        let styleCss = '';
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
-            githubCss = await res.text();
-        } catch (e) {
-            console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
-        }
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
-            let rawKatex = await res.text();
-            // 폰트 경로를 CDN 주소로 치환하여 단독 실행 시 깨짐 방지
-            katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
-        } catch (e) {
-            console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
-        }
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('style.css'));
-            styleCss = await res.text();
-        } catch (e) {
-            console.warn('style.css fetch 실패.', e);
-        }
-
-        // 현재 테마 설정 추출
-        const fontStyle = getComputedStyle(preview).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
-        const fontSizeStyle = getComputedStyle(preview).getPropertyValue('font-size').trim() || '16px';
-        const lineColor = document.getElementById('line-color-picker')?.value || '#3b82f6';
-
-        // HTML 문서 템플릿 반환
-        return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${currentFilename.replace(/\.[^/.]+$/, "")} - Preview Export</title>
-    <style>
-        /* Base Variables overrides */
-        :root {
-            --theme-color: ${lineColor};
-            --preview-bg: #ffffff;
-            --preview-text: #1f2937;
-            --preview-heading: #111827;
-            --preview-border: #e5e7eb;
-            --preview-code-bg: #f3f4f6;
-            --preview-blockquote-bg: #f9fafb;
-            --preview-font-family: ${fontStyle};
-            --preview-font-size: ${fontSizeStyle};
-        }
-        
-        body {
-            background-color: var(--preview-bg);
-            color: var(--preview-text);
-            font-family: var(--preview-font-family);
-            font-size: var(--preview-font-size);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-        }
-
-        .export-container {
-            width: 100%;
-            max-width: 800px;
-            padding: 40px 24px;
-            box-sizing: border-box;
-        }
-
-        /* github code highlight styles */
-        ${githubCss}
-
-        /* katex math formulas styles */
-        ${katexCss}
-
-        /* app preview markdown styles */
-        ${styleCss}
-    </style>
-</head>
-<body>
-    <div class="export-container">
-        <article class="markdown-body">
-            ${preview.innerHTML}
-        </article>
-    </div>
-</body>
-</html>`;
-    }
-
-    // 프리뷰 HTML을 스타일이 포함된 HTML 파일로 다운로드
-    async function downloadPreviewHtml() {
-        try {
-            const htmlContent = await generatePreviewHtmlContent();
-            if (!htmlContent) {
-                alert('내보낼 프리뷰 내용이 없습니다.');
-                return;
-            }
-
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-
-            // 파일명 설정
-            const lastDotIndex = currentFilename.lastIndexOf('.');
-            const baseName = lastDotIndex !== -1 ? currentFilename.substring(0, lastDotIndex) : currentFilename;
-            const targetFilename = `${baseName}.html`;
-
-            if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
-                chrome.downloads.download({
-                    url: url,
-                    filename: targetFilename,
-                    saveAs: true // 다른 이름으로 저장 강제 활성화
-                }, (downloadId) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
-                        fallbackHtmlDownload(url, targetFilename);
-                    }
-                });
-            } else {
-                fallbackHtmlDownload(url, targetFilename);
-            }
-            
-        } catch (err) {
-            console.error('HTML 저장 실패:', err);
-            alert('HTML 저장에 실패했습니다.');
-        }
-    }
-
-    // HTML 다운로드 fallback 처리 함수
-    function fallbackHtmlDownload(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // 프리뷰 HTML을 새창/새탭에 띄우는 함수
-    async function openPreviewHtmlInNewWindow() {
-        // 브라우저 팝업 차단 회피를 위해 사용자 상호작용 스레드 직속으로 창을 우선 엶
-        const newWindow = window.open('about:blank', '_blank');
-        if (!newWindow) {
-            alert('팝업 차단이 감지되었습니다. 팝업 차단을 해제해 주세요.');
-            return;
-        }
-
-        try {
-            const htmlContent = await generatePreviewHtmlContent();
-            if (!htmlContent) {
-                alert('새 창으로 띄울 프리뷰 내용이 없습니다.');
-                newWindow.close();
-                return;
-            }
-
-            newWindow.document.open();
-            newWindow.document.write(htmlContent);
-            newWindow.document.close();
-        } catch (err) {
-            console.error('HTML 새 창 열기 실패:', err);
-            alert('HTML 새 창 열기에 실패했습니다.');
-            newWindow.close();
-        }
     }
 
     // ==========================================================================
@@ -1579,77 +1416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
-    // 에디터 내용을 마크다운 파일(.md)로 다운로드 및 저장하는 헬퍼 함수
-    async function downloadCurrentContent() {
-        const text = cm.getValue();
 
-        // 1) Modern File System Access API 지원 브라우저 (실제 지정/선택한 파일 이름 반환)
-        if (typeof window.showSaveFilePicker === 'function') {
-            try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: currentFilename || 'untitled.md',
-                    types: [{
-                        description: 'Markdown Document',
-                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
-                    }]
-                });
-                const writable = await handle.createWritable();
-                await writable.write(text);
-                await writable.close();
-
-                // 저장이 성공했을 때 실제 사용자가 저장한 파일이름을 topmenu 파일이름에 반영
-                const savedName = handle.name;
-                updateFilenameDisplay(savedName, false);
-                saveDocumentSession();
-                showToast(`"${savedName}" 파일이 저장되었습니다.`);
-                return;
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    // 사용자가 저장 창에서 취소를 클릭한 경우 아무 작업도 하지 않음
-                    return;
-                }
-                console.warn('showSaveFilePicker 실패 fallback 다운로드 시도:', err);
-            }
-        }
-
-        const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        
-        // 2) chrome.downloads API를 사용하여 무조건 다른 이름으로 저장 대화상자(SaveAs)를 직접 호출
-        if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
-            chrome.downloads.download({
-                url: url,
-                filename: currentFilename,
-                saveAs: true // 다른 이름으로 저장 강제 활성화
-            }, (downloadId) => {
-                if (chrome.runtime.lastError) {
-                    console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
-                    fallbackDownload(url, currentFilename);
-                } else {
-                    updateFilenameDisplay(currentFilename, false);
-                    saveDocumentSession();
-                    showToast(`"${currentFilename}" 파일이 저장되었습니다.`);
-                }
-            });
-        } else {
-            // 3) Fallback 다운로드
-            fallbackDownload(url, currentFilename);
-        }
-    }
-
-    // chrome.downloads 미지원 환경을 위한 fallback 파일 저장 함수
-    function fallbackDownload(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        updateFilenameDisplay(filename, false);
-        saveDocumentSession();
-        showToast(`"${filename}" 파일이 저장되었습니다.`);
-    }
 
     // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
     function loadSingleFile(file) {
@@ -1664,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isDirty) {
                 const saveConfirm = confirm(`작성 중인 내용이 변경되었습니다. 파일 로드 전에 현재 문서를 컴퓨터에 저장(다운로드)하시겠습니까?`);
                 if (saveConfirm) {
-                    downloadCurrentContent();
+                    handleSaveCurrentDocument();
                 } else {
                     // 저장 안 함 선택 시, 덮어쓰고 계속 불러올지 재차 확인 (작업 소실 방지)
                     shouldLoad = confirm(`현재 문서를 저장하지 않고 "${fileName}" 파일을 불러오시겠습니까?\n(확인을 누르면 작성 중이던 기존 수정 내용이 사라집니다.)`);
@@ -1995,9 +1762,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 저장 처리 헬퍼 함수
+    function handleSaveCurrentDocument() {
+        if (!cm) return;
+        const textContent = cm.getValue();
+        ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName) => {
+            updateFilenameDisplay(savedName, false);
+            saveDocumentSession();
+            showToast(`"${savedName}" 파일이 저장되었습니다.`);
+        });
+    }
+
     // 저장 버튼 클릭 이벤트 바인딩
     if (btnSave) {
-        btnSave.addEventListener('click', downloadCurrentContent);
+        btnSave.addEventListener('click', handleSaveCurrentDocument);
     }
 
     // 설정 모달 관련 엘리먼트 및 이벤트 바인딩
