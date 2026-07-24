@@ -42,8 +42,10 @@ function createMockCodeMirror(initialText = '', selectedText = '') {
 
 // 2. editor-man.js 파일 로드 또는 app.js 순수 서브 함수 검증 샌드박스 설정
 const editorManPath = path.join(__dirname, 'editor-man.js');
+const settingsManPath = path.join(__dirname, 'settings-man.js');
 const appPath = path.join(__dirname, 'app.js');
 let EditorManager = null;
+let SettingsManager = null;
 
 if (fs.existsSync(editorManPath)) {
     const code = fs.readFileSync(editorManPath, 'utf8');
@@ -52,6 +54,15 @@ if (fs.existsSync(editorManPath)) {
     vm.createContext(sandbox);
     vm.runInContext(code, sandbox);
     EditorManager = sandbox.window.EditorManager;
+}
+
+if (fs.existsSync(settingsManPath)) {
+    const code = fs.readFileSync(settingsManPath, 'utf8');
+    const sandbox = { window: {}, console, Blob: function(){}, URL: { createObjectURL: () => '', revokeObjectURL: () => {} } };
+    const vm = require('vm');
+    vm.createContext(sandbox);
+    vm.runInContext(code, sandbox);
+    SettingsManager = sandbox.window.SettingsManager;
 } else if (fs.existsSync(appPath)) {
     // 2단계: app.js 내의 Pure Sub-function 테스트를 위해 최소 DOM 스텁과 함께 파싱
     const appCode = fs.readFileSync(appPath, 'utf8');
@@ -176,6 +187,19 @@ async function runTestSuite() {
         assert(headings.length === 2, "build_toc: 코드블록 제외 2개 헤더 추출 성공");
         assert(headings[0].text === "Title 1" && headings[0].level === 1, "build_toc: H1 (Title 1) 레벨 및 텍스트 매칭");
         assert(headings[1].text === "Subtitle 2" && headings[1].level === 2, "build_toc: H2 (Subtitle 2) 레벨 및 텍스트 매칭");
+    }
+
+    // [Test Group 5]: SettingsManager (get_settings_template, generate_reg_content) 테스트
+    if (SettingsManager && SettingsManager.generate_reg_content && SettingsManager.get_settings_template) {
+        const chromeReg = SettingsManager.generate_reg_content('chrome');
+        const edgeReg = SettingsManager.generate_reg_content('edge');
+        const htmlTemplate = SettingsManager.get_settings_template();
+
+        assert(chromeReg.includes('@="ChromeHTML"'), "generate_reg_content: Chrome 레지스트리 텍스트 정상 생성");
+        assert(edgeReg.includes('@="MSEdgeHTM"'), "generate_reg_content: Edge 레지스트리 텍스트 정상 생성");
+        assert(htmlTemplate.includes('id="btn-reg-chrome"') && htmlTemplate.includes('⚙️ 설정'), "get_settings_template: HTML 컨텍스트 템플릿 정상 반환");
+    } else {
+        assert(false, "SettingsManager 모듈 또는 서브 함수 추출 실패");
     }
 
     console.log('\n========================================');

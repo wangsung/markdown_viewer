@@ -1646,68 +1646,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSave.addEventListener('click', downloadCurrentContent);
     }
 
-    // 설정 모달 관련 엘리먼트 및 이벤트 바인딩
-    const btnSettings = document.getElementById('btn-settings');
-    const settingsModal = document.getElementById('settings-modal');
-    const closeSettings = document.getElementById('close-settings');
-    const btnRegChrome = document.getElementById('btn-reg-chrome');
-    const btnRegEdge = document.getElementById('btn-reg-edge');
-
-    if (btnSettings && settingsModal) {
-        btnSettings.addEventListener('click', () => {
-            settingsModal.style.display = 'block';
-        });
-    }
-
-    if (closeSettings && settingsModal) {
-        closeSettings.addEventListener('click', () => {
-            settingsModal.style.display = 'none';
-        });
-    }
-
-    window.addEventListener('click', (event) => {
-        if (event.target === settingsModal) {
-            settingsModal.style.display = 'none';
-        }
-    });
-
-    // 레지스트리(.reg) 파일 다운로드 헬퍼
-    function downloadRegFile(filename, regContent) {
-        const blob = new Blob([regContent], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    if (btnRegChrome) {
-        btnRegChrome.addEventListener('click', () => {
-            const chromeReg = `Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\\Software\\Classes\\.md]
-@="ChromeHTML"
-`;
-            downloadRegFile('associate_chrome.reg', chromeReg);
-            alert('Chrome 연결등록 레지스트리 파일(associate_chrome.reg)이 다운로드되었습니다.\n\n다운로드된 파일을 더블 클릭하여 실행(병합)해 주세요!');
-            settingsModal.style.display = 'none';
-        });
-    }
-
-    if (btnRegEdge) {
-        btnRegEdge.addEventListener('click', () => {
-            const edgeReg = `Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\\Software\\Classes\\.md]
-@="MSEdgeHTM"
-`;
-            downloadRegFile('associate_edge.reg', edgeReg);
-            alert('Edge 연결등록 레지스트리 파일(associate_edge.reg)이 다운로드되었습니다.\n\n다운로드된 파일을 더블 클릭하여 실행(병합)해 주세요!');
-            settingsModal.style.display = 'none';
-        });
+    // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)
+    if (typeof SettingsManager !== 'undefined') {
+        SettingsManager.init();
     }
 
     // TOC 사이드바 토글 관련 이벤트 바인딩
