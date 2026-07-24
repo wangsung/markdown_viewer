@@ -31,6 +31,6 @@
 
 ## 순수 서브 함수 네이밍 규칙 (Pure Sub-function Naming Convention)
 - **상위 비즈니스/상태 관리 함수**: camelCase (예: `applyHeadingPreset`, `handleSaveCurrentDocument`)
-- **순수 하위 서브 함수 (Pure Sub-function)**: 착오 방지를 위해 **모두 소문자 snake_case (예: `apply_heading_styles`, `join_paragraphs`, `insert_formatting`)**로 정의 및 표기해야 합니다.
+- **순수 하위 서브 함수 (Pure Sub-function)**: 착오 방지를 위해 **모두 소문자 snake_case (예: `apply_heading_preset`, `join_paragraphs`, `insert_formatting`)**로 정의 및 표기해야 합니다.
 
 
