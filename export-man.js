@@ -407,7 +407,7 @@ const ExportManager = (function() {
 
                 const savedName = handle.name;
                 if (typeof onSaveComplete === 'function') {
-                    onSaveComplete(savedName);
+                    onSaveComplete(savedName, handle);
                 }
                 return;
             } catch (err) {

@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 디버그용 전역 에러 핸들러 (localStorage 로그 기록 기능 포함)
+    // 디버그용 전역 에러 핸들러 (localStorage 로그 기록 및 상단 경고창 기능 포함)
+    // 활성화 플래그 (기본값: true / enable)
+    window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
+
     window.onerror = function(message, source, lineno, colno, error) {
+        // 플래그가 false 이거나 localStorage에 'markvi_debug_enabled'가 'false'이면 핸들러 비활성화
+        if (window.ENABLE_DEBUG_HANDLER === false || localStorage.getItem('markvi_debug_enabled') === 'false') {
+            return false;
+        }
+
         // 브라우저의 CORS 및 로컬 파일보안 정책에 의한 무의미한 'Script error.' 필터링
         if (message === "Script error." || !source) {
             console.warn('Cross-Origin/Local 보안 제한으로 상세 디버그 정보 수집 제한 (무시 처리)');
@@ -127,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const diagramRenderWrapper = document.getElementById('diagram-render-wrapper');
     const btnCopy = document.getElementById('btn-copy');
     const btnSave = document.getElementById('btn-save');
+    const btnSaveAs = document.getElementById('btn-save-as');
     const btnDebug = document.getElementById('btn-debug');
     const exportDropdown = document.getElementById('export-dropdown');
     const btnExport = document.getElementById('btn-export');
@@ -197,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 에디터 파일 관련 변수 및 상태 플래그
     let currentFilename = '제목 없음.md';
+    let currentFileHandle = null; // Direct Save용 FileSystemFileHandle 객체
     let isDirty = false;
     let enableScrollSync = true;
     let scrollSync = null;
@@ -1010,8 +1020,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnOpenFile) {
-        btnOpenFile.addEventListener('click', () => {
+        btnOpenFile.addEventListener('click', async () => {
             if (mainMenu) mainMenu.classList.remove('show');
+            if (typeof window.showOpenFilePicker === 'function') {
+                try {
+                    const [handle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'Markdown Documents',
+                            accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
+                        }],
+                        multiple: false
+                    });
+                    if (handle) {
+                        const file = await handle.getFile();
+                        currentFileHandle = handle;
+                        loadSingleFile(file);
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    console.warn('showOpenFilePicker 실패, fallback input 시도:', err);
+                }
+            }
             if (fileInput) fileInput.click();
         });
     }
@@ -1176,13 +1206,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 드래그 앤 드롭 파일 로딩 연동
-    editorContainer.addEventListener('drop', (e) => {
+    editorContainer.addEventListener('drop', async (e) => {
         e.preventDefault();
         dragCounter = 0;
         editorContainer.classList.remove('drag-over');
         
-        const files = e.dataTransfer.files;
+        // FileSystemAccess API: Drag & Drop 항목에서 FileHandle 추출 시도
+        if (e.dataTransfer && e.dataTransfer.items) {
+            for (const item of e.dataTransfer.items) {
+                if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
+                    try {
+                        const handle = await item.getAsFileSystemHandle();
+                        if (handle && handle.kind === 'file') {
+                            const file = await handle.getFile();
+                            currentFileHandle = handle;
+                            loadSingleFile(file);
+                            return;
+                        }
+                    } catch (err) {
+                        console.warn('getAsFileSystemHandle 실패 fallback 진행:', err);
+                    }
+                }
+            }
+        }
+
+        const files = e.dataTransfer ? e.dataTransfer.files : null;
         if (files && files.length > 0) {
+            currentFileHandle = null;
             loadSingleFile(files[0]);
         }
     });
@@ -1192,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (files && files.length > 0) {
+                currentFileHandle = null;
                 loadSingleFile(files[0]);
                 // 다음 파일 로드를 위해 input 값 초기화
                 fileInput.value = '';
@@ -1207,6 +1258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (shouldCreate) {
             cm.setValue('');
+            currentFileHandle = null; // 새 파일 작성 시 핸들 초기화
             updateFilenameDisplay('제목 없음.md', false);
             renderMarkdown();
             cm.scrollTo(0, 0);
@@ -1454,20 +1506,63 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 저장 처리 헬퍼 함수
+    // 새이름저장 (Save As 다이얼로그) 헬퍼 함수
     function handleSaveCurrentDocument() {
         if (!cm) return;
         const textContent = cm.getValue();
-        ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName) => {
+        ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName, handle) => {
+            if (handle) {
+                currentFileHandle = handle; // 새로 지정된 저장 파일 핸들 갱신
+            }
             updateFilenameDisplay(savedName, false);
             saveDocumentSession();
             showToast(`"${savedName}" 파일이 저장되었습니다.`);
         });
     }
 
-    // 저장 버튼 클릭 이벤트 바인딩
+    // [저장] 버튼: 직접 덮어쓰기 저장 (Direct Overwrite) 헬퍼 함수
+    async function handleSaveDirect() {
+        if (!cm) return;
+        const textContent = cm.getValue();
+
+        // 1. 파일 핸들이 존재하는 경우 탐색기 팝업 없이 원본 파일에 직접 덮어쓰기
+        if (currentFileHandle) {
+            try {
+                // 쓰기 권한 점검 및 요청
+                if (typeof currentFileHandle.queryPermission === 'function') {
+                    let perm = await currentFileHandle.queryPermission({ mode: 'readwrite' });
+                    if (perm !== 'granted') {
+                        perm = await currentFileHandle.requestPermission({ mode: 'readwrite' });
+                    }
+                    if (perm !== 'granted') {
+                        showToast('파일 쓰기 권한이 거부되었습니다.');
+                        return;
+                    }
+                }
+
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(textContent);
+                await writable.close();
+
+                updateFilenameDisplay(currentFileHandle.name, false);
+                saveDocumentSession();
+                showToast(`"${currentFileHandle.name}" 파일에 직접 저장되었습니다.`);
+                return;
+            } catch (err) {
+                console.warn('직접 덮어쓰기 저장 실패, SaveAs 다이얼로그로 fallback 진행:', err);
+            }
+        }
+
+        // 2. 파일 핸들이 없거나(새 파일 등) 덮어쓰기 실패 시 SaveAs 다이얼로그로 fallback
+        handleSaveCurrentDocument();
+    }
+
+    // 저장([저장]: 직접 덮어쓰기) 및 새이름저장([새이름저장]: SaveAs 다이얼로그) 버튼 클릭 이벤트 바인딩
     if (btnSave) {
-        btnSave.addEventListener('click', handleSaveCurrentDocument);
+        btnSave.addEventListener('click', handleSaveDirect);
+    }
+    if (btnSaveAs) {
+        btnSaveAs.addEventListener('click', handleSaveCurrentDocument);
     }
 
     // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)

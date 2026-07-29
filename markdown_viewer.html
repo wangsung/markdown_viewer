@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <script>
+        // 디버그 핸들러 활성화 플래그 (기본값: true / enable)
+        window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
+        window.onerror = function(message, source, lineno, colno, error) {
+            // 플래그가 false 이거나 localStorage에 'markvi_debug_enabled'가 'false'이면 핸들러 비활성화
+            if (window.ENABLE_DEBUG_HANDLER === false || localStorage.getItem('markvi_debug_enabled') === 'false') {
+                return false;
+            }
+            if (message === "Script error." || !source) return false;
+            let errBox = document.getElementById('debug-error-banner');
+            if (!errBox) {
+                errBox = document.createElement('div');
+                errBox.id = 'debug-error-banner';
+                errBox.style.position = 'fixed';
+                errBox.style.top = '0';
+                errBox.style.left = '0';
+                errBox.style.width = '100%';
+                errBox.style.background = '#ef4444';
+                errBox.style.color = '#ffffff';
+                errBox.style.zIndex = '999999';
+                errBox.style.padding = '8px 12px';
+                errBox.style.fontSize = '12px';
+                errBox.style.fontFamily = 'monospace';
+                errBox.style.wordBreak = 'break-all';
+                document.body.appendChild(errBox);
+            }
+            errBox.textContent = '[JS Error] ' + message + ' at ' + source.split('/').pop() + ':' + lineno + ':' + colno;
+            return false;
+        };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarkVi - 독립형 에디터</title>
@@ -51,9 +81,14 @@
                 <span id="current-filename">제목 없음.md</span>
             </div>
             <!-- 저장 버튼 추가 -->
-            <button id="btn-save" class="btn btn-secondary" title="현재 편집중인 문서를 다운로드하여 컴퓨터에 저장합니다.">
+            <button id="btn-save" class="btn btn-secondary" title="현재 편집중인 문서를 컴퓨터에 저장합니다.">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
                 저장
+            </button>
+            <!-- 새이름저장 버튼 추가 -->
+            <button id="btn-save-as" class="btn btn-secondary" title="문서를 새로운 이름이나 위치로 저장(다운로드)합니다.">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                새이름저장
             </button>
             <!-- 문단 모으기 버튼 추가 -->
             <button id="btn-join-paragraphs" class="btn btn-secondary" title="인위적으로 잘린 줄을 분석하여 하나의 문단으로 이어 붙입니다. (Alt+Q)">
