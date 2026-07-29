@@ -1,6 +1,36 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <script>
+        // 디버그 핸들러 활성화 플래그 (기본값: true / enable)
+        window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
+        window.onerror = function(message, source, lineno, colno, error) {
+            // 플래그가 false 이거나 localStorage에 'markvi_debug_enabled'가 'false'이면 핸들러 비활성화
+            if (window.ENABLE_DEBUG_HANDLER === false || localStorage.getItem('markvi_debug_enabled') === 'false') {
+                return false;
+            }
+            if (message === "Script error." || !source) return false;
+            let errBox = document.getElementById('debug-error-banner');
+            if (!errBox) {
+                errBox = document.createElement('div');
+                errBox.id = 'debug-error-banner';
+                errBox.style.position = 'fixed';
+                errBox.style.top = '0';
+                errBox.style.left = '0';
+                errBox.style.width = '100%';
+                errBox.style.background = '#ef4444';
+                errBox.style.color = '#ffffff';
+                errBox.style.zIndex = '999999';
+                errBox.style.padding = '8px 12px';
+                errBox.style.fontSize = '12px';
+                errBox.style.fontFamily = 'monospace';
+                errBox.style.wordBreak = 'break-all';
+                document.body.appendChild(errBox);
+            }
+            errBox.textContent = '[JS Error] ' + message + ' at ' + source.split('/').pop() + ':' + lineno + ':' + colno;
+            return false;
+        };
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MarkVi - 독립형 에디터</title>
