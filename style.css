@@ -2,32 +2,74 @@
    Design Tokens & Variables
    ========================================================================== */
 :root {
-    /* UI Dark Theme Colors */
-    --bg-primary: #0f172a;       /* Slate 900 - 메인 에디터 배경 */
-    --bg-secondary: #1e293b;     /* Slate 800 - 헤더, 툴바 배경 */
-    --border-color: #334155;     /* Slate 700 - 기본 테두리 */
-    --text-main: #f8fafc;        /* Slate 50 - 밝은 텍스트 */
-    --text-muted: #94a3b8;       /* Slate 400 - 어두운 텍스트 */
-    --text-inactive: #475569;    /* Slate 600 - 비활성 상태 */
+    /* UI Frame (Always Dark Theme) Colors */
+    --bg-frame-primary: #0f172a;       /* Slate 900 */
+    --bg-frame-secondary: #1e293b;     /* Slate 800 */
+    --border-frame: #334155;            /* Slate 700 */
+    --text-frame-main: #f8fafc;        /* Slate 50 */
+    --text-frame-muted: #94a3b8;       /* Slate 400 */
+    --text-frame-inactive: #475569;    /* Slate 600 */
+    --input-frame-bg: #0f172a;
     
-    /* Dynamic Theme Accent (JavaScript로 동적 업데이트됨, 기본값 파랑) */
+    /* UI Frame 전용 독립 Accent 색상 (스타일세트와 무관하게 고정 작동) */
+    --frame-accent-color: #3b82f6;
+    --frame-accent-color-hover: #2563eb;
+    --frame-accent-rgb: 59, 130, 246;
+
+    /* Dynamic Theme Accent (JavaScript로 동적 업데이트됨 - 마크다운 콘텐츠 영역 전용) */
     --theme-color: #3b82f6;      
     --theme-color-hover: #2563eb;
     --theme-color-rgb: 59, 130, 246;
 
-    /* Viewport (Right Panel) Style Variables */
+    /* Viewport Default Font */
+    --preview-font-family: system-ui, -apple-system, sans-serif;
+    --preview-font-size: 16px;
+}
+
+/* Editor Body View - Dark Theme (Default) */
+:root, [data-editor-theme="dark"] {
+    --editor-bg: #0f172a;
+    --editor-text: #f8fafc;
+    --editor-gutter-bg: #1e293b;
+    --editor-gutter-border: #334155;
+    --editor-gutter-text: #64748b;
+    --editor-activeline-bg: rgba(255, 255, 255, 0.03);
+
+    --preview-bg: #1e293b;
+    --preview-text: #f8fafc;
+    --preview-heading: #ffffff;
+    --preview-border: #334155;
+    --preview-code-bg: #0f172a;
+    --preview-blockquote-bg: #0f172a;
+    --preview-blockquote-text: #cbd5e1;
+    --preview-table-th-bg: #0f172a;
+    --preview-table-tr-bg: #1e293b;
+    --preview-table-tr-even-bg: #0f172a;
+}
+
+/* Editor Body View - Light Theme */
+[data-editor-theme="light"] {
+    --editor-bg: #ffffff;
+    --editor-text: #0f172a;
+    --editor-gutter-bg: #f8fafc;
+    --editor-gutter-border: #e2e8f0;
+    --editor-gutter-text: #94a3b8;
+    --editor-activeline-bg: rgba(0, 0, 0, 0.03);
+
     --preview-bg: #ffffff;
     --preview-text: #1f2937;
     --preview-heading: #111827;
     --preview-border: #e5e7eb;
     --preview-code-bg: #f3f4f6;
     --preview-blockquote-bg: #f9fafb;
-    --preview-font-family: system-ui, -apple-system, sans-serif;
-    --preview-font-size: 16px;
+    --preview-blockquote-text: #4b5563;
+    --preview-table-th-bg: #f9fafb;
+    --preview-table-tr-bg: #ffffff;
+    --preview-table-tr-even-bg: #f9fafb;
 }
 
 /* ==========================================================================
-   General Reset & Layout
+   General Reset & Layout (Frame is always Dark)
    ========================================================================== */
 * {
     box-sizing: border-box;
@@ -40,53 +82,58 @@ body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
-    background-color: var(--bg-primary);
-    color: var(--text-main);
+    background-color: var(--bg-frame-primary);
+    color: var(--text-frame-main);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
 
 /* ==========================================================================
-   Top Menu Bar (.menu-bar)
+   Top Menu Bar (.menu-bar) - Always Dark
    ========================================================================== */
 .menu-bar {
-    height: 60px;
+    height: 48px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 24px;
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
+    padding: 0 10px;
+    background-color: var(--bg-frame-secondary);
+    border-bottom: 1px solid var(--border-frame);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     z-index: 10;
     flex-shrink: 0;
+    overflow: visible;
+    white-space: nowrap;
 }
 
 .menu-left, .menu-center, .menu-right {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 5px;
+    flex-shrink: 0;
 }
 
 /* File Badge Styling */
 .file-badge {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: #0f172a;
-    border: 1px solid var(--border-color);
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    color: var(--text-muted);
+    gap: 4px;
+    background-color: var(--input-frame-bg);
+    border: 1px solid var(--border-frame);
+    padding: 3px 8px;
+    border-radius: 16px;
+    font-size: 0.78rem;
+    color: var(--text-frame-muted);
     font-weight: 500;
-    max-width: 320px;
+    max-width: 220px;
     transition: all 0.25s ease;
     user-select: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .file-badge svg {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     flex-shrink: 0;
 }
 
@@ -98,54 +145,57 @@ body {
 
 .file-badge.modified {
     border-color: #f59e0b; /* Amber 500 - 수정중 알림 색상 */
-    color: var(--text-main);
+    color: var(--text-frame-main);
 }
 
 .file-badge.modified svg {
     color: #f59e0b;
 }
 
-
 .logo {
     font-size: 1.15rem;
     font-weight: 800;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, var(--theme-color) 0%, #10b981 100%);
+    background: linear-gradient(135deg, var(--frame-accent-color) 0%, #10b981 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-right: 8px;
+    margin-right: 4px;
     position: relative;
 }
 
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .menu-item label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
+    letter-spacing: 0.03em;
+    color: var(--text-frame-muted);
+    white-space: nowrap !important;
 }
 
 .menu-item select {
-    background-color: #0f172a;
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 0.875rem;
+    background-color: var(--input-frame-bg);
+    color: var(--text-frame-main);
+    border: 1px solid var(--border-frame);
+    border-radius: 5px;
+    padding: 3px 6px;
+    font-size: 0.78rem;
     outline: none;
     cursor: pointer;
+    white-space: nowrap !important;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .menu-item select:focus {
-    border-color: var(--theme-color);
-    box-shadow: 0 0 0 2px rgba(var(--theme-color-rgb), 0.2);
+    border-color: var(--frame-accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--frame-accent-rgb), 0.2);
 }
 
 /* Color Picker Styling */
@@ -155,7 +205,7 @@ body {
     height: 28px;
     border-radius: 50%;
     overflow: hidden;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-frame);
     cursor: pointer;
     transition: transform 0.2s;
 }
@@ -179,17 +229,19 @@ body {
 .toggle-control {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     cursor: pointer;
     user-select: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .toggle-control input[type="checkbox"] {
     appearance: none;
-    width: 36px;
-    height: 20px;
-    background-color: var(--border-color);
-    border-radius: 20px;
+    width: 32px;
+    height: 18px;
+    background-color: var(--border-frame);
+    border-radius: 18px;
     position: relative;
     outline: none;
     cursor: pointer;
@@ -199,8 +251,8 @@ body {
 .toggle-control input[type="checkbox"]::before {
     content: '';
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     top: 3px;
     left: 3px;
@@ -209,36 +261,39 @@ body {
 }
 
 .toggle-control input[type="checkbox"]:checked {
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
 }
 
 .toggle-control input[type="checkbox"]:checked::before {
-    transform: translateX(16px);
+    transform: translateX(14px);
 }
 
 .toggle-label {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
+    white-space: nowrap !important;
 }
 
 .toggle-control input[type="checkbox"]:checked + .toggle-label {
-    color: var(--text-main);
+    color: var(--text-frame-main);
 }
 
 /* Buttons */
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 0.875rem;
+    gap: 4px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
     outline: none;
+    white-space: nowrap !important;
+    flex-shrink: 0;
 }
 
 .btn-icon {
@@ -253,12 +308,12 @@ body {
 }
 
 .btn-primary {
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
     color: #ffffff;
 }
 
 .btn-primary:hover {
-    background-color: var(--theme-color-hover);
+    background-color: var(--frame-accent-color-hover);
     transform: translateY(-1px);
 }
 
@@ -268,13 +323,13 @@ body {
 
 .btn-secondary {
     background-color: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
+    border: 1px solid var(--border-frame);
+    color: var(--text-frame-main);
 }
 
 .btn-secondary:hover {
-    background-color: var(--border-color);
-    border-color: var(--text-muted);
+    background-color: var(--border-frame);
+    border-color: var(--text-frame-muted);
     transform: translateY(-1px);
 }
 
@@ -290,7 +345,7 @@ body {
     flex: 1;
     overflow: hidden;
     position: relative;
-    background-color: var(--bg-primary);
+    background-color: var(--bg-frame-primary);
 }
 
 .panel {
@@ -315,7 +370,7 @@ body {
 /* Draggable Divider */
 .divider {
     width: 6px;
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     cursor: col-resize;
     position: relative;
     z-index: 5;
@@ -351,8 +406,8 @@ body {
    ========================================================================== */
 .toolbar {
     height: 44px;
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-frame-secondary);
+    border-bottom: 1px solid var(--border-frame);
     padding: 0 16px;
     display: flex;
     align-items: center;
@@ -366,7 +421,7 @@ body {
 }
 
 .toolbar::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     border-radius: 10px;
 }
 
@@ -376,7 +431,7 @@ body {
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -386,7 +441,7 @@ body {
 }
 
 .toolbar-btn:hover {
-    color: var(--text-main);
+    color: var(--text-frame-main);
     background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -402,7 +457,7 @@ body {
 .toolbar-separator {
     width: 1px;
     height: 18px;
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
     margin: 0 6px;
 }
 
@@ -411,44 +466,63 @@ body {
     flex: 1;
     position: relative;
     overflow: hidden;
+    background-color: var(--editor-bg);
+    transition: background-color 0.25s ease;
 }
 
 /* CodeMirror Editor Styles */
 .CodeMirror {
     width: 100%;
     height: 100% !important;
-    background-color: var(--bg-primary) !important;
-    color: #e2e8f0 !important;
+    background-color: var(--editor-bg) !important;
+    color: var(--editor-text) !important;
     font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, 'Courier New', monospace;
-    font-size: 15px;
+    font-size: var(--editor-font-size, 14px) !important;
     line-height: 1.65;
     box-sizing: border-box;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .CodeMirror-lines {
-    padding: 24px !important;
+    padding: 24px 0 !important;
 }
 
 /* Caret / Cursor */
 .CodeMirror-cursor {
-    border-left: 2px solid var(--theme-color) !important;
+    border-left: 2px solid var(--frame-accent-color) !important;
 }
 
 /* Gutters (Line Numbers Column) */
 .CodeMirror-gutters {
-    background-color: var(--bg-secondary) !important;
-    border-right: 1px solid var(--border-color) !important;
+    background-color: var(--editor-gutter-bg) !important;
+    border-right: 1px solid var(--editor-gutter-border) !important;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* 라인 번호 영역과 거터 컬럼들의 배경색을 일관되게 일치 */
+.CodeMirror-gutter,
+.CodeMirror-linenumbers,
+.CodeMirror-foldgutter,
+.CodeMirror-linenumber {
+    background-color: var(--editor-gutter-bg) !important;
 }
 
 .CodeMirror-linenumber {
-    color: var(--text-inactive) !important;
-    padding: 0 6px 0 8px;
+    color: var(--editor-gutter-text) !important;
+    padding: 0 5px 0 3px;
     text-align: right;
+    transition: color 0.25s ease;
+    font-size: calc(var(--editor-font-size, 14px) - 2px) !important;
+}
+
+/* 거터와 본문 코드 에디터 글자 시작선 사이를 16px 만큼 이격 */
+.CodeMirror-line {
+    padding-left: 16px !important;
 }
 
 /* Active Line background & Selection */
 .CodeMirror-activeline-background {
-    background-color: rgba(255, 255, 255, 0.02) !important;
+    background-color: var(--editor-activeline-bg) !important;
 }
 
 /* ==========================================================================
@@ -493,17 +567,17 @@ body {
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-track {
-    background: var(--bg-primary);
+    background: var(--editor-bg);
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: var(--border-frame);
     border-radius: 5px;
-    border: 2px solid var(--bg-primary);
+    border: 2px solid var(--editor-bg);
 }
 
 .CodeMirror-scroll::-webkit-scrollbar-thumb:hover {
-    background: var(--text-inactive);
+    background: var(--text-frame-muted);
 }
 
 /* CodeMirror Markdown Syntax Styling (Heading, bold, italic, code, links) */
@@ -513,22 +587,32 @@ body {
 
 .cm-header-1 {
     font-size: 1.45em;
-    color: var(--theme-color) !important;
+    color: var(--h1-color, var(--theme-color)) !important;
 }
 
 .cm-header-2 {
     font-size: 1.3em;
-    color: #38bdf8 !important; /* Light blue */
+    color: var(--h2-color, #38bdf8) !important;
 }
 
 .cm-header-3 {
     font-size: 1.18em;
-    color: #f1f5f9 !important;
+    color: var(--h3-color, #f1f5f9) !important;
 }
 
-.cm-header-4, .cm-header-5, .cm-header-6 {
+.cm-header-4 {
+    font-size: 1.1em;
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+
+.cm-header-5 {
     font-size: 1em;
-    color: var(--text-muted) !important;
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+
+.cm-header-6 {
+    font-size: 0.9em;
+    color: var(--h6-color, var(--text-muted)) !important;
 }
 
 .cm-formatting-header {
@@ -538,12 +622,12 @@ body {
 
 .cm-strong {
     font-weight: bold;
-    color: var(--text-main);
+    color: var(--bold-color, var(--text-main)) !important;
 }
 
 .cm-em {
     font-style: italic;
-    color: var(--text-main);
+    color: var(--italic-color, var(--text-main)) !important;
 }
 
 .cm-comment, .cm-code {
@@ -551,11 +635,11 @@ body {
     background-color: rgba(255, 255, 255, 0.06);
     padding: 1px 4px;
     border-radius: 4px;
-    color: #f43f5e !important; /* Rose 500 */
+    color: var(--code-color, #f43f5e) !important;
 }
 
 .cm-link {
-    color: var(--theme-color) !important;
+    color: var(--link-color, var(--theme-color)) !important;
     text-decoration: underline;
 }
 
@@ -564,13 +648,99 @@ body {
 }
 
 .cm-quote {
-    color: var(--text-muted) !important;
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
     font-style: italic;
 }
 
-/* List items, bullets, and meta tokens in CodeMirror Markdown Mode */
-.cm-variable-2, .cm-variable-3, .cm-keyword, .cm-meta {
-    color: #cbd5e1 !important; /* Bright gray */
+/* Dark Theme CodeMirror Syntax Overrides */
+[data-editor-theme="dark"] .cm-header-1 {
+    color: var(--h1-color, var(--theme-color)) !important;
+}
+[data-editor-theme="dark"] .cm-header-2 {
+    color: var(--h2-color, #38bdf8) !important;
+}
+[data-editor-theme="dark"] .cm-header-3 {
+    color: var(--h3-color, #f1f5f9) !important;
+}
+[data-editor-theme="dark"] .cm-header-4 {
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-header-5 {
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-header-6 {
+    color: var(--h6-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-strong {
+    color: var(--bold-color, #f8fafc) !important;
+}
+[data-editor-theme="dark"] .cm-em {
+    color: var(--italic-color, #f8fafc) !important;
+}
+[data-editor-theme="dark"] .cm-link {
+    color: var(--link-color, var(--theme-color)) !important;
+    text-decoration: var(--link-decoration, underline) !important;
+}
+[data-editor-theme="dark"] .cm-quote {
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
+}
+[data-editor-theme="dark"] .cm-comment, 
+[data-editor-theme="dark"] .cm-code {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--code-color, #fb7185) !important;
+}
+[data-editor-theme="dark"] .cm-variable-2, 
+[data-editor-theme="dark"] .cm-variable-3, 
+[data-editor-theme="dark"] .cm-keyword, 
+[data-editor-theme="dark"] .cm-meta {
+    color: #cbd5e1 !important;
+}
+
+/* Light Theme CodeMirror Syntax Overrides */
+[data-editor-theme="light"] .cm-header-1 {
+    color: var(--h1-color, var(--theme-color)) !important;
+}
+[data-editor-theme="light"] .cm-header-2 {
+    color: var(--h2-color, #0284c7) !important;
+}
+[data-editor-theme="light"] .cm-header-3 {
+    color: var(--h3-color, #0f172a) !important;
+}
+[data-editor-theme="light"] .cm-header-4 {
+    color: var(--h4-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-header-5 {
+    color: var(--h5-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-header-6 {
+    color: var(--h6-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-strong {
+    color: var(--bold-color, #0f172a) !important;
+}
+[data-editor-theme="light"] .cm-em {
+    color: var(--italic-color, #0f172a) !important;
+}
+[data-editor-theme="light"] .cm-link {
+    color: var(--link-color, var(--theme-color)) !important;
+    text-decoration: var(--link-decoration, underline) !important;
+}
+[data-editor-theme="light"] .cm-quote {
+    color: var(--blockquote-text-color, var(--text-muted)) !important;
+}
+[data-editor-theme="light"] .cm-comment, 
+[data-editor-theme="light"] .cm-code {
+    background-color: rgba(0, 0, 0, 0.06);
+    color: var(--code-color, #e11d48) !important;
+}
+[data-editor-theme="light"] .cm-variable-2, 
+[data-editor-theme="light"] .cm-variable-3, 
+[data-editor-theme="light"] .cm-keyword, 
+[data-editor-theme="light"] .cm-meta {
+    color: #334155 !important;
+}
+[data-editor-theme="light"] .CodeMirror-activeline-background {
+    background-color: rgba(0, 0, 0, 0.03) !important;
 }
 
 /* ==========================================================================
@@ -594,13 +764,13 @@ body {
 }
 
 .preview-viewport::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: var(--preview-border, #d1d5db);
     border-radius: 5px;
     border: 2px solid var(--preview-bg);
 }
 
 .preview-viewport::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--text-frame-muted, #9ca3af);
 }
 
 .markdown-body {
@@ -638,21 +808,23 @@ body {
 }
 
 .markdown-body h1 {
-    font-size: 2em;
+    font-size: var(--h1-size, 2em);
+    color: var(--h1-color, var(--preview-heading));
     padding-bottom: 0.3em;
-    border-bottom: 1px solid var(--preview-border);
+    border-bottom: var(--h1-border, 1px solid var(--preview-border));
 }
 
 .markdown-body h2 {
-    font-size: 1.5em;
+    font-size: var(--h2-size, 1.5em);
+    color: var(--h2-color, var(--preview-heading));
     padding-bottom: 0.3em;
-    border-bottom: 1px solid var(--preview-border);
+    border-bottom: var(--h2-border, 1px solid var(--preview-border));
 }
 
-.markdown-body h3 { font-size: 1.25em; }
-.markdown-body h4 { font-size: 1em; }
-.markdown-body h5 { font-size: 0.875em; }
-.markdown-body h6 { font-size: 0.85em; color: #6b7280; }
+.markdown-body h3 { font-size: var(--h3-size, 1.25em); color: var(--h3-color, var(--preview-heading)); border-bottom: var(--h3-border, none); }
+.markdown-body h4 { font-size: var(--h4-size, 1em); color: var(--h4-color, var(--preview-heading)); border-bottom: var(--h4-border, none); }
+.markdown-body h5 { font-size: var(--h5-size, 0.875em); color: var(--h5-color, var(--preview-heading)); border-bottom: var(--h5-border, none); }
+.markdown-body h6 { font-size: var(--h6-size, 0.85em); color: var(--h6-color, var(--text-frame-muted)); border-bottom: var(--h6-border, none); }
 
 .markdown-body p,
 .markdown-body blockquote,
@@ -665,21 +837,33 @@ body {
     margin-bottom: 16px;
 }
 
-.markdown-body a {
-    color: var(--theme-color);
-    text-decoration: none;
-    transition: text-decoration 0.2s;
+.markdown-body strong {
+    font-weight: 600;
+    color: var(--bold-color, inherit);
 }
 
-.markdown-body a:hover {
-    text-decoration: underline;
+.markdown-body em {
+    font-style: italic;
+    color: var(--italic-color, inherit);
+}
+
+.markdown-body a,
+.markdown-body .md-bracket-link {
+    color: var(--link-color, var(--theme-color));
+    text-decoration: var(--link-decoration, underline);
+    transition: color 0.2s, text-decoration 0.2s;
+}
+
+.markdown-body a:hover,
+.markdown-body .md-bracket-link:hover {
+    filter: brightness(1.2);
 }
 
 /* Blockquote */
 .markdown-body blockquote {
     padding: 10px 20px;
-    color: #4b5563;
-    border-left: 4px solid var(--theme-color);
+    color: var(--blockquote-text-color, var(--preview-blockquote-text));
+    border-left: 4px solid var(--blockquote-border-color, var(--theme-color));
     background-color: var(--preview-blockquote-bg);
     border-radius: 0 6px 6px 0;
 }
@@ -718,21 +902,23 @@ body {
 .markdown-body table td {
     padding: 8px 13px;
     border: 1px solid var(--preview-border);
+    color: var(--preview-text);
 }
 
 .markdown-body table th {
     font-weight: 600;
-    background-color: #f9fafb;
+    background-color: var(--preview-table-th-bg);
+    color: var(--preview-heading);
     border-bottom: 2px solid var(--theme-color);
 }
 
 .markdown-body table tr {
-    background-color: #ffffff;
+    background-color: var(--preview-table-tr-bg);
     border-top: 1px solid var(--preview-border);
 }
 
 .markdown-body table tr:nth-child(even) {
-    background-color: #f9fafb;
+    background-color: var(--preview-table-tr-even-bg);
 }
 
 /* Code & Pre */
@@ -740,6 +926,7 @@ body {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
+    color: var(--code-color, inherit);
     background-color: var(--preview-code-bg);
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
@@ -796,12 +983,12 @@ body {
     right: 10px;
     bottom: 10px;
     background-color: rgba(15, 23, 42, 0.95); /* UI bg와 투명도 유지 */
-    border: 2px dashed var(--theme-color);
+    border: 2px dashed var(--frame-accent-color);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     font-size: 1.05rem;
     font-weight: 600;
     pointer-events: none; /* 드롭 이벤트가 뒤쪽 텍스트 영역으로 흐를 수 있게 함 */
@@ -866,7 +1053,7 @@ div.katex-error {
 .modal {
     display: none; /* Hidden by default */
     position: fixed;
-    z-index: 1000;
+    z-index: 1500;
     left: 0;
     top: 0;
     width: 100%;
@@ -937,18 +1124,21 @@ div.katex-error {
     color: #f1f5f9;
 }
 
-.close-btn {
-    color: #94a3b8;
-    font-size: 28px;
+.close-btn,
+.close-modal {
+    color: var(--text-frame-muted);
+    float: right;
+    font-size: 24px;
     font-weight: bold;
     cursor: pointer;
     line-height: 1;
-    transition: color 0.15s;
 }
 
 .close-btn:hover,
-.close-btn:focus {
-    color: #f1f5f9;
+.close-btn:focus,
+.close-modal:hover,
+.close-modal:focus {
+    color: var(--text-frame-main);
     text-decoration: none;
 }
 
@@ -1061,8 +1251,8 @@ div.katex-error {
 .toc-sidebar {
     width: var(--toc-width);
     height: 100%;
-    background-color: var(--bg-secondary); /* 상단 헤더/툴바와 동일한 톤의 다크 그레이 */
-    border-right: 1px solid var(--border-color);
+    background-color: var(--bg-frame-secondary); /* 상단 헤더/툴바와 동일한 톤의 다크 그레이 */
+    border-right: 1px solid var(--border-frame);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -1084,7 +1274,7 @@ div.katex-error {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-frame);
     background-color: rgba(0, 0, 0, 0.15); /* 깊이감을 주는 백그라운드 틴트 */
     flex-shrink: 0;
 }
@@ -1117,7 +1307,7 @@ div.katex-error {
 }
 
 .toc-close-btn:focus-visible {
-    outline: 2px solid var(--theme-color);
+    outline: 2px solid var(--frame-accent-color);
     outline-offset: -2px;
 }
 
@@ -1172,11 +1362,11 @@ div.katex-error {
 
 /* 현재 읽는 위치 활성화 상태 (Active Highlight) */
 .toc-item.active {
-    background-color: rgba(var(--theme-color-rgb), 0.08);
+    background-color: rgba(var(--frame-accent-rgb), 0.08);
 }
 
 .toc-item.active a {
-    color: var(--theme-color) !important;
+    color: var(--frame-accent-color) !important;
     font-weight: 600;
 }
 
@@ -1188,7 +1378,7 @@ div.katex-error {
     top: 0;
     bottom: 0;
     width: 3px;
-    background-color: var(--theme-color);
+    background-color: var(--frame-accent-color);
 }
 
 /* 세로 Bar 토글 버튼 (TOC 접혔을 때 전용) */
@@ -1221,11 +1411,11 @@ div.katex-error {
 .toc-toggle-bar:hover {
     width: 20px;
     background-color: var(--bg-secondary);
-    border-right-color: var(--theme-color);
+    border-right-color: var(--frame-accent-color);
 }
 
 .toc-toggle-bar:focus-visible {
-    outline: 2px solid var(--theme-color);
+    outline: 2px solid var(--frame-accent-color);
     outline-offset: -2px;
 }
 
@@ -1235,7 +1425,7 @@ div.katex-error {
 }
 
 .toc-toggle-bar:hover .toc-toggle-indicator {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
     transform: scale(1.2);
 }
 
@@ -1267,11 +1457,11 @@ div.katex-error {
     position: absolute;
     right: 0;
     top: calc(100% + 8px);
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background-color: #0b132b;
+    border: 1px solid #475569;
     border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    z-index: 100;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15);
+    z-index: 1000;
     min-width: 210px;
     padding: 6px 0;
     transform-origin: top right;
@@ -1307,7 +1497,7 @@ div.katex-error {
     padding: 10px 16px;
     background: none;
     border: none;
-    color: var(--text-main);
+    color: var(--text-frame-main);
     font-size: 0.875rem;
     font-weight: 500;
     text-align: left;
@@ -1316,17 +1506,17 @@ div.katex-error {
 }
 
 .dropdown-item:hover {
-    background-color: var(--border-color);
-    color: var(--text-main);
+    background-color: var(--border-frame);
+    color: var(--text-frame-main);
 }
 
 .dropdown-item svg {
-    color: var(--text-muted);
+    color: var(--text-frame-muted);
     transition: color 0.15s;
 }
 
 .dropdown-item:hover svg {
-    color: var(--theme-color);
+    color: var(--frame-accent-color);
 }
 
 .dropdown-item-toggle {
@@ -1338,13 +1528,259 @@ div.katex-error {
 }
 
 .dropdown-item-toggle:hover {
-    background-color: var(--border-color);
+    background-color: var(--border-frame);
 }
 
 .dropdown-item-toggle .toggle-control {
     width: 100%;
     justify-content: space-between;
     flex-direction: row-reverse;
+}
+
+.dropdown-item-select {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-frame);
+}
+
+.dropdown-item-select label {
+    font-size: 0.75rem;
+    color: var(--text-frame-muted);
+    font-weight: 600;
+}
+
+.dropdown-item-select select {
+    padding: 4px 6px;
+    background: var(--input-frame-bg);
+    color: var(--text-frame-main);
+    border: 1px solid var(--border-frame);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* Toast Notification System */
+#markvi-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(15, 23, 42, 0.92);
+    color: #f8fafc;
+    border: 1px solid #3b82f6;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+#markvi-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Spin Buttons Styling for Font Size */
+.spin-buttons button:hover {
+    background-color: var(--border-frame) !important;
+    color: var(--text-frame-main) !important;
+}
+.spin-buttons button:active {
+    background-color: rgba(var(--frame-accent-rgb), 0.2) !important;
+}
+
+/* 스타일 편집기 모달은 뒷배경을 어둡게 하거나 흐리게 처리(Dim)하지 않음 */
+#heading-modal {
+    background-color: transparent !important;
+    backdrop-filter: none !important;
+}
+
+/* 스타일 편집기 다이얼로그 외곽 경계를 뒷배경과 뚜렷이 구분하기 위한 엣지 효과 및 상하 위치 밀착 */
+#heading-modal .modal-content {
+    margin: 4% auto !important; /* 상하 여백 조밀화로 화면 배치 최적화 */
+    border: 2px solid var(--frame-accent-color) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 25px 50px -12px rgba(0, 0, 0, 0.85),
+                0 15px 30px -10px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* 커스텀 컬러피커 팝오버 전용 스타일 */
+.custom-picker-popover {
+    position: absolute;
+    z-index: 10000;
+    width: 210px;
+    background-color: #1e293b; /* Slate 800 */
+    border: 2px solid var(--frame-accent-color); /* 모달 본체와 통일감 및 칼같은 경계 확보 */
+    border-radius: 8px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.85), 
+                0 5px 15px rgba(0, 0, 0, 0.85); /* 깊고 짙은 그림자로 공중 부양 */
+    padding: 6px 10px; /* 세로 여백 조밀화 */
+    display: none;
+    font-family: inherit;
+    user-select: none;
+}
+
+.custom-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px; /* 세로 여백 조밀화 */
+    border-bottom: 1px solid #334155;
+    padding-bottom: 4px; /* 세로 여백 조밀화 */
+}
+
+.custom-picker-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.custom-picker-close-btn {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ef4444; /* 빨간색 [x] */
+    cursor: pointer;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    line-height: 1;
+    transition: all 0.15s;
+}
+
+.custom-picker-close-btn:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+.custom-picker-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* 세로 요소 간격 조밀화 */
+}
+
+/* 채도-명도 선택 Canvas */
+.custom-picker-sv-canvas {
+    width: 100%;
+    height: 80px;
+    border-radius: 4px;
+    cursor: crosshair;
+    border: 1px solid #334155;
+}
+
+/* 색상 Hue 슬라이더 Canvas */
+.custom-picker-hue-slider {
+    width: 100%;
+    height: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid #334155;
+}
+
+/* 하단 Hex 입력란 & 반영 버튼 & 현재 색상 프리뷰 */
+.custom-picker-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.custom-picker-color-preview {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: 1px solid #475569;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+}
+
+/* 스포이드 단추 전용 스타일 */
+.custom-picker-dropper-btn {
+    background-color: #334155;
+    border: 1px solid #475569;
+    color: #f1f5f9;
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    padding: 0;
+    transition: all 0.15s;
+    box-sizing: border-box;
+}
+
+.custom-picker-dropper-btn:hover {
+    background-color: #475569;
+    border-color: #94a3b8;
+}
+
+.custom-picker-hex-input {
+    flex: 1;
+    background-color: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 3px 4px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    box-sizing: border-box;
+    width: 60px;
+}
+
+.custom-picker-apply-btn {
+    background-color: #10b981; /* 초록색 [v] */
+    color: #fff;
+    border: 1px solid #059669;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s;
+    white-space: nowrap; /* 줄바꿈 절대 방지 */
+}
+
+.custom-picker-apply-btn:hover {
+    background-color: #059669;
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
+}
+
+/* 컬러피커 하단 구분선 */
+.custom-picker-divider {
+    height: 1px;
+    background-color: #475569; /* 회색실선 대비 선명화 */
+    margin: 3px 0 1px 0; /* 세로 여백 조밀화 */
+}
+
+/* 프리셋 팔레트 미니 그리드 */
+.custom-picker-presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px; /* 가로세로 간격 조밀화 */
+}
+
+.custom-picker-preset-cell {
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: transform 0.15s;
+}
+
+.custom-picker-preset-cell:hover {
+    transform: scale(1.15);
+    border-color: #fff;
 }
 
 

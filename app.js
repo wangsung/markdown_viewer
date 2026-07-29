@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
+        // 브라우저의 CORS 및 로컬 파일보안 정책에 의한 무의미한 'Script error.' 필터링
         if (message === "Script error." || !source) {
             console.warn('Cross-Origin/Local 보안 제한으로 상세 디버그 정보 수집 제한 (무시 처리)');
             return false;
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         errBox.textContent = `[JS Runtime Error] ${message} at ${source}:${lineno}:${colno}`;
         
+        // localStorage에 에러 로그 누적 저장 (최대 50개 제한)
         try {
             const rawLogs = localStorage.getItem('markvi_error_logs');
             const logs = rawLogs ? JSON.parse(rawLogs) : [];
@@ -45,8 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 column: colno,
                 stack: error && error.stack ? error.stack : null
             };
-            logs.unshift(newLog);
-            if (logs.length > 50) logs.length = 50;
+            logs.unshift(newLog); // 최신 에러가 맨 위로 오도록 추가
+            if (logs.length > 50) {
+                logs.length = 50; // 최대 50개까지 보관하여 용량 낭비 방지
+            }
             localStorage.setItem('markvi_error_logs', JSON.stringify(logs));
         } catch (e) {
             console.warn('Failed to save error log to localStorage:', e);
@@ -79,22 +83,34 @@ document.addEventListener('DOMContentLoaded', () => {
             "Tab": function(cm) {
                 cm.replaceSelection("    ");
             },
-            "Cmd-B": function(cm) {
-                insertFormatting('bold');
+            "Cmd-B": function(cmInstance) {
+                EditorManager.insert_formatting(cmInstance, 'bold', () => {
+                    updateFilenameDisplay(currentFilename, true);
+                    renderMarkdown();
+                });
             },
-            "Ctrl-B": function(cm) {
-                insertFormatting('bold');
+            "Ctrl-B": function(cmInstance) {
+                EditorManager.insert_formatting(cmInstance, 'bold', () => {
+                    updateFilenameDisplay(currentFilename, true);
+                    renderMarkdown();
+                });
             },
-            "Cmd-I": function(cm) {
-                insertFormatting('italic');
+            "Cmd-I": function(cmInstance) {
+                EditorManager.insert_formatting(cmInstance, 'italic', () => {
+                    updateFilenameDisplay(currentFilename, true);
+                    renderMarkdown();
+                });
             },
-            "Ctrl-I": function(cm) {
-                insertFormatting('italic');
+            "Ctrl-I": function(cmInstance) {
+                EditorManager.insert_formatting(cmInstance, 'italic', () => {
+                    updateFilenameDisplay(currentFilename, true);
+                    renderMarkdown();
+                });
             },
-            "Alt-Q": function(cm) {
-                if (typeof joinParagraphsAction === 'function') {
-                    joinParagraphsAction();
-                }
+            "Alt-Q": function(cmInstance) {
+                EditorManager.apply_paragraph_join(cmInstance, () => {
+                    renderMarkdown();
+                });
             }
         }
     });
@@ -125,11 +141,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportMenu = document.getElementById('export-menu');
     const btnExportHtml = document.getElementById('btn-export-html');
     const btnOpenNewWindow = document.getElementById('btn-open-new-window');
+    const btnOpenNewWindowDefault = document.getElementById('btn-open-new-window-default');
     const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
     
     const viewDropdown = document.getElementById('view-dropdown');
     const btnView = document.getElementById('btn-view');
     const viewMenu = document.getElementById('view-menu');
+
+    const headingDropdown = document.getElementById('heading-dropdown');
+    const btnHeadingStyle = document.getElementById('btn-heading-style');
+    const headingStyleMenu = document.getElementById('heading-style-menu');
 
     const menuDropdown = document.getElementById('menu-dropdown');
     const btnMenu = document.getElementById('btn-menu');
@@ -138,13 +159,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnOpenFile = document.getElementById('btn-open-file');
     const fileInput = document.getElementById('file-input');
 
+    // Theme Toggle Elements & Logic
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+    const themeIconSun = document.querySelector('.theme-icon-sun');
+    const themeIconMoon = document.querySelector('.theme-icon-moon');
+    const themeToggleText = document.getElementById('theme-toggle-text');
+
+    function applyTheme(theme) {
+        if (container) {
+            container.setAttribute('data-editor-theme', theme);
+        }
+        document.documentElement.setAttribute('data-editor-theme', theme);
+        localStorage.setItem('markvi_editor_theme', theme);
+
+        if (theme === 'dark') {
+            if (themeIconSun) themeIconSun.style.display = 'none';
+            if (themeIconMoon) themeIconMoon.style.display = 'inline-block';
+            if (themeToggleText) themeToggleText.textContent = 'Dark';
+        } else {
+            if (themeIconSun) themeIconSun.style.display = 'inline-block';
+            if (themeIconMoon) themeIconMoon.style.display = 'none';
+            if (themeToggleText) themeToggleText.textContent = 'Light';
+        }
+
+        const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+        applyHeadingPreset(activePresetId);
+    }
+
+    function initTheme() {
+        const savedTheme = localStorage.getItem('markvi_editor_theme') || 'dark';
+        applyTheme(savedTheme);
+    }
+
+    if (btnThemeToggle) {
+        btnThemeToggle.addEventListener('click', () => {
+            const currentTheme = (container && container.getAttribute('data-editor-theme')) || document.documentElement.getAttribute('data-editor-theme') || 'dark';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(nextTheme);
+        });
+    }
+
+    initTheme();
+
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
     // 에디터 파일 관련 변수 및 상태 플래그
     let currentFilename = '제목 없음.md';
     let isDirty = false;
-    let isSyncing = false;
     let enableScrollSync = true;
+    let scrollSync = null;
 
     // 파일 이름 표시 및 상태 변경 함수
     function updateFilenameDisplay(name, isModified) {
@@ -167,6 +230,178 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 초기 파일명 뱃지 표시 설정
     updateFilenameDisplay(currentFilename, false);
+
+    // ==========================================================================
+    // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
+    // ==========================================================================
+    const SESSION_STORAGE_KEY = 'markvi_document_session';
+
+    function saveDocumentSession() {
+        if (!cm) return;
+        try {
+            const sessionData = {
+                content: cm.getValue(),
+                filename: currentFilename,
+                isDirty: isDirty,
+                editorWidthPercent: editorPanel ? editorPanel.style.width : '',
+                fontFamily: fontSelect ? fontSelect.value : '',
+                fontSize: fontSizeSelect ? fontSizeSelect.value : '',
+                lineColor: lineColorPicker ? lineColorPicker.value : ''
+            };
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+        } catch (e) {
+            console.warn('Failed to save document session:', e);
+        }
+    }
+
+    function restoreDocumentSession() {
+        try {
+            const rawData = localStorage.getItem(SESSION_STORAGE_KEY);
+            if (!rawData) return;
+            const session = JSON.parse(rawData);
+
+            // 1. Content Restore
+            if (typeof session.content === 'string' && session.content.length > 0) {
+                cm.setValue(session.content);
+            }
+
+            // 2. Filename & Status Restore
+            if (session.filename) {
+                updateFilenameDisplay(session.filename, !!session.isDirty);
+            }
+
+            // 3. Panel Split Width Restore
+            if (session.editorWidthPercent && editorPanel) {
+                editorPanel.style.width = session.editorWidthPercent;
+                if (typeof cm.refresh === 'function') cm.refresh();
+            }
+
+            // 4. Font Family Restore
+            if (session.fontFamily && fontSelect) {
+                fontSelect.value = session.fontFamily;
+                if (preview) preview.style.setProperty('--preview-font-family', session.fontFamily);
+            }
+
+            // 5. Font Size Restore
+            if (session.fontSize && fontSizeSelect) {
+                fontSizeSelect.value = session.fontSize;
+                if (preview) preview.style.setProperty('--preview-font-size', session.fontSize);
+                document.documentElement.style.setProperty('--editor-font-size', session.fontSize);
+            }
+
+            // 6. Line Color Restore
+            if (session.lineColor && lineColorPicker) {
+                lineColorPicker.value = session.lineColor;
+                if (typeof updateThemeColors === 'function') {
+                    updateThemeColors(session.lineColor);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to restore document session:', e);
+        }
+    }
+
+    // ==========================================================================
+    // Heading Style Presets Multi-Set System (Minimum 5 Sets)
+    // ==========================================================================
+    const DEFAULT_HEADING_PRESETS = [];
+
+    function getHeadingPresets() {
+        try {
+            const stored = localStorage.getItem('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) {
+            console.warn('Failed to parse heading presets:', e);
+        }
+        return window.StyleEditor.getDefaultPresets();
+    }
+
+    function saveHeadingPresets(presets) {
+        try {
+            localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
+        } catch (e) {
+            console.warn('Failed to save heading presets:', e);
+        }
+    }
+
+    function syncNewHeadingPresets() {
+        try {
+            const stored = localStorage.getItem('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    let changed = false;
+                    const defaultPresets = window.StyleEditor.getDefaultPresets();
+                    defaultPresets.forEach(defPreset => {
+                        if (!parsed.some(p => p.id === defPreset.id)) {
+                            parsed.push(defPreset);
+                            changed = true;
+                        }
+                    });
+                    if (changed) {
+                        saveHeadingPresets(parsed);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to sync new heading presets:', e);
+        }
+    }
+
+    function applyHeadingPreset(presetId, tempStyles = null) {
+        const presets = getHeadingPresets();
+        const found = presets.find(p => p.id === presetId) || presets[0];
+        if (!found || !found.styles) return;
+
+        const styles = tempStyles || found.styles;
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+
+        // 순수 서브 함수 EditorManager.apply_heading_preset로 스타일 바인딩 호출
+        EditorManager.apply_heading_preset(root, styles, currentTheme);
+
+        if (!tempStyles) {
+            localStorage.setItem('markvi_active_heading_preset', presetId);
+        }
+
+        const headingSelect = document.getElementById('heading-preset-select');
+        const modalSelect = document.getElementById('modal-heading-preset-select');
+        if (headingSelect) headingSelect.value = presetId;
+        if (modalSelect) modalSelect.value = presetId;
+
+        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시 (비동기 렌더 딜레이 보장)
+        if (typeof cm !== 'undefined' && cm) {
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    cm.refresh();
+                }, 50);
+            });
+        }
+    }
+
+    function updatePresetSelectOptions() {
+        const presets = getHeadingPresets();
+        const headingSelect = document.getElementById('heading-preset-select');
+        const modalSelect = document.getElementById('modal-heading-preset-select');
+
+        [headingSelect, modalSelect].forEach(selectEl => {
+            if (!selectEl) return;
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '';
+            presets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                selectEl.appendChild(opt);
+            });
+            if (currentVal && presets.some(p => p.id === currentVal)) {
+                selectEl.value = currentVal;
+            }
+        });
+    }
 
     // ==========================================================================
     // Markdown & Syntax Highlight & Math Configuration
@@ -319,7 +554,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        markedOptions.extensions = [inlineMath, blockMath];
+        const bracketText = {
+            name: 'bracketText',
+            level: 'inline',
+            start(src) { return src.indexOf('['); },
+            tokenizer(src, tokens) {
+                const match = src.match(/^\[([^\]\n]+)\](?!\(|\[)/);
+                if (match) {
+                    return {
+                        type: 'bracketText',
+                        raw: match[0],
+                        text: match[1]
+                    };
+                }
+            },
+            renderer(token) {
+                return `<span class="md-bracket-link">[${token.text}]</span>`;
+            }
+        };
+
+        markedOptions.extensions = [inlineMath, blockMath, bracketText];
         marked.use(markedOptions);
     }
 
@@ -408,11 +662,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // 렌더링 완료 후 초기 주요 헤더들로 키프레임 목록 구축
-            rebuildInitialKeyframes();
-            
-            // 렌더링 완료 후 커서가 있는 줄의 프리뷰 가시성 자동 보정 실행
-            syncPreviewToCursor();
+            // 렌더링 완료 후 스크롤 싱크 키프레임 목록 재구축 (Stage 1)
+            if (scrollSync) {
+                scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
+            }
 
             // 에디터 텍스트 파싱을 통한 TOC 목록 동적 빌드
             buildTOC();
@@ -492,6 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', stopDrag);
         cm.refresh();
+        saveDocumentSession();
     }
 
     dragDivider.addEventListener('mousedown', startDrag);
@@ -508,12 +762,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Font Family Selector
     fontSelect.addEventListener('change', () => {
         preview.style.setProperty('--preview-font-family', fontSelect.value);
+        saveDocumentSession();
     });
 
     // 2. Font Size Selector
     fontSizeSelect.addEventListener('change', () => {
-        preview.style.setProperty('--preview-font-size', fontSizeSelect.value);
+        const selectedSize = fontSizeSelect.value;
+        if (preview) preview.style.setProperty('--preview-font-size', selectedSize);
+        document.documentElement.style.setProperty('--editor-font-size', selectedSize);
+        if (cm && typeof cm.refresh === 'function') cm.refresh();
+        saveDocumentSession();
     });
+
+    // 2-2. Font Size Spin Buttons (Up/Down)
+    const btnFontSizeUp = document.getElementById('btn-font-size-up');
+    const btnFontSizeDown = document.getElementById('btn-font-size-down');
+
+    if (btnFontSizeUp && btnFontSizeDown && fontSizeSelect) {
+        btnFontSizeUp.addEventListener('click', () => {
+            const currentIndex = fontSizeSelect.selectedIndex;
+            if (currentIndex < fontSizeSelect.options.length - 1) {
+                fontSizeSelect.selectedIndex = currentIndex + 1;
+                fontSizeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+
+        btnFontSizeDown.addEventListener('click', () => {
+            const currentIndex = fontSizeSelect.selectedIndex;
+            if (currentIndex > 0) {
+                fontSizeSelect.selectedIndex = currentIndex - 1;
+                fontSizeSelect.dispatchEvent(new Event('change'));
+            }
+        });
+    }
 
     // 3. Line Color Picker (Dynamic CSS Theme Variables)
     function updateThemeColors(colorHex) {
@@ -560,117 +841,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return `#${rHex}${gHex}${bHex}`;
     }
 
-    lineColorPicker.addEventListener('input', (e) => {
-        updateThemeColors(e.target.value);
-    });
-
-    // Initialize theme colors on load
-    updateThemeColors(lineColorPicker.value);
-
-    // ==========================================================================
-    // Toolbar & Markdown Formatting Utilities
-    // ==========================================================================
-    
-    function insertFormatting(type) {
-        const selectedText = cm.getSelection();
-        
-        let prefix = '';
-        let suffix = '';
-        let placeholder = '';
-        
-        switch (type) {
-            case 'bold':
-                prefix = '**';
-                suffix = '**';
-                placeholder = '굵은 텍스트';
-                break;
-            case 'italic':
-                prefix = '*';
-                suffix = '*';
-                placeholder = '기울임 텍스트';
-                break;
-            case 'h1':
-                prefix = '\n# ';
-                suffix = '\n';
-                placeholder = '제목 1';
-                break;
-            case 'h2':
-                prefix = '\n## ';
-                suffix = '\n';
-                placeholder = '제목 2';
-                break;
-            case 'h3':
-                prefix = '\n### ';
-                suffix = '\n';
-                placeholder = '제목 3';
-                break;
-            case 'link':
-                prefix = '[';
-                suffix = '](https://example.com)';
-                placeholder = '링크 텍스트';
-                break;
-            case 'image':
-                prefix = '![';
-                suffix = '](https://example.com/image.png)';
-                placeholder = '이미지 설명';
-                break;
-            case 'code':
-                prefix = '`';
-                suffix = '`';
-                placeholder = '코드';
-                break;
-            case 'codeblock':
-                prefix = '\n```javascript\n';
-                suffix = '\n```\n';
-                placeholder = '// 코드 작성';
-                break;
-            case 'quote':
-                prefix = '\n> ';
-                suffix = '\n';
-                placeholder = '인용문 내용';
-                break;
-            case 'ul':
-                prefix = '\n- ';
-                suffix = '';
-                placeholder = '리스트 항목';
-                break;
-            case 'ol':
-                prefix = '\n1. ';
-                suffix = '';
-                placeholder = '리스트 항목';
-                break;
-            case 'hr':
-                prefix = '\n---\n';
-                suffix = '';
-                placeholder = '';
-                break;
-            case 'table':
-                prefix = '\n| 헤더 1 | 헤더 2 |\n| :--- | :--- |\n| ';
-                suffix = ' | 셀 2 |\n';
-                placeholder = '셀 1';
-                break;
-            default:
-                return;
-        }
-        
-        const content = selectedText || placeholder;
-        const replacement = prefix + content + suffix;
-        
-        cm.replaceSelection(replacement, 'around');
-        updateFilenameDisplay(currentFilename, true);
-        cm.focus();
-        
-        // Trigger render (실시간 렌더링 상시 동작)
-        renderMarkdown();
+    if (lineColorPicker) {
+        lineColorPicker.addEventListener('input', (e) => {
+            updateThemeColors(e.target.value);
+            saveDocumentSession();
+        });
+        updateThemeColors(lineColorPicker.value);
     }
 
-    // Attach Event Listeners to Toolbar buttons
+    // Attach Event Listeners to Toolbar buttons (Delegated to EditorManager)
     toolbarButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const target = e.currentTarget;
             const markdownType = target.getAttribute('data-markdown');
             if (markdownType) {
-                insertFormatting(markdownType);
+                EditorManager.insert_formatting(cm, markdownType, () => {
+                    updateFilenameDisplay(currentFilename, true);
+                    renderMarkdown();
+                });
             }
         });
     });
@@ -681,26 +869,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard Shortcuts handled natively by CodeMirror extraKeys option
 
     // ==========================================================================
-    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
     // ==========================================================================
+    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사 서브 함수)
     // ==========================================================================
-    // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사)
-    // ==========================================================================
-    btnCopy.addEventListener('click', () => {
+
+    /**
+     * [리팩토링 목적]: 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 순수 서브 함수로 모듈화하여 재사용성과 가독성을 높임.
+     * @param {HTMLElement} previewEl - 복사 대상 프리뷰 엘리먼트
+     * @param {HTMLElement|null} exportMenuEl - 닫을 내보내기 메뉴 엘리먼트
+     * @param {HTMLElement|null} feedbackBtnEl - 복사 완료 성공 표시를 해줄 버튼 엘리먼트
+     */
+    function copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl) {
         // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
-        if (!preview || preview.children.length === 0) {
+        if (!previewEl || previewEl.children.length === 0) {
             alert('복사할 프리뷰 내용이 없습니다.');
             return;
         }
 
         // 드롭다운 메뉴 닫기
-        if (exportMenu) {
-            exportMenu.classList.remove('show');
+        if (exportMenuEl) {
+            exportMenuEl.classList.remove('show');
         }
 
         // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
         const range = document.createRange();
-        range.selectNodeContents(preview);
+        range.selectNodeContents(previewEl);
 
         // 이전 선택 범위를 지우고 새로운 범위 추가
         const selection = window.getSelection();
@@ -711,20 +904,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
             const successful = document.execCommand('copy');
             if (successful) {
-                // 내보내기 버튼(btnExport)에 복사 성공 피드백 표시
-                if (btnExport) {
-                    const originalHTML = btnExport.innerHTML;
-                    btnExport.innerHTML = `
+                // 내보내기 버튼에 복사 성공 피드백 표시
+                if (feedbackBtnEl) {
+                    const originalHTML = feedbackBtnEl.innerHTML;
+                    feedbackBtnEl.innerHTML = `
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         복사 완료!
                     `;
-                    btnExport.style.borderColor = '#10b981';
-                    btnExport.style.color = '#10b981';
+                    feedbackBtnEl.style.borderColor = '#10b981';
+                    feedbackBtnEl.style.color = '#10b981';
                     
                     setTimeout(() => {
-                        btnExport.innerHTML = originalHTML;
-                        btnExport.style.borderColor = '';
-                        btnExport.style.color = '';
+                        feedbackBtnEl.innerHTML = originalHTML;
+                        feedbackBtnEl.style.borderColor = '';
+                        feedbackBtnEl.style.color = '';
                     }, 2000);
                 }
             } else {
@@ -737,7 +930,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // 복사 완료 후 선택 영역 해제 (시각적 잔상 제거 및 정리)
             selection.removeAllRanges();
         }
-    });
+    }
+
+    if (btnCopy) {
+        btnCopy.addEventListener('click', () => {
+            ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
+        });
+    }
 
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
@@ -750,6 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (viewMenu) viewMenu.classList.remove('show');
             if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             exportMenu.classList.toggle('show');
         });
     }
@@ -759,6 +959,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (exportMenu) exportMenu.classList.remove('show');
             if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             viewMenu.classList.toggle('show');
         });
     }
@@ -768,9 +969,29 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             if (exportMenu) exportMenu.classList.remove('show');
             if (viewMenu) viewMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             mainMenu.classList.toggle('show');
         });
     }
+
+    if (btnHeadingStyle && headingStyleMenu) {
+        btnHeadingStyle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (viewMenu) viewMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
+            headingStyleMenu.classList.toggle('show');
+        });
+    }
+
+    // 드롭다운 내부 요소(셀렉트, 옵션 등) 클릭 시 드롭다운이 바로 닫히지 않도록 수용
+    [exportMenu, viewMenu, mainMenu, headingStyleMenu].forEach(menuEl => {
+        if (menuEl) {
+            menuEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+    });
 
     // 문서의 다른 부분을 클릭하면 모든 드롭다운이 닫히도록 설정
     document.addEventListener('click', (e) => {
@@ -782,6 +1003,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (menuDropdown && !menuDropdown.contains(e.target)) {
             if (mainMenu) mainMenu.classList.remove('show');
+        }
+        if (headingDropdown && !headingDropdown.contains(e.target)) {
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
         }
     });
 
@@ -800,12 +1024,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
+    function collectExportOptions() {
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+        const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
+        const computedStyle = getComputedStyle(root);
+        
+        // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
+        const cssVarList = [
+            '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
+            '--preview-code-bg', '--preview-blockquote-bg', '--preview-blockquote-text',
+            '--h1-color', '--h1-size', '--h1-border',
+            '--h2-color', '--h2-size', '--h2-border',
+            '--h3-color', '--h3-size', '--h3-border',
+            '--h4-color', '--h4-size', '--h4-border',
+            '--h5-color', '--h5-size', '--h5-border',
+            '--h6-color', '--h6-size', '--h6-border',
+            '--link-color', '--link-decoration',
+            '--bold-color', '--italic-color', '--code-color',
+            '--blockquote-text-color', '--blockquote-border-color',
+            '--line-color', '--line-border',
+            '--preview-font-family', '--preview-font-size'
+        ];
+
+        const styleVars = {};
+        cssVarList.forEach(varName => {
+            const val = computedStyle.getPropertyValue(varName).trim();
+            if (val) styleVars[varName] = val;
+        });
+
+        return {
+            theme: currentTheme,
+            lineColor: activeLineColor,
+            styleVars: styleVars
+        };
+    }
+
     if (btnExportHtml) {
         btnExportHtml.addEventListener('click', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            downloadPreviewHtml();
+            const exportOptions = collectExportOptions();
+            ExportManager.downloadPreviewHtml(preview, currentFilename, exportOptions);
         });
     }
 
@@ -814,378 +1076,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
-            openPreviewHtmlInNewWindow();
+            const exportOptions = collectExportOptions();
+            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, exportOptions);
         });
     }
 
-    // 프리뷰의 스타일을 취합하여 standalone HTML 콘텐츠를 빌드하는 공통 함수
-    async function generatePreviewHtmlContent() {
-        if (!preview || preview.children.length === 0) {
-            return null;
-        }
-
-        // CSS 파일들을 읽어온다 (실패 시 CDN 주소 폴백 또는 빈 문자열 처리)
-        let githubCss = '';
-        let katexCss = '';
-        let styleCss = '';
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/github.min.css'));
-            githubCss = await res.text();
-        } catch (e) {
-            console.warn('github.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            githubCss = `@import url('https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css');`;
-        }
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('libs/katex/katex.min.css'));
-            let rawKatex = await res.text();
-            // 폰트 경로를 CDN 주소로 치환하여 단독 실행 시 깨짐 방지
-            katexCss = rawKatex.replace(/url\(fonts\//g, 'url(https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/fonts/');
-        } catch (e) {
-            console.warn('katex.min.css fetch 실패. CDN fallback을 사용합니다.', e);
-            katexCss = `@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');`;
-        }
-
-        try {
-            const res = await fetch(chrome.runtime.getURL('style.css'));
-            styleCss = await res.text();
-        } catch (e) {
-            console.warn('style.css fetch 실패.', e);
-        }
-
-        // 현재 테마 설정 추출
-        const fontStyle = getComputedStyle(preview).getPropertyValue('font-family').trim() || 'system-ui, -apple-system, sans-serif';
-        const fontSizeStyle = getComputedStyle(preview).getPropertyValue('font-size').trim() || '16px';
-        const lineColor = document.getElementById('line-color-picker')?.value || '#3b82f6';
-
-        // HTML 문서 템플릿 반환
-        return `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${currentFilename.replace(/\.[^/.]+$/, "")} - Preview Export</title>
-    <style>
-        /* Base Variables overrides */
-        :root {
-            --theme-color: ${lineColor};
-            --preview-bg: #ffffff;
-            --preview-text: #1f2937;
-            --preview-heading: #111827;
-            --preview-border: #e5e7eb;
-            --preview-code-bg: #f3f4f6;
-            --preview-blockquote-bg: #f9fafb;
-            --preview-font-family: ${fontStyle};
-            --preview-font-size: ${fontSizeStyle};
-        }
-        
-        body {
-            background-color: var(--preview-bg);
-            color: var(--preview-text);
-            font-family: var(--preview-font-family);
-            font-size: var(--preview-font-size);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-        }
-
-        .export-container {
-            width: 100%;
-            max-width: 800px;
-            padding: 40px 24px;
-            box-sizing: border-box;
-        }
-
-        /* github code highlight styles */
-        ${githubCss}
-
-        /* katex math formulas styles */
-        ${katexCss}
-
-        /* app preview markdown styles */
-        ${styleCss}
-    </style>
-</head>
-<body>
-    <div class="export-container">
-        <article class="markdown-body">
-            ${preview.innerHTML}
-        </article>
-    </div>
-</body>
-</html>`;
-    }
-
-    // 프리뷰 HTML을 스타일이 포함된 HTML 파일로 다운로드
-    async function downloadPreviewHtml() {
-        try {
-            const htmlContent = await generatePreviewHtmlContent();
-            if (!htmlContent) {
-                alert('내보낼 프리뷰 내용이 없습니다.');
-                return;
+    if (btnOpenNewWindowDefault) {
+        btnOpenNewWindowDefault.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
             }
-
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-
-            // 파일명 설정
-            const lastDotIndex = currentFilename.lastIndexOf('.');
-            const baseName = lastDotIndex !== -1 ? currentFilename.substring(0, lastDotIndex) : currentFilename;
-            const targetFilename = `${baseName}.html`;
-
-            if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
-                chrome.downloads.download({
-                    url: url,
-                    filename: targetFilename,
-                    saveAs: true // 다른 이름으로 저장 강제 활성화
-                }, (downloadId) => {
-                    if (chrome.runtime.lastError) {
-                        console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
-                        fallbackHtmlDownload(url, targetFilename);
-                    }
-                });
-            } else {
-                fallbackHtmlDownload(url, targetFilename);
-            }
-            
-        } catch (err) {
-            console.error('HTML 저장 실패:', err);
-            alert('HTML 저장에 실패했습니다.');
-        }
-    }
-
-    // HTML 다운로드 fallback 처리 함수
-    function fallbackHtmlDownload(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // 프리뷰 HTML을 새창/새탭에 띄우는 함수
-    async function openPreviewHtmlInNewWindow() {
-        // 브라우저 팝업 차단 회피를 위해 사용자 상호작용 스레드 직속으로 창을 우선 엶
-        const newWindow = window.open('about:blank', '_blank');
-        if (!newWindow) {
-            alert('팝업 차단이 감지되었습니다. 팝업 차단을 해제해 주세요.');
-            return;
-        }
-
-        try {
-            const htmlContent = await generatePreviewHtmlContent();
-            if (!htmlContent) {
-                alert('새 창으로 띄울 프리뷰 내용이 없습니다.');
-                newWindow.close();
-                return;
-            }
-
-            newWindow.document.open();
-            newWindow.document.write(htmlContent);
-            newWindow.document.close();
-        } catch (err) {
-            console.error('HTML 새 창 열기 실패:', err);
-            alert('HTML 새 창 열기에 실패했습니다.');
-            newWindow.close();
-        }
+            ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
+        });
     }
 
     // ==========================================================================
-    // 문단 모으기 (Smart Paragraph Join) 기능
+    // 문단 모으기 (Smart Paragraph Join) 기능 (EditorManager 위임)
     // ==========================================================================
 
     // 문단 모으기 버튼 클릭 이벤트 핸들러 바인딩
     if (btnJoinParagraphs) {
         btnJoinParagraphs.addEventListener('click', () => {
-            joinParagraphsAction();
+            EditorManager.apply_paragraph_join(cm, () => {
+                renderMarkdown();
+            });
         });
-    }
-
-    // 에디터의 상황에 따라 문단 모으기를 수행하는 핵심 액션 함수
-    function joinParagraphsAction() {
-        const selection = cm.getSelection();
-        if (selection) {
-            // 선택한 텍스트 영역이 있으면 선택 영역만 변환 적용
-            const joinedText = joinParagraphs(selection);
-            cm.replaceSelection(joinedText);
-        } else {
-            // 선택 영역이 없으면 문서 전체를 대상으로 변환 적용
-            const fullText = cm.getValue();
-            const joinedText = joinParagraphs(fullText);
-            cm.setValue(joinedText);
-        }
-        
-        // 렌더링 갱신 및 에디터 포커스 복원
-        renderMarkdown();
-        cm.focus();
-    }
-
-    /**
-     * 연속해서 들어간 강제 줄바꿈(엔터)들을 분석하여 의미상 한 문단인 경우 결합해 주는 함수
-     */
-    function joinParagraphs(text) {
-        const lines = text.split(/\r?\n/);
-        const result = [];
-        let currentParagraph = [];
-
-        // 마크다운 문법 요소(제목, 리스트, 인용, 표 등)로 시작하는지 판단
-        const isMarkdownElement = (line) => {
-            const trimmed = line.trim();
-            // #, >, -, *, +, 숫자. , |, ``` 등
-            return /^([#>\-*+\d\.]|\||`{3,})/.test(trimmed);
-        };
-
-        // 영단어가 행 끝에서 하이픈(-)으로 잘렸는지 판단 (예: "infor-")
-        const isEnglishHyphenated = (line) => {
-            return /[a-zA-Z]-$/.test(line.trim());
-        };
-
-        // 앞쪽 라인(Line A)이 자립할 수 있는 문단 구성요소를 충분히 갖췄는지 판단
-        const isLineATooShort = (lineA) => {
-            const trimmed = lineA.trim();
-            // 단어 수가 3개 이하이거나 글자 수가 15자 미만이면 
-            // 독립된 제목, 캡션, 색인 등으로 간주하여 다음 줄과 합치지 않음
-            const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
-            return wordCount <= 3 || trimmed.length < 15;
-        };
-
-        /**
-         * 영어 단어 시작 및 대소문자 판정 힌트를 기반으로 결합 여부를 판단하는 함수
-         */
-        const shouldJoinEng = (trimmedA, trimmedB) => {
-            const firstCharB = trimmedB.charAt(0);
-            const isEnglishB = /[a-zA-Z]/.test(firstCharB);
-            if (isEnglishB) {
-                // Line B의 첫 영문자가 소문자라면 100% 앞 문장의 중간이 끊겨 넘어온 것이므로 결합
-                const isLowerB = firstCharB === firstCharB.toLowerCase() && firstCharB !== firstCharB.toUpperCase();
-                if (isLowerB) return true;
-
-                // Line B가 대문자로 시작하더라도, 앞의 Line A가 문장 종결부(. ? ! 또는 따옴표)로 끝나지 않았다면
-                // 문장 도중에 들어간 고유명사 등으로 판단하여 결합 진행
-                const endsWithSentenceEnd = /[\.\?\!]["']?$/.test(trimmedA);
-                if (!endsWithSentenceEnd) return true;
-            }
-            return null; // 영어 판정 결과 결정되지 않음
-        };
-
-        /**
-         * 한글 조사 및 연결어미 판정 힌트를 기반으로 결합 여부를 판단하는 함수
-         */
-        const shouldJoinKor = (trimmedA, trimmedB) => {
-            const lastCharA = trimmedA.slice(-1);
-            const isKoreanA = /[가-힣]/.test(lastCharA);
-            if (isKoreanA) {
-                // Line A의 마지막 글자가 종결형 문장부호(. ? !)로 끝나지 않고 일반 한글로 끝난 경우, 
-                // 문장이 아직 끝나지 않았으므로 결합
-                const endsWithSentenceEnd = /[\.\?\!]["']?$/.test(trimmedA);
-                if (!endsWithSentenceEnd) return true;
-                
-                // 혹은 문장부호 유무와 무관하게 마지막 글자가 명백한 조사나 연결어미로 끝난 경우 결합
-                const endsWithParticles = /[은는이가을를고며와과의에로]$/.test(trimmedA);
-                if (endsWithParticles) return true;
-            }
-            return null; // 한글 판정 결과 결정되지 않음
-        };
-
-        /**
-         * 두 개의 연속된 행 (Line A와 Line B)을 같은 문단으로 묶어 이어 붙일지 판정하는 핵심 로직
-         */
-        const shouldJoin = (lineA, lineB) => {
-            const trimmedA = lineA.trim();
-            const trimmedB = lineB.trim();
-
-            // 어느 한 쪽이라도 비어 있다면 결합하지 않음 (빈 줄은 명확한 문단 구분선)
-            if (!trimmedA || !trimmedB) return false;
-            
-            // 뒤이어 나오는 Line B가 마크다운 요소로 시작한다면 본문 결합을 막아야 함
-            if (isMarkdownElement(trimmedB)) return false;
-            
-            // Line B가 2칸 이상의 스페이스나 탭 문자 등 들여쓰기로 시작하면 새 단락의 시작으로 간주함
-            if (/^\s{2,}/.test(lineB) || /^\t/.test(lineB)) return false;
-
-            // 앞쪽 Line A 자체가 마크다운 구조의 일부로 끝났다면 결합하지 않음
-            if (isMarkdownElement(trimmedA)) return false;
-
-            // [추가 구현]: 첫 번째 줄(Line A)의 끝이 <br> 또는 <br/> 등 HTML 개행 태그라면 
-            // 명시적 강제 개행 의도이므로 다음 줄과 결합하지 않고 행 분리 상태 유지
-            if (/<br\s*\/?>$/i.test(trimmedA)) return false;
-
-            // [추가된 고도화 규칙]: 앞 줄의 완성도 판단
-            // 앞 줄이 너무 짧다면(단어 3개 이하 혹은 15자 미만) 단독 제목이나 캡션일 확률이 매우 높으므로 결합 안 함
-            if (isLineATooShort(lineA)) return false;
-
-            // 1. 영어 힌트 판정
-            const engResult = shouldJoinEng(trimmedA, trimmedB);
-            if (engResult !== null) return engResult;
-
-            // 2. 한글 힌트 판정
-            const korResult = shouldJoinKor(trimmedA, trimmedB);
-            if (korResult !== null) return korResult;
-
-            // 기본 규칙: 빈 줄 없이 1회 개행(엔터)이 들어간 텍스트 블록은 
-            // 위 예외 필터(제목 방지, 들여쓰기 감지 등)를 거쳤다면 같은 문단 내의 단순 텍스트 래핑이므로
-            // 공백을 두고 결합해 줍니다.
-            return true;
-        };
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const trimmed = line.trim();
-
-            if (!trimmed) {
-                // 빈 줄을 만나면 기존에 누적해서 합쳐오던 문단 버퍼를 결과에 쏟아내고(flush) 빈 줄을 삽입
-                if (currentParagraph.length > 0) {
-                    result.push(flushParagraph(currentParagraph));
-                    currentParagraph = [];
-                }
-                result.push(line);
-                continue;
-            }
-
-            if (currentParagraph.length === 0) {
-                currentParagraph.push(line);
-            } else {
-                const prevLine = currentParagraph[currentParagraph.length - 1];
-                if (shouldJoin(prevLine, line)) {
-                    currentParagraph.push(line);
-                } else {
-                    // 결합 대상이 아니라면 이전까지 모았던 버퍼를 변환 저장하고, 새 문단을 시작
-                    result.push(flushParagraph(currentParagraph));
-                    currentParagraph = [line];
-                }
-            }
-        }
-
-        // 마지막으로 남아있는 문단 버퍼 정리
-        if (currentParagraph.length > 0) {
-            result.push(flushParagraph(currentParagraph));
-        }
-
-        return result.join('\n');
-
-        // 버퍼에 담긴 한 문단의 여러 라인을 규칙에 맞춰 결합
-        function flushParagraph(paraLines) {
-            if (paraLines.length === 0) return '';
-            let merged = paraLines[0];
-            
-            for (let i = 1; i < paraLines.length; i++) {
-                const current = paraLines[i];
-                const prev = paraLines[i - 1];
-                
-                if (isEnglishHyphenated(prev)) {
-                    // 영어 단어가 하이픈으로 쪼개진 경우, 끝의 하이픈(-)을 제거하고 다음 줄을 공백 없이 바짝 이어붙임
-                    merged = merged.slice(0, -1) + current.trim();
-                } else {
-                    // 일반 문장은 영어 단어 간 혹은 한글 낱말 간 띄어쓰기를 위해 공백 한 칸을 끼워넣고 연결
-                    merged += ' ' + current.trim();
-                }
-            }
-            return merged;
-        }
     }
 
     // ==========================================================================
@@ -1223,42 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
     });
 
-    // 에디터 내용을 마크다운 파일(.md)로 다운로드하는 헬퍼 함수
-    function downloadCurrentContent() {
-        const text = cm.getValue();
-        const blob = new Blob([text], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        
-        // chrome.downloads API를 사용하여 무조건 다른 이름으로 저장 대화상자(SaveAs)를 직접 호출
-        if (typeof chrome !== 'undefined' && chrome.downloads && chrome.downloads.download) {
-            chrome.downloads.download({
-                url: url,
-                filename: currentFilename,
-                saveAs: true // 다른 이름으로 저장 강제 활성화
-            }, (downloadId) => {
-                if (chrome.runtime.lastError) {
-                    console.warn('chrome.downloads 실패, fallback 다운로드 시도:', chrome.runtime.lastError.message);
-                    fallbackDownload(url, currentFilename);
-                } else {
-                    updateFilenameDisplay(currentFilename, false);
-                }
-            });
-        } else {
-            fallbackDownload(url, currentFilename);
-        }
-    }
 
-    // chrome.downloads 미지원 환경을 위한 fallback 파일 저장 함수
-    function fallbackDownload(url, filename) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        updateFilenameDisplay(filename, false);
-    }
 
     // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
     function loadSingleFile(file) {
@@ -1273,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isDirty) {
                 const saveConfirm = confirm(`작성 중인 내용이 변경되었습니다. 파일 로드 전에 현재 문서를 컴퓨터에 저장(다운로드)하시겠습니까?`);
                 if (saveConfirm) {
-                    downloadCurrentContent();
+                    handleSaveCurrentDocument();
                 } else {
                     // 저장 안 함 선택 시, 덮어쓰고 계속 불러올지 재차 확인 (작업 소실 방지)
                     shouldLoad = confirm(`현재 문서를 저장하지 않고 "${fileName}" 파일을 불러오시겠습니까?\n(확인을 누르면 작성 중이던 기존 수정 내용이 사라집니다.)`);
@@ -1286,6 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cm.setValue(event.target.result);
                     updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
                     renderMarkdown();
+                    saveDocumentSession();
                     
                     // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
                     cm.scrollTo(0, 0);
@@ -1337,650 +1218,89 @@ document.addEventListener('DOMContentLoaded', () => {
             updateFilenameDisplay('제목 없음.md', false);
             renderMarkdown();
             cm.scrollTo(0, 0);
+            saveDocumentSession();
         }
     }
 
     // ==========================================================================
-    // 식별자 및 비율 기반 비례 재조정(Proportional Rescaling) 스크롤 동기화 로직
+    // 실시간 키프레임 디버깅 패널 렌더링 함수 (ScrollSync 연동)
     // ==========================================================================
-    const previewViewport = document.querySelector('.preview-viewport');
-    let activeScrollSource = null; // 'editor' 또는 'preview'
-    let keyframes = [];            // [ { id: string, line: number, editorPercent: number, previewPercent: number, previewScrollY: number }, ... ]
-    let lastEditorScrollTop = -1;  // 중복 스크롤 업데이트 필터용
-    let lastPreviewScrollTop = -1; // 중복 스크롤 업데이트 필터용
+    function updateDebugPanelUI(keyframesList, activeSource) {
+        if (!debugPanel || debugPanel.style.display === 'none') return;
+        
+        const list = keyframesList || [];
+        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+            <span>🔑 Keyframes Debug List (${list.length})</span>
+            <span style="color: var(--theme-color);">Active: ${activeSource || 'None'}</span>
+        </div>`;
+        
+        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
+                    <th style="padding: 2px;">Line</th>
+                    <th style="padding: 2px;">ID (Text)</th>
+                    <th style="padding: 2px; text-align: right;">Ed%</th>
+                    <th style="padding: 2px; text-align: right;">Pr%</th>
+                    <th style="padding: 2px; text-align: right;">Y(px)</th>
+                    <th style="padding: 2px; text-align: right;">ScaleFactor</th>
+                </tr>
+            </thead>
+            <tbody>`;
+            
+        list.forEach((kf) => {
+            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
+            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
+            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
+            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
+            const sfVal = kf.scaleFactor !== null ? kf.scaleFactor : '-';
+            
+            const sfHighlight = kf.isActiveSegment 
+                ? `background: #0284c7; color: #ffffff; padding: 1px 5px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);` 
+                : `color: ${rowColor};`;
 
-    // 마우스 위치에 따른 스크롤 주도권(Source) 설정
-    cm.getWrapperElement().addEventListener('mouseenter', () => { activeScrollSource = 'editor'; });
-    if (previewViewport) {
-        previewViewport.addEventListener('mouseenter', () => { activeScrollSource = 'preview'; });
+            const rowBg = kf.isActiveSegment ? 'background: rgba(2, 132, 199, 0.15);' : '';
+
+            html += `<tr style="color: ${rowColor}; ${rowBg} border-bottom: 1px dashed #1e293b;">
+                <td style="padding: 3px 2px;">${Math.round(kf.line)}</td>
+                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
+                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
+                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
+                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
+                <td style="padding: 3px 2px; text-align: right;"><span style="${sfHighlight}">${sfVal}</span></td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table>`;
+        debugPanel.innerHTML = html;
     }
 
-    // 텍스트 라인 및 Heading 정제 헬퍼 함수
-    function cleanTextForIdentifier(text, isHeading) {
-        let cleanText = text
-            .replace(/^[#>\s\-*+]+/g, '')   // 헤더, 인용구, 목록 불릿 기호만 제거
-            .replace(/[*_`~]/g, '')         // 볼드, 이탤릭, 인라인 코드, 취소선 기호 제거 (대괄호/소괄호는 유지)
-            .trim();
-        return isHeading ? cleanText : cleanText.substring(0, 30);
-    }
-
-    // 1. 텍스트 라인 식별자 추출 헬퍼 함수
-    function getLineIdentifier(lineNum) {
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        if (lineNum <= 0 || lineNum > lines.length) return '';
-        const rawLine = lines[lineNum - 1].trim();
-        if (!rawLine) return '';
-        
-        const isHeading = /^#+\s/.test(rawLine);
-        return cleanTextForIdentifier(rawLine, isHeading);
-    }
-
-    // 2. 식별 텍스트를 기준으로 프리뷰 내 DOM 엘리먼트 검색 (고유 ID 접미사 _line_줄번호 분리 처리)
-    function findPreviewElementByIdentifier(id) {
-        if (!id || id === '[START]' || id === '[END]') return null;
-        
-        const candidates = preview.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table');
-        
-        // 고유 ID 접미사 (_line_숫자) 분리 처리
-        let baseId = id;
-        const lineSuffixMatch = id.match(/(.+)_line_\d+$/);
-        if (lineSuffixMatch) {
-            baseId = lineSuffixMatch[1];
-        }
-        
-        const cleanId = baseId.trim().toLowerCase();
-        
-        for (let el of candidates) {
-            const text = el.textContent.trim().toLowerCase();
-            if (text.startsWith(cleanId) || cleanId.startsWith(text.substring(0, 30))) {
-                return el;
-            }
-        }
-        return null;
-    }
-
-    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
     function buildTOC() {
         const tocList = document.getElementById('toc-list');
-        if (!tocList) return;
+        if (!tocList || !cm) return;
 
-        const text = cm.getValue().replace(/\r\n/g, '\n');
-        const lines = text.split('\n');
-        const headings = [];
-        let inCodeBlock = false;
-
-        lines.forEach((lineText, idx) => {
-            const trimmed = lineText.trim();
-            if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
-                inCodeBlock = !inCodeBlock;
-                return;
-            }
-            if (inCodeBlock) return;
-
-            // Heading 1~6에 해당하는 정규식 패턴 검사 (닫는 # 기호 제외)
-            const match = trimmed.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
-            if (match) {
-                const level = match[1].length;
-                const textVal = match[2].trim();
-                headings.push({
-                    line: idx, // 0-based index
-                    level: level,
-                    text: textVal
-                });
-            }
-        });
+        const text = cm.getValue();
+        const headings = EditorManager.build_toc(text);
 
         tocList.innerHTML = '';
         headings.forEach(heading => {
             const li = document.createElement('li');
             li.className = `toc-item toc-h${heading.level}`;
-            li.setAttribute('data-line', heading.line + 1); // data-line은 1-based
+            li.setAttribute('data-line', heading.line + 1);
 
             const a = document.createElement('a');
             a.href = '#';
             a.textContent = heading.text;
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-
-                const line = heading.line; // 0-based
-                isSyncing = true;
-
-                // 에디터 커서 이동 및 포커스
-                cm.setCursor({line: line, ch: 0});
-                cm.focus();
-
-                // 에디터 스크롤 연동 (화면 중앙 부근에 오도록 정렬)
-                const charCoords = cm.charCoords({line: line, ch: 0}, 'local');
-                const editorHeight = cm.getWrapperElement().clientHeight;
-                const targetEditorScrollTop = Math.max(0, charCoords.top - editorHeight / 2);
-                cm.scrollTo(null, targetEditorScrollTop);
-                lastEditorScrollTop = targetEditorScrollTop;
-
-                // 프리뷰 뷰포트 스크롤 연동 (중앙 뷰 스크롤 연동, 스냅백 방지를 위해 behavior: 'auto' 적용)
-                const targetEl = preview.querySelector(`[data-line="${line + 1}"]`);
-                if (targetEl && previewViewport) {
-                    const targetScrollTop = previewViewport.scrollTop + targetEl.getBoundingClientRect().top - previewViewport.getBoundingClientRect().top - previewViewport.clientHeight / 2 + targetEl.clientHeight / 2;
-                    const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-                    const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxPreviewScrollY));
-
-                    previewViewport.scrollTo({
-                        top: clampedScrollTop,
-                        behavior: 'auto'
-                    });
-                    lastPreviewScrollTop = clampedScrollTop;
+                if (scrollSync) {
+                    scrollSync.scrollToLine(heading.line + 1);
                 }
-
-                // 이동 트랜지션 완료 고려하여 300ms 후 동기화 상태 원복
-                setTimeout(() => {
-                    isSyncing = false;
-                    updateActiveTOCItem();
-                }, 300);
             });
 
             li.appendChild(a);
             tocList.appendChild(li);
         });
-
-        updateActiveTOCItem();
-    }
-
-    // 현재 보고 있는 프리뷰 위치에 따라 TOC 아이템 active 상태 업데이트
-    function updateActiveTOCItem() {
-        if (!previewViewport) return;
-        const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
-        if (headings.length === 0) return;
-
-        const viewportRect = previewViewport.getBoundingClientRect();
-        let activeHeading = null;
-
-        for (let i = 0; i < headings.length; i++) {
-            const el = headings[i];
-            const rect = el.getBoundingClientRect();
-
-            // 뷰포트 상단으로부터 약 100px 이내 영역에 헤더가 있는 경우를 활성화 기준으로 처리
-            if (rect.top - viewportRect.top <= 100) {
-                activeHeading = el;
-            } else {
-                break;
-            }
-        }
-
-        if (!activeHeading && headings.length > 0) {
-            activeHeading = headings[0];
-        }
-
-        if (activeHeading) {
-            const line = activeHeading.getAttribute('data-line');
-            const tocItems = document.querySelectorAll('.toc-item');
-            tocItems.forEach(item => {
-                if (item.getAttribute('data-line') === line) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        }
-    }
-
-    // 3. 초기 렌더링 시 Heading들을 추출하여 초기 키프레임 자동 구축
-    function rebuildInitialKeyframes() {
-        if (!previewViewport) return;
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        const totalLines = lines.length;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        
-        const rawKeyframes = [];
-        
-        // 시작 지점 경계 노드
-        rawKeyframes.push({
-            id: '[START]',
-            line: 0,
-            editorPercent: 0,
-            previewPercent: 0,
-            previewScrollY: 0
-        });
-        
-        // 프리뷰 내 주요 Heading 요소들(h1~h6) 중 data-line 속성을 가진 노드 추출
-        const headings = Array.from(preview.querySelectorAll('h1[data-line], h2[data-line], h3[data-line], h4[data-line], h5[data-line], h6[data-line]'));
-        headings.forEach(el => {
-            const line = parseInt(el.getAttribute('data-line'), 10);
-            const cleanText = cleanTextForIdentifier(el.textContent, true);
-            if (!isNaN(line) && cleanText) {
-                const id = `${cleanText}_line_${line}`;
-                const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
-                
-                // 초기 previewPercent를 editorPercent와 비례하게(동일하게) 세팅
-                const previewPercent = editorPercent;
-                const previewScrollY = previewPercent * maxPreviewScrollY;
-                
-                rawKeyframes.push({
-                    id: id,
-                    line: line,
-                    editorPercent: editorPercent,
-                    previewPercent: previewPercent,
-                    previewScrollY: previewScrollY
-                });
-            }
-        });
-        
-        // 끝 지점 경계 노드
-        rawKeyframes.push({
-            id: '[END]',
-            line: totalLines,
-            editorPercent: 1.0,
-            previewPercent: 1.0,
-            previewScrollY: Math.max(0, maxPreviewScrollY)
-        });
-        
-        // 줄 번호 오름차순 정렬
-        rawKeyframes.sort((a, b) => a.line - b.line);
-        
-        // 중복 제거
-        keyframes = [];
-        const seenIds = new Set();
-        rawKeyframes.forEach(kf => {
-            if (kf.id === '[START]' || kf.id === '[END]' || !seenIds.has(kf.id)) {
-                seenIds.add(kf.id);
-                keyframes.push(kf);
-            }
-        });
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 4. 프리뷰 높이 변화 갱신(Reflow) 시 각 키프레임 위치 캐시 일괄 업데이트
-    function recalculateKeyframePositions() {
-        if (!previewViewport) return;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const lines = cm.getValue().replace(/\r\n/g, '\n').split('\n');
-        const totalLines = lines.length;
-        
-        keyframes.forEach(kf => {
-            if (kf.id === '[START]') {
-                kf.previewScrollY = 0;
-                kf.previewPercent = 0;
-                kf.editorPercent = 0;
-            } else if (kf.id === '[END]') {
-                kf.previewScrollY = Math.max(0, maxPreviewScrollY);
-                kf.previewPercent = 1.0;
-                kf.editorPercent = 1.0;
-                kf.line = totalLines;
-            } else {
-                // 비율 비례 배분에 기반하므로, 기존 비율(previewPercent)을 유지하면서
-                // 갱신된 maxPreviewScrollY에 맞게 absolute Y 캐시만 동기화합니다.
-                kf.previewScrollY = kf.previewPercent * maxPreviewScrollY;
-                kf.editorPercent = totalLines > 1 ? (kf.line - 1) / (totalLines - 1) : 0;
-            }
-        });
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 5. 키프레임 추가/갱신 및 비례 비율 조정(Proportional Re-scaling)
-    function addOrUpdateKeyframe(id, line, newPercent, targetScrollTop) {
-        if (!id) return;
-        
-        const totalLines = cm.getValue().replace(/\r\n/g, '\n').split('\n').length;
-        const editorPercent = totalLines > 1 ? (line - 1) / (totalLines - 1) : 0;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        
-        let pivotIndex = keyframes.findIndex(kf => kf.id === id);
-        let oldPercent = 0;
-        
-        if (pivotIndex !== -1) {
-            oldPercent = keyframes[pivotIndex].previewPercent;
-            
-            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
-            const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
-            const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
-            const minAllowed = kfBefore.previewPercent;
-            const maxAllowed = kfAfter.previewPercent;
-            
-            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
-            targetScrollTop = newPercent * maxPreviewScrollY;
-
-            keyframes[pivotIndex].line = line;
-            keyframes[pivotIndex].editorPercent = editorPercent;
-            keyframes[pivotIndex].previewPercent = newPercent;
-            keyframes[pivotIndex].previewScrollY = targetScrollTop;
-        } else {
-            const newKf = {
-                id: id,
-                line: line,
-                editorPercent: editorPercent,
-                previewPercent: newPercent,
-                previewScrollY: targetScrollTop
-            };
-            keyframes.push(newKf);
-            keyframes.sort((a, b) => a.line - b.line);
-            
-            pivotIndex = keyframes.findIndex(kf => kf.id === id);
-            const kfBefore = keyframes[pivotIndex - 1] || keyframes[0];
-            const kfAfter = keyframes[pivotIndex + 1] || keyframes[keyframes.length - 1];
-            
-            // 단조 증가(Monotonicity) 검증 및 범위 제한 (클램핑)
-            const minAllowed = kfBefore.previewPercent;
-            const maxAllowed = kfAfter.previewPercent;
-            
-            newPercent = Math.max(minAllowed, Math.min(newPercent, maxAllowed));
-            targetScrollTop = newPercent * maxPreviewScrollY;
-            
-            keyframes[pivotIndex].previewPercent = newPercent;
-            keyframes[pivotIndex].previewScrollY = targetScrollTop;
-
-            const dist = kfAfter.line - kfBefore.line;
-            const ratio = dist > 0 ? (line - kfBefore.line) / dist : 0.5;
-            oldPercent = kfBefore.previewPercent + ratio * (kfAfter.previewPercent - kfBefore.previewPercent);
-        }
-        
-        rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent);
-        
-        if (typeof updateDebugPanel === 'function') {
-            updateDebugPanel();
-        }
-    }
-
-    // 6. 비례 비율 조절 연산 적용 함수
-    function rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent) {
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const N = keyframes.length;
-        
-        // 0부터 pivotIndex - 1 까지 (상단 영역)
-        for (let j = 1; j < pivotIndex; j++) {
-            if (oldPercent > 0) {
-                let adjustedPercent = keyframes[j].previewPercent * (newPercent / oldPercent);
-                // 범위 제한 (Clamping)
-                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
-                
-                keyframes[j].previewPercent = adjustedPercent;
-                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
-            }
-        }
-        
-        // pivotIndex + 1부터 N - 2 까지 (하단 영역)
-        for (let j = pivotIndex + 1; j < N - 1; j++) {
-            const denom = 1.0 - oldPercent;
-            if (denom > 0) {
-                const ratio = (keyframes[j].previewPercent - oldPercent) / denom;
-                let adjustedPercent = newPercent + ratio * (1.0 - newPercent);
-                // 범위 제한 (Clamping)
-                adjustedPercent = Math.max(0.0, Math.min(1.0, adjustedPercent));
-                
-                keyframes[j].previewPercent = adjustedPercent;
-                keyframes[j].previewScrollY = adjustedPercent * maxPreviewScrollY;
-            }
-        }
-        
-        // 시작과 끝 경계선 키프레임 보존 강제화
-        keyframes[0].previewPercent = 0;
-        keyframes[0].previewScrollY = 0;
-        keyframes[N - 1].previewPercent = 1.0;
-        keyframes[N - 1].previewScrollY = Math.max(0, maxPreviewScrollY);
-    }
-
-    // 7. 커서/선택영역 가시성 보정 및 비율 보정 키프레임 등록
-    function syncPreviewToCursor() {
-        if (!enableScrollSync) return;
-        const hasSelection = cm.somethingSelected();
-        const cursor = cm.getCursor('start');
-        const cursorLine = cursor.line + 1;
-        
-        // 프리뷰 내에 현재 커서 라인과 인접한 data-line 엘리먼트 탐색
-        const elements = Array.from(preview.querySelectorAll('[data-line]'));
-        if (elements.length === 0) return;
-        
-        let targetEl = null;
-        for (let i = 0; i < elements.length; i++) {
-            const el = elements[i];
-            const line = parseInt(el.getAttribute('data-line'), 10);
-            if (line <= cursorLine) {
-                targetEl = el;
-            } else {
-                break;
-            }
-        }
-        
-        if (!targetEl || !previewViewport) return;
-        
-        // getBoundingClientRect를 활용하여 프리뷰 뷰포트 내의 상대적 위치 계산
-        const elRect = targetEl.getBoundingClientRect();
-        const viewportRect = previewViewport.getBoundingClientRect();
-        
-        const relativeTop = elRect.top - viewportRect.top;
-        const relativeBottom = elRect.bottom - viewportRect.top;
-        const viewportHeight = previewViewport.clientHeight;
-        
-        let targetScrollTop = -1;
-        
-        // 이미 가시 범위 내에 노출되어 있다면 추가 스크롤 보정을 일절 수행하지 않음 (20px 패딩 버퍼)
-        if (relativeTop < 20) {
-            targetScrollTop = previewViewport.scrollTop + relativeTop - 20;
-        } else if (relativeBottom > viewportHeight - 20) {
-            targetScrollTop = previewViewport.scrollTop + relativeBottom - viewportHeight + 20;
-        }
-        
-        if (targetScrollTop !== -1) {
-            // 스크롤 상단/하단 경계 보정
-            const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-            targetScrollTop = Math.max(0, Math.min(targetScrollTop, maxPreviewScrollY));
-            
-            isSyncing = true;
-            previewViewport.scrollTop = targetScrollTop;
-            
-            // 수동 스크롤 조작 위치를 기록하여 redundant 스크롤 이벤트 자동 무시 처리
-            lastPreviewScrollTop = targetScrollTop;
-            lastEditorScrollTop = cm.getScrollInfo().top;
-            
-            // 에디터 포커스 및 커서 이동 시 스크롤 보정이 실질적으로 발생했다면, 
-            // 뷰포트 정렬 왜곡 방지를 위해 해당 키프레임의 실제 스크롤 비율을 함께 보정 업데이트합니다.
-            const cleanText = getLineIdentifier(cursorLine);
-            if (cleanText) {
-                const id = `${cleanText}_line_${cursorLine}`;
-                const newPercent = maxPreviewScrollY > 0 ? targetScrollTop / maxPreviewScrollY : 0;
-                addOrUpdateKeyframe(id, cursorLine, newPercent, targetScrollTop);
-            }
-            
-            setTimeout(() => {
-                isSyncing = false;
-            }, 200); // 200ms 동안 비동기 브라우저 클릭 스크롤 이벤트가 오동작을 유발하는 현상 차단
-        }
-    }
-
-    // 커서 이동/클릭/입력에 따른 가시성 검사 등록
-    cm.on('cursorActivity', () => {
-        syncPreviewToCursor();
-    });
-
-    cm.on('focus', () => {
-        activeScrollSource = 'editor';
-    });
-
-    // 8. 에디터 -> 프리뷰 방향 스크롤 매핑 함수 (비율 기반 보간)
-    function getPreviewScrollForEditor(editorScrollTop) {
-        if (keyframes.length === 0) return 0;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        const currentPercent = maxEditorScrollTop > 0 ? editorScrollTop / maxEditorScrollTop : 0;
-        
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.editorPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-        
-        if (kfBefore === kfAfter) {
-            return kfBefore.previewScrollY;
-        }
-        
-        const denom = kfAfter.editorPercent - kfBefore.editorPercent;
-        const ratio = denom > 0 ? (currentPercent - kfBefore.editorPercent) / denom : 0;
-        
-        return kfBefore.previewScrollY + ratio * (kfAfter.previewScrollY - kfBefore.previewScrollY);
-    }
-
-    // 9. 프리뷰 -> 에디터 방향 스크롤 매핑 함수 (비율 기반 보간)
-    function getEditorScrollForPreview(previewScrollTop) {
-        if (keyframes.length === 0) return 0;
-        
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-        const currentPercent = maxPreviewScrollY > 0 ? previewScrollTop / maxPreviewScrollY : 0;
-        
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.previewPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-        
-        const scrollInfo = cm.getScrollInfo();
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        
-        if (kfBefore === kfAfter) {
-            return kfBefore.editorPercent * maxEditorScrollTop;
-        }
-        
-        const denom = kfAfter.previewPercent - kfBefore.previewPercent;
-        const ratio = denom > 0 ? (currentPercent - kfBefore.previewPercent) / denom : 0;
-        const targetEditorPercent = kfBefore.editorPercent + ratio * (kfAfter.editorPercent - kfBefore.editorPercent);
-        
-        return targetEditorPercent * maxEditorScrollTop;
-    }
-
-    /* 기존 절대 매핑 스크롤 동기화 로직 주석 처리
-    // 에디터 스크롤 이벤트 바인딩
-    cm.on('scroll', () => {
-        if (isSyncing) return;
-        if (activeScrollSource !== 'editor' || !previewViewport) return;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const scrollTop = scrollInfo.top;
-        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
-        
-        lastEditorScrollTop = scrollTop;
-        const targetScroll = getPreviewScrollForEditor(scrollTop);
-        lastPreviewScrollTop = targetScroll;
-        previewViewport.scrollTop = targetScroll;
-        updateDebugPanel();
-    });
-    */
-
-    // 에디터 스크롤 이벤트 바인딩 (상대적 델타 기반 동기화 로직)
-    cm.on('scroll', () => {
-        if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
-        if (isSyncing) return;
-        if (activeScrollSource !== 'editor' || !previewViewport) return;
-        
-        const scrollInfo = cm.getScrollInfo();
-        const scrollTop = scrollInfo.top;
-        if (scrollTop === lastEditorScrollTop) return; // 변경사항이 없다면 동기화 스킵 (클릭에 의한 떨림 차단)
-        
-        // 최초 스크롤 이벤트 시 lastEditorScrollTop 초기화 처리 (튀지 않도록 방지)
-        if (lastEditorScrollTop === -1) {
-            lastEditorScrollTop = scrollTop;
-            return;
-        }
-
-        const deltaY_ed = scrollTop - lastEditorScrollTop;
-        lastEditorScrollTop = scrollTop;
-
-        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
-        const maxPreviewScrollY = previewViewport.scrollHeight - previewViewport.clientHeight;
-
-        // 예외 처리: 완전한 최상단/최하단 도달 시 강제 정렬 (누적 오차 해결)
-        if (scrollTop <= 0) {
-            previewViewport.scrollTop = 0;
-            lastPreviewScrollTop = 0;
-            updateDebugPanel();
-            updateActiveTOCItem();
-            return;
-        }
-        if (scrollTop >= maxEditorScrollTop) {
-            previewViewport.scrollTop = maxPreviewScrollY;
-            lastPreviewScrollTop = maxPreviewScrollY;
-            updateDebugPanel();
-            updateActiveTOCItem();
-            return;
-        }
-
-        // 현재 스크롤 비율 계산
-        const currentPercent = maxEditorScrollTop > 0 ? scrollTop / maxEditorScrollTop : 0;
-        
-        // 보간 구간 탐색
-        let kfBefore = keyframes[0];
-        let kfAfter = keyframes[keyframes.length - 1];
-        
-        for (let i = 0; i < keyframes.length; i++) {
-            const kf = keyframes[i];
-            if (kf.editorPercent <= currentPercent) {
-                kfBefore = kf;
-            } else {
-                kfAfter = kf;
-                break;
-            }
-        }
-
-        // 현재 구간의 스크롤 배율(S) 계산
-        const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
-        const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
-        
-        // Division by zero 방지
-        const scaleFactor = height_ed_range > 0 ? height_pr_range / height_ed_range : 1.0;
-
-        // 프리뷰 이동할 델타 및 새로운 스크롤탑 적용
-        const deltaY_pr = deltaY_ed * scaleFactor;
-        let newPreviewScrollTop = previewViewport.scrollTop + deltaY_pr;
-
-        // 범위 값 제한 (Clamping)
-        newPreviewScrollTop = Math.max(0, Math.min(newPreviewScrollTop, maxPreviewScrollY));
-
-        lastPreviewScrollTop = newPreviewScrollTop;
-        previewViewport.scrollTop = newPreviewScrollTop;
-        
-        updateDebugPanel();
-        updateActiveTOCItem();
-    });
-
-    // 프리뷰 스크롤 이벤트 바인딩
-    if (previewViewport) {
-        previewViewport.addEventListener('scroll', () => {
-            if (!enableScrollSync) return; // 스크롤 동기화 비활성화 시 동작 방지
-            if (isSyncing) return;
-            if (activeScrollSource !== 'preview') return;
-            if (previewViewport.scrollTop === lastPreviewScrollTop) return; // 변경사항이 없다면 동기화 스킵
-            
-            lastPreviewScrollTop = previewViewport.scrollTop;
-            const targetScroll = getEditorScrollForPreview(previewViewport.scrollTop);
-            lastEditorScrollTop = targetScroll;
-            cm.scrollTo(null, targetScroll);
-            updateDebugPanel();
-            updateActiveTOCItem();
-        });
-    }
-
-    // 프리뷰 영역의 크기/레이아웃 변화(이미지 로드, 폰트 적용, 창 크기 변경 등)를 감지하여 키프레임 캐시 재구축
-    if (preview && typeof ResizeObserver !== 'undefined') {
-        const resizeObserver = new ResizeObserver(() => {
-            recalculateKeyframePositions();
-        });
-        resizeObserver.observe(preview);
     }
 
     // ==========================================================================
@@ -2011,7 +1331,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnDebug.addEventListener('click', () => {
             if (debugPanel.style.display === 'none') {
                 debugPanel.style.display = 'block';
-                updateDebugPanel();
+                if (scrollSync) {
+                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                }
             } else {
                 debugPanel.style.display = 'none';
             }
@@ -2086,18 +1408,32 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
+    // 복원할 저장 세션이 존재하는지 확인
+    const hasSavedSession = !!localStorage.getItem(SESSION_STORAGE_KEY);
+
+    // 저장된 세션 (문서 내용, 파일명, 에디터/Preview 분할 폭, 글꼴 등) 복원
+    restoreDocumentSession();
+
     // Trigger Initial Render
     renderMarkdown();
     updateDebugPanel();
     
-    // 초기 너비 동등 설정 실행 및 로드 완료 후 보정
-    initializePanelWidths();
-    window.addEventListener('load', initializePanelWidths);
+    // 세션 복원된 분할 폭이 없을 경우에만 초기 동등 너비 설정 실행
+    if (!hasSavedSession) {
+        initializePanelWidths();
+        window.addEventListener('load', initializePanelWidths);
+    }
 
-    // Auto Render Event
+    // Auto Render & Auto Save Event
     cm.on('change', () => {
         updateFilenameDisplay(currentFilename, true);
         renderMarkdown();
+        saveDocumentSession();
+    });
+
+    // 브라우저 새로고침(F5) 또는 창 닫기 직전 강제 세션 저장
+    window.addEventListener('beforeunload', () => {
+        saveDocumentSession();
     });
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
@@ -2126,73 +1462,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 저장 처리 헬퍼 함수
+    function handleSaveCurrentDocument() {
+        if (!cm) return;
+        const textContent = cm.getValue();
+        ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName) => {
+            updateFilenameDisplay(savedName, false);
+            saveDocumentSession();
+            showToast(`"${savedName}" 파일이 저장되었습니다.`);
+        });
+    }
+
     // 저장 버튼 클릭 이벤트 바인딩
     if (btnSave) {
-        btnSave.addEventListener('click', downloadCurrentContent);
+        btnSave.addEventListener('click', handleSaveCurrentDocument);
     }
 
-    // 설정 모달 관련 엘리먼트 및 이벤트 바인딩
-    const btnSettings = document.getElementById('btn-settings');
-    const settingsModal = document.getElementById('settings-modal');
-    const closeSettings = document.getElementById('close-settings');
-    const btnRegChrome = document.getElementById('btn-reg-chrome');
-    const btnRegEdge = document.getElementById('btn-reg-edge');
-
-    if (btnSettings && settingsModal) {
-        btnSettings.addEventListener('click', () => {
-            settingsModal.style.display = 'block';
-        });
-    }
-
-    if (closeSettings && settingsModal) {
-        closeSettings.addEventListener('click', () => {
-            settingsModal.style.display = 'none';
-        });
-    }
-
-    window.addEventListener('click', (event) => {
-        if (event.target === settingsModal) {
-            settingsModal.style.display = 'none';
-        }
-    });
-
-    // 레지스트리(.reg) 파일 다운로드 헬퍼
-    function downloadRegFile(filename, regContent) {
-        const blob = new Blob([regContent], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    if (btnRegChrome) {
-        btnRegChrome.addEventListener('click', () => {
-            const chromeReg = `Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\\Software\\Classes\\.md]
-@="ChromeHTML"
-`;
-            downloadRegFile('associate_chrome.reg', chromeReg);
-            alert('Chrome 연결등록 레지스트리 파일(associate_chrome.reg)이 다운로드되었습니다.\n\n다운로드된 파일을 더블 클릭하여 실행(병합)해 주세요!');
-            settingsModal.style.display = 'none';
-        });
-    }
-
-    if (btnRegEdge) {
-        btnRegEdge.addEventListener('click', () => {
-            const edgeReg = `Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\\Software\\Classes\\.md]
-@="MSEdgeHTM"
-`;
-            downloadRegFile('associate_edge.reg', edgeReg);
-            alert('Edge 연결등록 레지스트리 파일(associate_edge.reg)이 다운로드되었습니다.\n\n다운로드된 파일을 더블 클릭하여 실행(병합)해 주세요!');
-            settingsModal.style.display = 'none';
-        });
+    // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)
+    if (typeof SettingsManager !== 'undefined') {
+        SettingsManager.init();
     }
 
     // TOC 사이드바 토글 관련 이벤트 바인딩
@@ -2227,5 +1515,234 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // Heading Modal & Toast Control System
+    const btnEditHeadingStyle = document.getElementById('btn-edit-heading-style');
+    const headingModal = document.getElementById('heading-modal');
+    const closeHeadingModal = document.getElementById('close-heading-modal');
+    const modalHeadingSelect = document.getElementById('modal-heading-preset-select');
+    const headingStyleControls = document.getElementById('heading-style-controls');
+    const btnSaveHeadingPreset = document.getElementById('btn-save-heading-preset');
+    const btnAddHeadingPreset = document.getElementById('btn-add-heading-preset');
+    const btnDeleteHeadingPreset = document.getElementById('btn-delete-heading-preset');
+    const btnResetHeadingPresets = document.getElementById('btn-reset-heading-presets');
+    const btnSaveOnlyHeadingPreset = document.getElementById('btn-save-only-heading-preset');
+    const btnCloseHeadingModal = document.getElementById('btn-close-heading-modal');
+    const headingPresetSelect = document.getElementById('heading-preset-select');
+
+    function showToast(message, duration = 3000) {
+        let toast = document.getElementById('markvi-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'markvi-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('show');
+
+        if (toast.timeoutId) clearTimeout(toast.timeoutId);
+        toast.timeoutId = setTimeout(() => {
+            toast.classList.remove('show');
+        }, duration);
+    }
+
+    function renderHeadingModalControls(presetId) {
+        if (window.StyleEditor) {
+            window.StyleEditor.renderControls(presetId);
+        }
+    }
+
+    if (btnEditHeadingStyle && headingModal) {
+        btnEditHeadingStyle.addEventListener('click', (e) => {
+            if (e) e.stopPropagation();
+            if (viewMenu) viewMenu.classList.remove('show');
+            if (exportMenu) exportMenu.classList.remove('show');
+            if (mainMenu) mainMenu.classList.remove('show');
+            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
+            
+            // 스타일 편집 Dialog를 띄울 때 신규 프리셋이 누락되었는지 검사하여 추가
+            syncNewHeadingPresets();
+            
+            updatePresetSelectOptions();
+            const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+            if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
+            renderHeadingModalControls(currentActive);
+            headingModal.style.display = 'block';
+        });
+    }
+
+    function closeHeadingStyleModal() {
+        if (headingModal) {
+            headingModal.style.display = 'none';
+            // 모달 닫기 시 드래그 누적 위치 및 인라인 transform 원복 리셋
+            if (window.StyleEditor && typeof window.StyleEditor.resetModalPosition === 'function') {
+                window.StyleEditor.resetModalPosition();
+            }
+        }
+    }
+
+    if (headingPresetSelect) {
+        headingPresetSelect.addEventListener('change', (e) => {
+            applyHeadingPreset(e.target.value);
+            renderMarkdown();
+        });
+    }
+
+    if (modalHeadingSelect) {
+        modalHeadingSelect.addEventListener('change', (e) => {
+            renderHeadingModalControls(e.target.value);
+            applyHeadingPreset(e.target.value);
+            renderMarkdown();
+        });
+    }
+    if (closeHeadingModal) closeHeadingModal.addEventListener('click', closeHeadingStyleModal);
+    if (btnCloseHeadingModal) btnCloseHeadingModal.addEventListener('click', closeHeadingStyleModal);
+
+    // ==========================================================================
+    // 🎨 [x] / [v] 버튼 탑재 Canvas 기반 전문 커스텀 컬러피커 팝오버 모듈
+    // ==========================================================================
+    // ==========================================================================
+    // 🎨 [style-editor.js] 연계 커스텀 컬러피커 및 스타일 다이얼로그 초기 바인딩
+    // ==========================================================================
+    // ==========================================================================
+    // 🎨 스타일 편집 다이얼로그 콜백 핸들러 리액티브 명명 함수 정의 (리팩토링)
+    // ==========================================================================
+    function handlePresetChange(presetId) {
+        applyHeadingPreset(presetId);
+    }
+
+    function handleLivePreview() {
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
+        applyHeadingPreset(currentId, tempStyles);
+    }
+
+    function handleModalScroll(clientX, deltaY) {
+        const dragDivider = document.getElementById('drag-divider');
+        const boundaryX = dragDivider 
+            ? dragDivider.getBoundingClientRect().left 
+            : window.innerWidth / 2;
+            
+        if (clientX < boundaryX) {
+            if (typeof cm !== 'undefined' && cm) {
+                const scrollInfo = cm.getScrollInfo();
+                cm.scrollTo(null, scrollInfo.top + deltaY);
+            }
+        } else {
+            const previewViewport = document.querySelector('.preview-viewport');
+            if (previewViewport) {
+                previewViewport.scrollTop += deltaY;
+            }
+        }
+    }
+
+    function handlePresetSave(presetName) {
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        applyHeadingPreset(currentId);
+        showToast(`'${presetName}' 스타일이 저장되었습니다.`);
+    }
+
+    function handlePresetSaveAndClose(presetName) {
+        closeHeadingStyleModal();
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        applyHeadingPreset(currentId);
+        
+        // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
+        if (typeof cm !== 'undefined' && cm) {
+            cm.focus();
+            requestAnimationFrame(() => {
+                cm.refresh();
+            });
+        }
+        
+        showToast(`'${presetName}' 스타일이 적용되었습니다.`);
+    }
+
+    function handlePresetAdd(newId, newName) {
+        updatePresetSelectOptions();
+        applyHeadingPreset(newId);
+        renderHeadingModalControls(newId);
+        showToast(`'${newName}' 스타일이 생성되었습니다.`);
+    }
+
+    function handlePresetDelete(nextId, deletedName) {
+        updatePresetSelectOptions();
+        applyHeadingPreset(nextId);
+        renderHeadingModalControls(nextId);
+        showToast(`'${deletedName}' 스타일이 삭제되었습니다.`);
+    }
+
+    function handlePresetReset(presetId, presetName) {
+        applyHeadingPreset(presetId);
+        renderHeadingModalControls(presetId);
+        showToast(`'${presetName}' 스타일이 초기 기본값으로 복원되었습니다.`);
+    }
+
+    if (window.StyleEditor) {
+        window.StyleEditor.init({
+            controlsContainer: headingStyleControls,
+            presetSelect: modalHeadingSelect,
+            getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
+            savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
+            onPresetChange: handlePresetChange,
+            onLivePreview: handleLivePreview,
+            onScroll: handleModalScroll,
+            onSave: handlePresetSave,
+            onSaveAndClose: handlePresetSaveAndClose,
+            onAddPreset: handlePresetAdd,
+            onDeletePreset: handlePresetDelete,
+            onResetPreset: handlePresetReset
+        });
+    }
+
+    // 문서 시작 시 Heading Preset 초기화
+    updatePresetSelectOptions();
+    const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+    applyHeadingPreset(activePreset);
+
+    // ScrollSync 인스턴스 생성 및 초기화 (최하단 배치)
+    scrollSync = new ScrollSync({
+        cm: cm,
+        previewViewport: document.querySelector('.preview-viewport'),
+        previewContainer: preview,
+        enableScrollSync: enableScrollSync,
+        onActiveLineChange: (lineNum) => {
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach(item => {
+                if (parseInt(item.getAttribute('data-line'), 10) === lineNum) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        },
+        onDebugUpdate: (keyframes, activeSource) => {
+            updateDebugPanelUI(keyframes, activeSource);
+        },
+        onToast: (msg) => {
+            if (typeof showToast === 'function') {
+                showToast(msg, 2000);
+            }
+        }
+    });
+    scrollSync.init();
+    if (cm && typeof cm.refresh === 'function') {
+        cm.refresh();
+    }
+
+    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거 Stage 3)
+    window.addEventListener('load', () => {
+        if (scrollSync) {
+            scrollSync.rebuildKeyframes('Stage 3: window.onload');
+        }
+    });
+
+    // 100ms 비동기 페인트 후 안전 재구축 (Stage 2)
+    setTimeout(() => {
+        if (scrollSync) {
+            scrollSync.rebuildKeyframes('Stage 2: setTimeout 100ms');
+        }
+    }, 100);
 });
+
+
 
