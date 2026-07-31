@@ -1303,10 +1303,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 : `color: ${rowColor};`;
 
             const rowBg = kf.isActiveSegment ? 'background: rgba(2, 132, 199, 0.15);' : '';
+            const pinnedPrefix = kf.isUserPinned ? '📌 ' : '';
 
             html += `<tr style="color: ${rowColor}; ${rowBg} border-bottom: 1px dashed #1e293b;">
                 <td style="padding: 3px 2px;">${Math.round(kf.line)}</td>
-                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
+                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${pinnedPrefix}${kf.id}</td>
                 <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
                 <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
                 <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>

@@ -29,6 +29,7 @@ class ScrollSync {
     this.lastEditorScrollTop = -1;
     this.lastPreviewScrollTop = -1;
     this.isSyncing = false;
+    this.isMouseClicking = false;   // Track whether cursor move originated from mouse click
 
     // Event listener references for clean cleanup
     this._listeners = [];
@@ -77,7 +78,9 @@ class ScrollSync {
   findPreviewElementByIdentifier(id) {
     if (!id || id === '[START]' || id === '[END]' || !this.previewContainer) return null;
 
-    const candidates = this.previewContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table');
+    // 코드 블록 내부 요소 오매칭 방지 (pre code 태그 내부 자식 요소 제외)
+    const candidates = Array.from(this.previewContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table'))
+      .filter(el => !el.closest('pre code') || el.tagName.toLowerCase() === 'pre');
 
     let baseId = id;
     const lineSuffixMatch = id.match(/(.+)_line_\d+$/);
@@ -86,6 +89,7 @@ class ScrollSync {
     }
 
     const cleanId = baseId.trim().toLowerCase();
+    if (!cleanId) return null;
 
     for (let el of candidates) {
       const text = el.textContent.trim().toLowerCase();
@@ -125,7 +129,8 @@ class ScrollSync {
           line: line,
           editorPercent: editorPercent,
           previewPercent: previewPercent,
-          previewScrollY: previewScrollY
+          previewScrollY: previewScrollY,
+          isUserPinned: false
         });
       }
     });
@@ -142,7 +147,8 @@ class ScrollSync {
         line: 1,
         editorPercent: 0,
         previewPercent: 0,
-        previewScrollY: 0
+        previewScrollY: 0,
+        isUserPinned: false
       });
     }
 
@@ -154,7 +160,8 @@ class ScrollSync {
         line: totalLines,
         editorPercent: 1.0,
         previewPercent: 1.0,
-        previewScrollY: Math.max(0, maxPreviewScrollY)
+        previewScrollY: Math.max(0, maxPreviewScrollY),
+        isUserPinned: false
       });
     }
 
@@ -173,8 +180,8 @@ class ScrollSync {
     // Guarantee minimum 2 boundary anchors
     if (this.keyframes.length < 2) {
       this.keyframes = [
-        { id: '[START]', line: 1, editorPercent: 0, previewPercent: 0, previewScrollY: 0 },
-        { id: '[END]', line: totalLines, editorPercent: 1.0, previewPercent: 1.0, previewScrollY: Math.max(0, maxPreviewScrollY) }
+        { id: '[START]', line: 1, editorPercent: 0, previewPercent: 0, previewScrollY: 0, isUserPinned: false },
+        { id: '[END]', line: totalLines, editorPercent: 1.0, previewPercent: 1.0, previewScrollY: Math.max(0, maxPreviewScrollY), isUserPinned: false }
       ];
     }
 
@@ -223,7 +230,15 @@ class ScrollSync {
   /**
    * Dynamically add or update keyframe with monotonicity clamping and proportional rescaling
    */
-  addOrUpdateKeyframe(id, line, newPercent, targetScrollTop) {
+  /**
+   * Dynamically add or update keyframe with monotonicity clamping and proportional rescaling
+   * @param {string} id 
+   * @param {number} line 
+   * @param {number} newPercent 
+   * @param {number} targetScrollTop 
+   * @param {boolean} [isUserPinned=false] - Whether this keyframe was explicitly set/pinned by user mouse action
+   */
+  addOrUpdateKeyframe(id, line, newPercent, targetScrollTop, isUserPinned = false) {
     if (this.keyframes.length < 2) {
       this.rebuildKeyframes();
     }
@@ -249,6 +264,7 @@ class ScrollSync {
       const oldPercent = this.keyframes[existingIdx].previewPercent;
       this.keyframes[existingIdx].previewPercent = clampedPercent;
       this.keyframes[existingIdx].previewScrollY = targetScrollTop;
+      this.keyframes[existingIdx].isUserPinned = !!isUserPinned; // 사용자 마우스 클릭 설정 고정 플래그 저장을 통한 미세 재조정 방지
 
       this.rescaleKeyframePercentages(existingIdx, oldPercent, clampedPercent);
     } else {
@@ -274,17 +290,20 @@ class ScrollSync {
         line: line,
         editorPercent: (line - 1) / (this.cm.lineCount() - 1 || 1),
         previewPercent: clampedPercent,
-        previewScrollY: targetScrollTop
+        previewScrollY: targetScrollTop,
+        isUserPinned: !!isUserPinned // 사용자 마우스 클릭 설정 고정 플래그 저장을 통한 미세 재조정 방지
       };
 
       this.keyframes.splice(insertIdx, 0, newKf);
     }
 
+    this.enforceMonotonicity();
     this._notifyDebug();
   }
 
   /**
    * Proportionally rescale upper and lower keyframe boundaries
+   * Excludes keyframes explicitly set by user mouse clicks (isUserPinned === true)
    */
   rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent) {
     if (this.keyframes.length <= 2) return;
@@ -295,6 +314,7 @@ class ScrollSync {
       if (spaceUpper > 0) {
         for (let i = pivotIndex + 1; i < this.keyframes.length - 1; i++) {
           const kf = this.keyframes[i];
+          if (kf.isUserPinned) continue; // 마우스 클릭으로 고정된 키프레임은 미세 재조정 제외
           const factor = (1.0 - kf.previewPercent) / spaceUpper;
           kf.previewPercent = Math.min(0.98, kf.previewPercent + deltaUpper * factor);
           kf.previewScrollY = kf.previewPercent * (this.previewViewport.scrollHeight - this.previewViewport.clientHeight);
@@ -306,11 +326,39 @@ class ScrollSync {
       if (spaceLower > 0) {
         for (let i = 1; i < pivotIndex; i++) {
           const kf = this.keyframes[i];
+          if (kf.isUserPinned) continue; // 마우스 클릭으로 고정된 키프레임은 미세 재조정 제외
           const factor = (kf.previewPercent - 0.0) / spaceLower;
           // Floor bound: never shrink below editorPercent
           kf.previewPercent = Math.max(kf.editorPercent, kf.previewPercent - deltaLower * factor);
           kf.previewScrollY = kf.previewPercent * (this.previewViewport.scrollHeight - this.previewViewport.clientHeight);
         }
+      }
+    }
+    this.enforceMonotonicity();
+  }
+
+  /**
+   * Enforce strict monotonicity across all keyframes to prevent reverse scroll jumps
+   */
+  enforceMonotonicity() {
+    if (this.keyframes.length < 2) return;
+    const maxPreviewScrollY = this.previewViewport ? Math.max(0, this.previewViewport.scrollHeight - this.previewViewport.clientHeight) : 0;
+
+    for (let i = 1; i < this.keyframes.length; i++) {
+      const prev = this.keyframes[i - 1];
+      const curr = this.keyframes[i];
+
+      // 1. previewPercent 단조 증가 보정
+      if (curr.previewPercent < prev.previewPercent) {
+        curr.previewPercent = Math.min(0.999, prev.previewPercent + 0.0001);
+      }
+
+      // 2. previewScrollY (픽셀) 단조 증가 보정
+      if (maxPreviewScrollY > 0) {
+        const expectedScrollY = curr.previewPercent * maxPreviewScrollY;
+        curr.previewScrollY = Math.max(prev.previewScrollY, expectedScrollY);
+      } else if (curr.previewScrollY < prev.previewScrollY) {
+        curr.previewScrollY = prev.previewScrollY;
       }
     }
   }
@@ -351,22 +399,28 @@ class ScrollSync {
     if (targetEl) {
       const containerRect = this.previewViewport.getBoundingClientRect();
       const elRect = targetEl.getBoundingClientRect();
-
       const topOffset = elRect.top - containerRect.top;
-      const bottomOffset = elRect.bottom - containerRect.top;
-      const padding = 20;
 
-      if (topOffset < padding || bottomOffset > (containerRect.height - padding)) {
-        let newScrollTop = this.previewViewport.scrollTop + topOffset - padding;
-        const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
-        newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+      // 에디터 뷰포트 창 내 커서의 수직 높이 비율 산출 (0.1 ~ 0.9 범위로 클램핑)
+      const scrollInfo = this.cm.getScrollInfo();
+      let cursorRatio = 0.3;
+      if (scrollInfo.clientHeight > 0 && typeof this.cm.heightAtLine === 'function') {
+        const cursorLineTop = this.cm.heightAtLine(cursorLine - 1, 'local');
+        const cursorRelativeTop = cursorLineTop - scrollInfo.top;
+        cursorRatio = Math.max(0.1, Math.min(0.9, cursorRelativeTop / scrollInfo.clientHeight));
+      }
 
-        this.previewViewport.scrollTop = newScrollTop;
-        const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
+      // 프리뷰 뷰포트 내 동일 상대 높이(cursorRatio) 위치에 정확히 정렬되도록 ScrollTop 산출
+      const targetPreviewRelativeTop = cursorRatio * containerRect.height;
+      let newScrollTop = this.previewViewport.scrollTop + topOffset - targetPreviewRelativeTop;
+      const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
+      newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
 
-        if (targetId) {
-          this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop);
-        }
+      this.previewViewport.scrollTo({ top: newScrollTop, behavior: 'smooth' });
+      const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
+
+      if (targetId) {
+        this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop, true);
       }
     }
   }
@@ -398,8 +452,19 @@ class ScrollSync {
       return kfBefore.previewScrollY;
     }
 
-    const denom = kfAfter.editorPercent - kfBefore.editorPercent;
-    const ratio = denom > 0 ? (currentPercent - kfBefore.editorPercent) / denom : 0;
+    let height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    let dist_from_before = (currentPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+
+    if (typeof this.cm.heightAtLine === 'function') {
+      const yBefore = this.cm.heightAtLine(kfBefore.line - 1, 'local');
+      const yAfter = this.cm.heightAtLine(kfAfter.line - 1, 'local');
+      if (yAfter > yBefore) {
+        height_ed_range = yAfter - yBefore;
+        dist_from_before = editorScrollTop - yBefore;
+      }
+    }
+
+    const ratio = height_ed_range > 0 ? Math.max(0, Math.min(1.0, dist_from_before / height_ed_range)) : 0;
 
     return kfBefore.previewScrollY + ratio * (kfAfter.previewScrollY - kfBefore.previewScrollY);
   }
@@ -539,7 +604,15 @@ class ScrollSync {
       }
     }
 
-    const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    let height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    if (typeof this.cm.heightAtLine === 'function') {
+      const yBefore = this.cm.heightAtLine(kfBefore.line - 1, 'local');
+      const yAfter = this.cm.heightAtLine(kfAfter.line - 1, 'local');
+      if (yAfter > yBefore) {
+        height_ed_range = yAfter - yBefore;
+      }
+    }
+
     const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
 
     let scaleFactor = 0;
@@ -674,16 +747,39 @@ class ScrollSync {
     this._listeners.push({ target: cmWrapper, event: 'mouseenter', handler: onCmMouseEnter });
     this._listeners.push({ target: this.previewViewport, event: 'mouseenter', handler: onPreviewMouseEnter });
 
-    // CodeMirror event handlers
-    const onCmCursorActivity = () => { this.syncPreviewToCursor(); };
+    // CodeMirror mouse & cursor event handlers
+    const onCmMouseDown = () => {
+      this.isMouseClicking = true;
+      this.activeScrollSource = 'editor';
+    };
+
+    const onCmMouseUp = () => {
+      if (this.isMouseClicking) {
+        this.syncPreviewToCursor();
+        this.isMouseClicking = false;
+      }
+    };
+
+    const onCmCursorActivity = () => {
+      // 마우스 클릭으로 커서를 이동시켰을 때 즉시 프리뷰 스크롤 정렬
+      if (this.isMouseClicking) {
+        this.syncPreviewToCursor();
+        this.isMouseClicking = false;
+      }
+    };
+
     const onCmFocus = () => { this.activeScrollSource = 'editor'; };
     const onCmScroll = () => { this._handleEditorScroll(); };
 
+    this.cm.on('mousedown', onCmMouseDown);
+    this.cm.on('mouseup', onCmMouseUp);
     this.cm.on('cursorActivity', onCmCursorActivity);
     this.cm.on('focus', onCmFocus);
     this.cm.on('scroll', onCmScroll);
 
     this._cmListeners = [
+      { event: 'mousedown', handler: onCmMouseDown },
+      { event: 'mouseup', handler: onCmMouseUp },
       { event: 'cursorActivity', handler: onCmCursorActivity },
       { event: 'focus', handler: onCmFocus },
       { event: 'scroll', handler: onCmScroll }
