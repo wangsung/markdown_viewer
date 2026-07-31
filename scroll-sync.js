@@ -400,7 +400,7 @@ class ScrollSync {
       const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
       newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
 
-      this.previewViewport.scrollTop = newScrollTop;
+      this.previewViewport.scrollTo({ top: newScrollTop, behavior: 'smooth' });
       const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
 
       if (targetId) {
