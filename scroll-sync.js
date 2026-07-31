@@ -77,7 +77,9 @@ class ScrollSync {
   findPreviewElementByIdentifier(id) {
     if (!id || id === '[START]' || id === '[END]' || !this.previewContainer) return null;
 
-    const candidates = this.previewContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table');
+    // 코드 블록 내부 요소 오매칭 방지 (pre code 태그 내부 자식 요소 제외)
+    const candidates = Array.from(this.previewContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table'))
+      .filter(el => !el.closest('pre code') || el.tagName.toLowerCase() === 'pre');
 
     let baseId = id;
     const lineSuffixMatch = id.match(/(.+)_line_\d+$/);
@@ -86,6 +88,7 @@ class ScrollSync {
     }
 
     const cleanId = baseId.trim().toLowerCase();
+    if (!cleanId) return null;
 
     for (let el of candidates) {
       const text = el.textContent.trim().toLowerCase();
@@ -280,6 +283,7 @@ class ScrollSync {
       this.keyframes.splice(insertIdx, 0, newKf);
     }
 
+    this.enforceMonotonicity();
     this._notifyDebug();
   }
 
@@ -311,6 +315,33 @@ class ScrollSync {
           kf.previewPercent = Math.max(kf.editorPercent, kf.previewPercent - deltaLower * factor);
           kf.previewScrollY = kf.previewPercent * (this.previewViewport.scrollHeight - this.previewViewport.clientHeight);
         }
+      }
+    }
+    this.enforceMonotonicity();
+  }
+
+  /**
+   * Enforce strict monotonicity across all keyframes to prevent reverse scroll jumps
+   */
+  enforceMonotonicity() {
+    if (this.keyframes.length < 2) return;
+    const maxPreviewScrollY = this.previewViewport ? Math.max(0, this.previewViewport.scrollHeight - this.previewViewport.clientHeight) : 0;
+
+    for (let i = 1; i < this.keyframes.length; i++) {
+      const prev = this.keyframes[i - 1];
+      const curr = this.keyframes[i];
+
+      // 1. previewPercent 단조 증가 보정
+      if (curr.previewPercent < prev.previewPercent) {
+        curr.previewPercent = Math.min(0.999, prev.previewPercent + 0.0001);
+      }
+
+      // 2. previewScrollY (픽셀) 단조 증가 보정
+      if (maxPreviewScrollY > 0) {
+        const expectedScrollY = curr.previewPercent * maxPreviewScrollY;
+        curr.previewScrollY = Math.max(prev.previewScrollY, expectedScrollY);
+      } else if (curr.previewScrollY < prev.previewScrollY) {
+        curr.previewScrollY = prev.previewScrollY;
       }
     }
   }
