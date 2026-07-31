@@ -420,7 +420,13 @@ body {
     justify-content: space-between;
     padding: 0 12px;
     gap: 8px;
-    z-index: 6;
+    z-index: 100;
+    overflow: visible !important;
+}
+
+#preview-panel {
+    overflow: visible !important;
+    position: relative;
 }
 
 .preview-toolbar-group {
@@ -428,6 +434,7 @@ body {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    position: relative;
 }
 
 .toolbar::-webkit-scrollbar {
