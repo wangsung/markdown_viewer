@@ -29,6 +29,7 @@ class ScrollSync {
     this.lastEditorScrollTop = -1;
     this.lastPreviewScrollTop = -1;
     this.isSyncing = false;
+    this.isMouseClicking = false;   // Track whether cursor move originated from mouse click
 
     // Event listener references for clean cleanup
     this._listeners = [];
@@ -382,22 +383,28 @@ class ScrollSync {
     if (targetEl) {
       const containerRect = this.previewViewport.getBoundingClientRect();
       const elRect = targetEl.getBoundingClientRect();
-
       const topOffset = elRect.top - containerRect.top;
-      const bottomOffset = elRect.bottom - containerRect.top;
-      const padding = 20;
 
-      if (topOffset < padding || bottomOffset > (containerRect.height - padding)) {
-        let newScrollTop = this.previewViewport.scrollTop + topOffset - padding;
-        const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
-        newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+      // 에디터 뷰포트 창 내 커서의 수직 높이 비율 산출 (0.1 ~ 0.9 범위로 클램핑)
+      const scrollInfo = this.cm.getScrollInfo();
+      let cursorRatio = 0.3;
+      if (scrollInfo.clientHeight > 0 && typeof this.cm.heightAtLine === 'function') {
+        const cursorLineTop = this.cm.heightAtLine(cursorLine - 1, 'local');
+        const cursorRelativeTop = cursorLineTop - scrollInfo.top;
+        cursorRatio = Math.max(0.1, Math.min(0.9, cursorRelativeTop / scrollInfo.clientHeight));
+      }
 
-        this.previewViewport.scrollTop = newScrollTop;
-        const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
+      // 프리뷰 뷰포트 내 동일 상대 높이(cursorRatio) 위치에 정확히 정렬되도록 ScrollTop 산출
+      const targetPreviewRelativeTop = cursorRatio * containerRect.height;
+      let newScrollTop = this.previewViewport.scrollTop + topOffset - targetPreviewRelativeTop;
+      const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
+      newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
 
-        if (targetId) {
-          this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop);
-        }
+      this.previewViewport.scrollTop = newScrollTop;
+      const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
+
+      if (targetId) {
+        this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop);
       }
     }
   }
@@ -705,16 +712,39 @@ class ScrollSync {
     this._listeners.push({ target: cmWrapper, event: 'mouseenter', handler: onCmMouseEnter });
     this._listeners.push({ target: this.previewViewport, event: 'mouseenter', handler: onPreviewMouseEnter });
 
-    // CodeMirror event handlers
-    const onCmCursorActivity = () => { this.syncPreviewToCursor(); };
+    // CodeMirror mouse & cursor event handlers
+    const onCmMouseDown = () => {
+      this.isMouseClicking = true;
+      this.activeScrollSource = 'editor';
+    };
+
+    const onCmMouseUp = () => {
+      if (this.isMouseClicking) {
+        this.syncPreviewToCursor();
+        this.isMouseClicking = false;
+      }
+    };
+
+    const onCmCursorActivity = () => {
+      // 마우스 클릭으로 커서를 이동시켰을 때 즉시 프리뷰 스크롤 정렬
+      if (this.isMouseClicking) {
+        this.syncPreviewToCursor();
+        this.isMouseClicking = false;
+      }
+    };
+
     const onCmFocus = () => { this.activeScrollSource = 'editor'; };
     const onCmScroll = () => { this._handleEditorScroll(); };
 
+    this.cm.on('mousedown', onCmMouseDown);
+    this.cm.on('mouseup', onCmMouseUp);
     this.cm.on('cursorActivity', onCmCursorActivity);
     this.cm.on('focus', onCmFocus);
     this.cm.on('scroll', onCmScroll);
 
     this._cmListeners = [
+      { event: 'mousedown', handler: onCmMouseDown },
+      { event: 'mouseup', handler: onCmMouseUp },
       { event: 'cursorActivity', handler: onCmCursorActivity },
       { event: 'focus', handler: onCmFocus },
       { event: 'scroll', handler: onCmScroll }
