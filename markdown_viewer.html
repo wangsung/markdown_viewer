@@ -100,34 +100,6 @@
 
         <!-- 보기 스타일 설정 (글꼴, 크기, 선 색상) -->
         <div class="menu-center">
-            <div class="menu-item">
-                <label for="font-select">글꼴</label>
-                <select id="font-select">
-                    <option value="system-ui, -apple-system, sans-serif">시스템 기본</option>
-                    <option value="'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Sans-Serif (고딕)</option>
-                    <option value="Georgia, 'Times New Roman', serif">Serif (명조)</option>
-                    <option value="'Courier New', Courier, monospace">Monospace (고정폭)</option>
-                </select>
-            </div>
-
-            <div class="menu-item">
-                <label for="font-size-select">크기</label>
-                <div class="font-size-container" style="display: inline-flex; align-items: center; gap: 4px;">
-                    <select id="font-size-select" style="margin-right: 0;">
-                        <option value="12px">12px</option>
-                        <option value="14px">14px</option>
-                        <option value="16px" selected>16px</option>
-                        <option value="18px">18px</option>
-                        <option value="20px">20px</option>
-                        <option value="24px">24px</option>
-                    </select>
-                    <div class="spin-buttons" style="display: flex; flex-direction: column; width: 18px; height: 28px; border: 1px solid var(--border-frame); border-radius: 4px; overflow: hidden; background: var(--bg-frame-secondary);">
-                        <button id="btn-font-size-up" title="폰트 크기 증가" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s; border-bottom: 1px solid var(--border-frame);">▲</button>
-                        <button id="btn-font-size-down" title="폰트 크기 감소" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s;">▼</button>
-                    </div>
-                </div>
-            </div>
-
             <!-- 테마 토글 버튼 (Scroll Sync 왼쪽 배치) -->
             <div class="menu-item" style="display: flex; align-items: center; align-self: center;">
                 <button id="btn-theme-toggle" class="btn btn-secondary" title="다크 / 라이트 테마를 전환합니다." style="display: flex; align-items: center; gap: 6px; padding: 5px 10px;">
@@ -146,79 +118,6 @@
         </div>
 
         <div class="menu-right">
-            <!-- 보기 설정 드롭다운 메뉴 -->
-            <div class="dropdown" id="view-dropdown">
-                <button id="btn-view" class="btn btn-secondary" title="화면 보기 설정을 변경합니다.">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    보기
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-menu" id="view-menu">
-                    <div class="dropdown-item-toggle">
-                        <label class="toggle-control" id="math-render-wrapper">
-                            <input type="checkbox" id="math-render" checked>
-                            <span class="toggle-label">수식</span>
-                        </label>
-                    </div>
-                    <div class="dropdown-item-toggle">
-                        <label class="toggle-control" id="diagram-render-wrapper">
-                            <input type="checkbox" id="diagram-render" checked>
-                            <span class="toggle-label">Mermaid</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Heading Style 드롭다운 메뉴 (내보내기 메뉴 왼쪽에 배치) -->
-            <div class="dropdown" id="heading-dropdown">
-                <button id="btn-heading-style" class="btn btn-secondary" title="Heading 스타일 세트를 선택하거나 편집합니다.">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h7"></path></svg>
-                    Heading Style
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-menu" id="heading-style-menu">
-                    <div class="dropdown-item-select">
-                        <label for="heading-preset-select">Heading Style 선택</label>
-                        <select id="heading-preset-select">
-                            <option value="github_classic">1. GitHub Classic</option>
-                            <option value="ocean_breeze">2. Ocean Breeze (오션)</option>
-                            <option value="emerald_forest">3. Emerald Forest (에메랄드)</option>
-                            <option value="crimson_elegant">4. Crimson Elegant (크림슨)</option>
-                            <option value="violet_modern">5. Violet Modern (바이올렛)</option>
-                            <option value="codemirror_classic">6. CodeMirror Classic</option>
-                        </select>
-                    </div>
-                    <button id="btn-edit-heading-style" class="dropdown-item" title="Heading 커스텀 세트 편집 모달을 엽니다.">
-                        ⚙️ 스타일 편집...
-                    </button>
-                </div>
-            </div>
-
-            <div class="dropdown" id="export-dropdown">
-                <button id="btn-export" class="btn btn-secondary" title="문서를 내보내거나 복사합니다.">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
-                    내보내기
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="dropdown-menu" id="export-menu">
-                    <button id="btn-copy" class="dropdown-item" title="프리뷰 화면의 전체 내용을 선택하여 복사합니다.">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Preview 복사
-                    </button>
-                    <button id="btn-export-html" class="dropdown-item" title="프리뷰 화면을 스타일이 포함된 HTML 파일로 저장합니다.">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        Preview HTML 저장
-                    </button>
-                    <button id="btn-open-new-window" class="dropdown-item" title="프리뷰 화면을 스타일이 포함된 HTML 형태로 새 창에서 엽니다.">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        HTML 새창 띄우기 (스타일)
-                    </button>
-                    <button id="btn-open-new-window-default" class="dropdown-item" title="프리뷰 화면의 기본 HTML 구조만 새 창에서 엽니다.">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        HTML 새창 띄우기 (기본)
-                    </button>
-                </div>
-            </div>
             <button id="btn-debug" class="btn btn-secondary" title="키프레임 동기화 디버깅 패널을 토글합니다.">
                 🐞 키프레임
             </button>
@@ -346,6 +245,115 @@ greet('사용자');
 
         <!-- 우측 패널: 프리뷰 -->
         <section class="panel right" id="preview-panel">
+            <!-- 프리뷰 전용 툴바 -->
+            <div class="toolbar preview-toolbar" id="preview-toolbar">
+                <div class="preview-toolbar-group">
+                    <div class="menu-item">
+                        <label for="font-select">글꼴</label>
+                        <select id="font-select">
+                            <option value="system-ui, -apple-system, sans-serif">시스템 기본</option>
+                            <option value="'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Sans-Serif (고딕)</option>
+                            <option value="Georgia, 'Times New Roman', serif">Serif (명조)</option>
+                            <option value="'Courier New', Courier, monospace">Monospace (고정폭)</option>
+                        </select>
+                    </div>
+
+                    <div class="menu-item">
+                        <label for="font-size-select">크기</label>
+                        <div class="font-size-container" style="display: inline-flex; align-items: center; gap: 4px;">
+                            <select id="font-size-select" style="margin-right: 0;">
+                                <option value="12px">12px</option>
+                                <option value="14px">14px</option>
+                                <option value="16px" selected>16px</option>
+                                <option value="18px">18px</option>
+                                <option value="20px">20px</option>
+                                <option value="24px">24px</option>
+                            </select>
+                            <div class="spin-buttons" style="display: flex; flex-direction: column; width: 18px; height: 28px; border: 1px solid var(--border-frame); border-radius: 4px; overflow: hidden; background: var(--bg-frame-secondary);">
+                                <button id="btn-font-size-up" title="폰트 크기 증가" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s; border-bottom: 1px solid var(--border-frame);">▲</button>
+                                <button id="btn-font-size-down" title="폰트 크기 감소" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s;">▼</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-toolbar-group">
+                    <!-- 보기 설정 드롭다운 메뉴 -->
+                    <div class="dropdown" id="view-dropdown">
+                        <button id="btn-view" class="btn btn-secondary" title="화면 보기 설정을 변경합니다.">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            보기
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="dropdown-menu" id="view-menu">
+                            <div class="dropdown-item-toggle">
+                                <label class="toggle-control" id="math-render-wrapper">
+                                    <input type="checkbox" id="math-render" checked>
+                                    <span class="toggle-label">수식</span>
+                                </label>
+                            </div>
+                            <div class="dropdown-item-toggle">
+                                <label class="toggle-control" id="diagram-render-wrapper">
+                                    <input type="checkbox" id="diagram-render" checked>
+                                    <span class="toggle-label">Mermaid</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Heading Style 드롭다운 메뉴 (내보내기 메뉴 왼쪽에 배치) -->
+                    <div class="dropdown" id="heading-dropdown">
+                        <button id="btn-heading-style" class="btn btn-secondary" title="Heading 스타일 세트를 선택하거나 편집합니다.">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                            Heading Style
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="dropdown-menu" id="heading-style-menu">
+                            <div class="dropdown-item-select">
+                                <label for="heading-preset-select">Heading Style 선택</label>
+                                <select id="heading-preset-select">
+                                    <option value="github_classic">1. GitHub Classic</option>
+                                    <option value="ocean_breeze">2. Ocean Breeze (오션)</option>
+                                    <option value="emerald_forest">3. Emerald Forest (에메랄드)</option>
+                                    <option value="crimson_elegant">4. Crimson Elegant (크림슨)</option>
+                                    <option value="violet_modern">5. Violet Modern (바이올렛)</option>
+                                    <option value="codemirror_classic">6. CodeMirror Classic</option>
+                                </select>
+                            </div>
+                            <button id="btn-edit-heading-style" class="dropdown-item" title="Heading 커스텀 세트 편집 모달을 엽니다.">
+                                ⚙️ 스타일 편집...
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="dropdown" id="export-dropdown">
+                        <button id="btn-export" class="btn btn-secondary" title="문서를 내보내거나 복사합니다.">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                            내보내기
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <div class="dropdown-menu" id="export-menu">
+                            <button id="btn-copy" class="dropdown-item" title="프리뷰 화면의 전체 내용을 선택하여 복사합니다.">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Preview 복사
+                            </button>
+                            <button id="btn-export-html" class="dropdown-item" title="프리뷰 화면을 스타일이 포함된 HTML 파일로 저장합니다.">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                Preview HTML 저장
+                            </button>
+                            <button id="btn-open-new-window" class="dropdown-item" title="프리뷰 화면을 스타일이 포함된 HTML 형태로 새 창에서 엽니다.">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                HTML 새창 띄우기 (스타일)
+                            </button>
+                            <button id="btn-open-new-window-default" class="dropdown-item" title="프리뷰 화면의 기본 HTML 구조만 새 창에서 엽니다.">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                                HTML 새창 띄우기 (기본)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="preview-viewport">
                 <div id="preview" class="markdown-body"></div>
             </div>

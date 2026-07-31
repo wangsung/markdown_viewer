@@ -416,6 +416,20 @@ body {
     flex-shrink: 0;
 }
 
+.preview-toolbar {
+    justify-content: space-between;
+    padding: 0 12px;
+    gap: 8px;
+    z-index: 6;
+}
+
+.preview-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .toolbar::-webkit-scrollbar {
     height: 3px;
 }
