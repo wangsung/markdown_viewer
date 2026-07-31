@@ -9,6 +9,8 @@
 - **읽기 전용 조회 무승인 자동 실행 (Read-Only Git Commands)**: `git log`, `git worktree list`, `git status`, `git diff`, `git branch` 등 저장소의 상태나 이력을 단순히 조회(Read Only)하는 작업은 언제나 사용자 사전 승인 없이 즉시 자동으로 실행합니다.
 
 ## 깃 브랜치 및 워크트리 병합 및 삭제 지침 (Git Branch & Worktree Merge & Removal Rules)
+- **신규 워크트리 생성 사전 승인 지침 (Worktree Creation Confirmation Policy)**:
+  - 새로운 워크트리(Worktree) 생성이 필요한 경우, 임의로 생성하지 않고 반드시 생성 목적 및 브랜치명과 함께 사용자에게 사전 확인(Confirm) 및 승인을 받은 후에만 생성을 진행해야 합니다.
 - **신규 워크트리 작업 지침 (Worktree Working Target Policy)**:
   - 새로운 워크트리(Worktree)를 생성한 경우, 이후의 코드 수정 및 기능 구현 작업은 반드시 **새로 생성된 워크트리 디렉토리 내의 소스코드**를 대상으로 진행해야 합니다.
   - 작업 진행 상황이나 결과를 사용자에게 안내할 때는 해당 작업이 **특정 워크트리(Worktree 경로 및 브랜치명)**에서 진행되었음을 명확히 표시(응답에 명시)해야 합니다.
