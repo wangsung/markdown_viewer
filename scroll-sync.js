@@ -452,8 +452,19 @@ class ScrollSync {
       return kfBefore.previewScrollY;
     }
 
-    const denom = kfAfter.editorPercent - kfBefore.editorPercent;
-    const ratio = denom > 0 ? (currentPercent - kfBefore.editorPercent) / denom : 0;
+    let height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    let dist_from_before = (currentPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+
+    if (typeof this.cm.heightAtLine === 'function') {
+      const yBefore = this.cm.heightAtLine(kfBefore.line - 1, 'local');
+      const yAfter = this.cm.heightAtLine(kfAfter.line - 1, 'local');
+      if (yAfter > yBefore) {
+        height_ed_range = yAfter - yBefore;
+        dist_from_before = editorScrollTop - yBefore;
+      }
+    }
+
+    const ratio = height_ed_range > 0 ? Math.max(0, Math.min(1.0, dist_from_before / height_ed_range)) : 0;
 
     return kfBefore.previewScrollY + ratio * (kfAfter.previewScrollY - kfBefore.previewScrollY);
   }
@@ -593,7 +604,15 @@ class ScrollSync {
       }
     }
 
-    const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    let height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+    if (typeof this.cm.heightAtLine === 'function') {
+      const yBefore = this.cm.heightAtLine(kfBefore.line - 1, 'local');
+      const yAfter = this.cm.heightAtLine(kfAfter.line - 1, 'local');
+      if (yAfter > yBefore) {
+        height_ed_range = yAfter - yBefore;
+      }
+    }
+
     const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
 
     let scaleFactor = 0;
