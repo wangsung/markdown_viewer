@@ -129,7 +129,8 @@ class ScrollSync {
           line: line,
           editorPercent: editorPercent,
           previewPercent: previewPercent,
-          previewScrollY: previewScrollY
+          previewScrollY: previewScrollY,
+          isUserPinned: false
         });
       }
     });
@@ -146,7 +147,8 @@ class ScrollSync {
         line: 1,
         editorPercent: 0,
         previewPercent: 0,
-        previewScrollY: 0
+        previewScrollY: 0,
+        isUserPinned: false
       });
     }
 
@@ -158,7 +160,8 @@ class ScrollSync {
         line: totalLines,
         editorPercent: 1.0,
         previewPercent: 1.0,
-        previewScrollY: Math.max(0, maxPreviewScrollY)
+        previewScrollY: Math.max(0, maxPreviewScrollY),
+        isUserPinned: false
       });
     }
 
@@ -177,8 +180,8 @@ class ScrollSync {
     // Guarantee minimum 2 boundary anchors
     if (this.keyframes.length < 2) {
       this.keyframes = [
-        { id: '[START]', line: 1, editorPercent: 0, previewPercent: 0, previewScrollY: 0 },
-        { id: '[END]', line: totalLines, editorPercent: 1.0, previewPercent: 1.0, previewScrollY: Math.max(0, maxPreviewScrollY) }
+        { id: '[START]', line: 1, editorPercent: 0, previewPercent: 0, previewScrollY: 0, isUserPinned: false },
+        { id: '[END]', line: totalLines, editorPercent: 1.0, previewPercent: 1.0, previewScrollY: Math.max(0, maxPreviewScrollY), isUserPinned: false }
       ];
     }
 
@@ -227,7 +230,15 @@ class ScrollSync {
   /**
    * Dynamically add or update keyframe with monotonicity clamping and proportional rescaling
    */
-  addOrUpdateKeyframe(id, line, newPercent, targetScrollTop) {
+  /**
+   * Dynamically add or update keyframe with monotonicity clamping and proportional rescaling
+   * @param {string} id 
+   * @param {number} line 
+   * @param {number} newPercent 
+   * @param {number} targetScrollTop 
+   * @param {boolean} [isUserPinned=false] - Whether this keyframe was explicitly set/pinned by user mouse action
+   */
+  addOrUpdateKeyframe(id, line, newPercent, targetScrollTop, isUserPinned = false) {
     if (this.keyframes.length < 2) {
       this.rebuildKeyframes();
     }
@@ -253,6 +264,7 @@ class ScrollSync {
       const oldPercent = this.keyframes[existingIdx].previewPercent;
       this.keyframes[existingIdx].previewPercent = clampedPercent;
       this.keyframes[existingIdx].previewScrollY = targetScrollTop;
+      this.keyframes[existingIdx].isUserPinned = !!isUserPinned; // 사용자 마우스 클릭 설정 고정 플래그 저장을 통한 미세 재조정 방지
 
       this.rescaleKeyframePercentages(existingIdx, oldPercent, clampedPercent);
     } else {
@@ -278,7 +290,8 @@ class ScrollSync {
         line: line,
         editorPercent: (line - 1) / (this.cm.lineCount() - 1 || 1),
         previewPercent: clampedPercent,
-        previewScrollY: targetScrollTop
+        previewScrollY: targetScrollTop,
+        isUserPinned: !!isUserPinned // 사용자 마우스 클릭 설정 고정 플래그 저장을 통한 미세 재조정 방지
       };
 
       this.keyframes.splice(insertIdx, 0, newKf);
@@ -290,6 +303,7 @@ class ScrollSync {
 
   /**
    * Proportionally rescale upper and lower keyframe boundaries
+   * Excludes keyframes explicitly set by user mouse clicks (isUserPinned === true)
    */
   rescaleKeyframePercentages(pivotIndex, oldPercent, newPercent) {
     if (this.keyframes.length <= 2) return;
@@ -300,6 +314,7 @@ class ScrollSync {
       if (spaceUpper > 0) {
         for (let i = pivotIndex + 1; i < this.keyframes.length - 1; i++) {
           const kf = this.keyframes[i];
+          if (kf.isUserPinned) continue; // 마우스 클릭으로 고정된 키프레임은 미세 재조정 제외
           const factor = (1.0 - kf.previewPercent) / spaceUpper;
           kf.previewPercent = Math.min(0.98, kf.previewPercent + deltaUpper * factor);
           kf.previewScrollY = kf.previewPercent * (this.previewViewport.scrollHeight - this.previewViewport.clientHeight);
@@ -311,6 +326,7 @@ class ScrollSync {
       if (spaceLower > 0) {
         for (let i = 1; i < pivotIndex; i++) {
           const kf = this.keyframes[i];
+          if (kf.isUserPinned) continue; // 마우스 클릭으로 고정된 키프레임은 미세 재조정 제외
           const factor = (kf.previewPercent - 0.0) / spaceLower;
           // Floor bound: never shrink below editorPercent
           kf.previewPercent = Math.max(kf.editorPercent, kf.previewPercent - deltaLower * factor);
@@ -404,7 +420,7 @@ class ScrollSync {
       const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
 
       if (targetId) {
-        this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop);
+        this.addOrUpdateKeyframe(targetId, cursorLine, newPercent, newScrollTop, true);
       }
     }
   }
