@@ -100,7 +100,34 @@
 
         <!-- 보기 스타일 설정 (글꼴, 크기, 선 색상) -->
         <div class="menu-center">
-            <!-- 테마 토글 버튼 (Scroll Sync 왼쪽 배치) -->
+            <div class="menu-item" style="display: flex; align-items: center; align-self: center;">
+                <label class="toggle-control" id="scroll-sync-wrapper" style="margin: 0;">
+                    <input type="checkbox" id="scroll-sync" checked>
+                    <span class="toggle-label">Scroll Sync</span>
+                </label>
+            </div>
+
+            <div class="menu-item" style="display: flex; align-items: center; align-self: center; margin-left: 8px;">
+                <label for="font-size-select" style="margin-right: 6px;">크기</label>
+                <div class="font-size-container" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <select id="font-size-select" style="margin-right: 0;">
+                        <option value="12px">12px</option>
+                        <option value="14px">14px</option>
+                        <option value="16px" selected>16px</option>
+                        <option value="18px">18px</option>
+                        <option value="20px">20px</option>
+                        <option value="24px">24px</option>
+                    </select>
+                    <div class="spin-buttons" style="display: flex; flex-direction: column; width: 18px; height: 28px; border: 1px solid var(--border-frame); border-radius: 4px; overflow: hidden; background: var(--bg-frame-secondary);">
+                        <button id="btn-font-size-up" title="폰트 크기 증가" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s; border-bottom: 1px solid var(--border-frame);">▲</button>
+                        <button id="btn-font-size-down" title="폰트 크기 감소" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s;">▼</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="menu-right">
+            <!-- 테마 토글 버튼 (키프레임 왼쪽에 배치) -->
             <div class="menu-item" style="display: flex; align-items: center; align-self: center;">
                 <button id="btn-theme-toggle" class="btn btn-secondary" title="다크 / 라이트 테마를 전환합니다." style="display: flex; align-items: center; gap: 6px; padding: 5px 10px;">
                     <svg class="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
@@ -109,18 +136,10 @@
                 </button>
             </div>
 
-            <div class="menu-item" style="display: flex; align-items: center; align-self: center;">
-                <label class="toggle-control" id="scroll-sync-wrapper" style="margin: 0;">
-                    <input type="checkbox" id="scroll-sync" checked>
-                    <span class="toggle-label">Scroll Sync</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="menu-right">
             <button id="btn-debug" class="btn btn-secondary" title="키프레임 동기화 디버깅 패널을 토글합니다.">
                 🐞 키프레임
             </button>
+
             <button id="btn-settings" class="btn btn-secondary" title="설정 다이얼로그를 엽니다.">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 설정
@@ -257,24 +276,6 @@ greet('사용자');
                             <option value="'Courier New', Courier, monospace">Monospace (고정폭)</option>
                         </select>
                     </div>
-
-                    <div class="menu-item">
-                        <label for="font-size-select">크기</label>
-                        <div class="font-size-container" style="display: inline-flex; align-items: center; gap: 4px;">
-                            <select id="font-size-select" style="margin-right: 0;">
-                                <option value="12px">12px</option>
-                                <option value="14px">14px</option>
-                                <option value="16px" selected>16px</option>
-                                <option value="18px">18px</option>
-                                <option value="20px">20px</option>
-                                <option value="24px">24px</option>
-                            </select>
-                            <div class="spin-buttons" style="display: flex; flex-direction: column; width: 18px; height: 28px; border: 1px solid var(--border-frame); border-radius: 4px; overflow: hidden; background: var(--bg-frame-secondary);">
-                                <button id="btn-font-size-up" title="폰트 크기 증가" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s; border-bottom: 1px solid var(--border-frame);">▲</button>
-                                <button id="btn-font-size-down" title="폰트 크기 감소" style="flex: 1; border: none; background: transparent; color: var(--text-frame-muted); padding: 0; font-size: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s, color 0.15s;">▼</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="preview-toolbar-group">
@@ -301,16 +302,16 @@ greet('사용자');
                         </div>
                     </div>
 
-                    <!-- Heading Style 드롭다운 메뉴 (내보내기 메뉴 왼쪽에 배치) -->
+                    <!-- Style Theme 드롭다운 메뉴 (내보내기 메뉴 왼쪽에 배치) -->
                     <div class="dropdown" id="heading-dropdown">
-                        <button id="btn-heading-style" class="btn btn-secondary" title="Heading 스타일 세트를 선택하거나 편집합니다.">
+                        <button id="btn-heading-style" class="btn btn-secondary" title="스타일 테마 세트를 선택하거나 편집합니다.">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h7"></path></svg>
-                            Heading Style
+                            Style Theme
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </button>
                         <div class="dropdown-menu" id="heading-style-menu">
                             <div class="dropdown-item-select">
-                                <label for="heading-preset-select">Heading Style 선택</label>
+                                <label for="heading-preset-select">Style Theme 선택</label>
                                 <select id="heading-preset-select">
                                     <option value="github_classic">1. GitHub Classic</option>
                                     <option value="ocean_breeze">2. Ocean Breeze (오션)</option>
