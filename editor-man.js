@@ -326,6 +326,22 @@ window.EditorManager = (function() {
             targetEl.style.setProperty('--blockquote-border-color', targetBqBorder);
         }
 
+        // 📋 리스트 (List / Bullet & Numbering)
+        if (styles.list) {
+            const listObj = styles.list;
+            const targetListColor = currentTheme === 'light'
+                ? (listObj.colorLight || listObj.color || '#0284c7')
+                : (listObj.colorDark || listObj.color || '#38bdf8');
+            targetEl.style.setProperty('--list-marker-color', targetListColor);
+            if (listObj.gap) targetEl.style.setProperty('--list-item-gap', listObj.gap);
+        } else {
+            // 기본 리스트 기호 색상은 theme-color 또는 link-color 활용
+            const defaultListColor = currentTheme === 'light'
+                ? (styles.link?.colorLight || '#0969da')
+                : (styles.link?.colorDark || '#38bdf8');
+            targetEl.style.setProperty('--list-marker-color', defaultListColor);
+        }
+
         // ➖ Line (선 색상/구분선) 적용
         if (styles.line) {
             const lineObj = styles.line;

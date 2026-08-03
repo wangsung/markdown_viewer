@@ -175,6 +175,7 @@ async function runTestSuite() {
         assert(styleVars['--h1-color'] === '#3b82f6', "apply_heading_preset: --h1-color CSS 변수 올바르게 주입");
         assert(styleVars['--h1-size'] === '2.2em', "apply_heading_preset: --h1-size CSS 변수 올바르게 주입");
         assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_preset: --link-color CSS 변수 올바르게 주입");
+        assert(styleVars['--list-marker-color'] === '#38bdf8', "apply_heading_preset: --list-marker-color CSS 변수 올바르게 주입");
     } else {
         assert(false, "apply_heading_preset 순수 서브 함수 추출 실패");
     }
