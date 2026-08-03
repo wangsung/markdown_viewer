@@ -48,6 +48,13 @@ class MockDocument {
             this.editorCmCode.style.backgroundColor = rgbValue;
             this.editorCmComment.style.backgroundColor = rgbValue;
         }
+        if (name === '--custom-inline-code-bg') {
+            let rgbValue = value;
+            if (value === '#fef08a') {
+                rgbValue = 'rgb(254, 240, 138)';
+            }
+            this.previewPre.style.inlineBg = rgbValue;
+        }
         if (name === '--custom-code-block-fg') {
             let rgbValue = value;
             if (value === '#f43f5e') {
@@ -62,6 +69,7 @@ const document = new MockDocument();
 
 // Test setting the variables
 document.setCssVar('--custom-code-block-bg', '#dcfce7');
+document.setCssVar('--custom-inline-code-bg', '#fef08a');
 document.setCssVar('--custom-code-block-fg', '#f43f5e');
 
 // 4 & 5. Asserts
@@ -69,6 +77,13 @@ if (document.previewPre.style.backgroundColor === 'rgb(220, 252, 231)') {
     console.log('PASS: Preview pre codeblock background receives pastel green (#dcfce7)');
 } else {
     console.error('FAIL: Preview pre codeblock background assertion failed');
+    pass = false;
+}
+
+if (document.previewPre.style.inlineBg === 'rgb(254, 240, 138)') {
+    console.log('PASS: Preview inline code background receives pastel yellow (#fef08a)');
+} else {
+    console.error('FAIL: Preview inline code background assertion failed');
     pass = false;
 }
 

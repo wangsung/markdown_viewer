@@ -312,15 +312,29 @@ window.EditorManager = (function() {
                 : (codeObj.colorDark || codeObj.color || '#38bdf8');
             targetEl.style.setProperty('--code-color', targetCodeColor);
             
-            const targetCbBg = currentTheme === 'light'
-                ? (codeObj.bgLight || codeObj.bg || null)
-                : (codeObj.bgDark || codeObj.bg || null);
-            targetEl.style.setProperty('--custom-code-block-bg', targetCbBg || '#dcfce7');
+            const targetInlineBg = currentTheme === 'light'
+                ? (codeObj.inlineBgLight || codeObj.inlineBg || null)
+                : (codeObj.inlineBgDark || codeObj.inlineBg || null);
+            if (targetInlineBg && targetInlineBg !== 'transparent' && targetInlineBg !== 'rgba(0, 0, 0, 0)') {
+                targetEl.style.setProperty('--custom-inline-code-bg', targetInlineBg);
+            } else {
+                targetEl.style.removeProperty('--custom-inline-code-bg');
+            }
+        }
 
-            const targetCbFg = currentTheme === 'light'
-                ? (codeObj.fgLight || codeObj.fg || null)
-                : (codeObj.fgDark || codeObj.fg || null);
-            targetEl.style.setProperty('--custom-code-block-fg', targetCbFg || '#f43f5e');
+        // 📦 ``` Code block
+        if (styles.codeblock) {
+            const cbObj = styles.codeblock;
+            const targetCbText = currentTheme === 'light'
+                ? (cbObj.colorLight || '#24292e')
+                : (cbObj.colorDark || '#f8fafc');
+            const targetCbBg = currentTheme === 'light'
+                ? (cbObj.bgLight || '#f6f8fa')
+                : (cbObj.bgDark || '#0f172a');
+            targetEl.style.setProperty('--preview-code-text', targetCbText);
+            targetEl.style.setProperty('--custom-code-block-fg', targetCbText);
+            targetEl.style.setProperty('--preview-code-bg', targetCbBg);
+            targetEl.style.setProperty('--custom-code-block-bg', targetCbBg);
         }
 
         // 💬 인용문 (Blockquote)

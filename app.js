@@ -336,6 +336,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     let changed = false;
+                    
+                    parsed.forEach(p => {
+                        if (p.styles && !p.styles.codeblock) {
+                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
+                            changed = true;
+                        }
+                    });
+
                     const defaultPresets = window.StyleEditor.getDefaultPresets();
                     defaultPresets.forEach(defPreset => {
                         if (!parsed.some(p => p.id === defPreset.id)) {
@@ -1056,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
         const cssVarList = [
             '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
-            '--preview-code-bg', '--preview-blockquote-bg', '--preview-blockquote-text',
+            '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text',
             '--h1-color', '--h1-size', '--h1-border',
             '--h2-color', '--h2-size', '--h2-border',
             '--h3-color', '--h3-size', '--h3-border',

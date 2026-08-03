@@ -243,6 +243,7 @@ const ExportManager = (function() {
             overflow: auto;
             font-size: 85%;
             line-height: 1.45;
+            color: var(--preview-code-text, inherit);
             background-color: var(--preview-code-bg, rgba(0,0,0,0.05)) !important;
             border-radius: 6px;
             border: 1px solid var(--preview-border, rgba(255,255,255,0.1)) !important;

@@ -968,7 +968,7 @@ body {
     margin: 0;
     font-size: 85%;
     color: var(--code-color, inherit);
-    background-color: var(--preview-code-bg);
+    background-color: var(--custom-inline-code-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.05)));
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
