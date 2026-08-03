@@ -978,6 +978,7 @@ body {
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
+    color: var(--custom-code-block-fg, var(--preview-code-text, inherit));
     background-color: var(--custom-code-block-bg, var(--preview-code-bg, #f6f8fa)) !important;
     border-radius: 6px;
     border: 1px solid var(--preview-border);
@@ -989,6 +990,7 @@ body {
     font-size: 100%;
     word-break: normal;
     white-space: pre;
+    color: inherit;
     background: transparent !important;
     border: 0;
 }
@@ -1005,6 +1007,7 @@ body {
 
 /* Code Syntax Styling adjustments to sync with line-color-picker theme */
 .hljs {
+    color: var(--custom-code-block-fg, #24292e);
     background: transparent !important;
     padding: 0 !important;
 }
