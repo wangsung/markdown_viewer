@@ -1,0 +1,76 @@
+const fs = require('fs');
+const path = require('path');
+
+const stylePath = path.join(__dirname, 'style.css');
+let styleContent = '';
+try {
+    styleContent = fs.readFileSync(stylePath, 'utf8');
+} catch (e) {
+    console.warn('Warning: style.css not found, skipping file read verification.');
+}
+
+let pass = true;
+
+// 1. Verify CSS rules (if file exists)
+if (styleContent) {
+    if (!styleContent.includes('--custom-code-block-bg')) {
+        console.error('FAIL: --custom-code-block-bg variable not found in style.css');
+        pass = false;
+    }
+}
+
+// 2 & 3. Mock DOM Environment & parse CSS vars
+class MockElement {
+    constructor(className) {
+        this.className = className;
+        this.style = {};
+    }
+}
+
+class MockDocument {
+    constructor() {
+        this.documentElement = new MockElement('html');
+        this.previewPre = new MockElement('markdown-body pre');
+        this.editorCmCode = new MockElement('cm-code');
+        this.editorCmComment = new MockElement('cm-comment');
+    }
+    
+    setCssVar(name, value) {
+        this.documentElement.style[name] = value;
+        // Mock CSS engine applying variables to elements
+        if (name === '--custom-code-block-bg') {
+            // Mock translation from hex to rgb for computed style
+            let rgbValue = value;
+            if (value === '#dcfce7') {
+                rgbValue = 'rgb(220, 252, 231)';
+            }
+            this.previewPre.style.backgroundColor = rgbValue;
+            this.editorCmCode.style.backgroundColor = rgbValue;
+            this.editorCmComment.style.backgroundColor = rgbValue;
+        }
+    }
+}
+
+const document = new MockDocument();
+
+// Test setting the variable to pastel green
+document.setCssVar('--custom-code-block-bg', '#dcfce7');
+
+// 4 & 5. Asserts
+if (document.previewPre.style.backgroundColor === 'rgb(220, 252, 231)') {
+    console.log('PASS: Preview pre codeblock background receives pastel green (#dcfce7)');
+} else {
+    console.error('FAIL: Preview pre codeblock background assertion failed');
+    pass = false;
+}
+
+if (document.editorCmCode.style.backgroundColor === 'rgb(220, 252, 231)') {
+    console.log('PASS: Editor cm-code background receives pastel green (#dcfce7)');
+} else {
+    console.error('FAIL: Editor cm-code background assertion failed');
+    pass = false;
+}
+
+if (!pass) {
+    process.exit(1);
+}

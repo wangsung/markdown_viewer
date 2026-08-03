@@ -311,6 +311,11 @@ window.EditorManager = (function() {
                 ? (codeObj.colorLight || codeObj.color || '#0969da')
                 : (codeObj.colorDark || codeObj.color || '#38bdf8');
             targetEl.style.setProperty('--code-color', targetCodeColor);
+            
+            const targetCbBg = currentTheme === 'light'
+                ? (codeObj.bgLight || codeObj.bg || null)
+                : (codeObj.bgDark || codeObj.bg || null);
+            targetEl.style.setProperty('--custom-code-block-bg', targetCbBg || '#dcfce7');
         }
 
         // 💬 인용문 (Blockquote)

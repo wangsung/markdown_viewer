@@ -655,7 +655,7 @@ body {
 
 .cm-comment, .cm-code {
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
     padding: 1px 4px;
     border-radius: 4px;
     color: var(--code-color, #f43f5e) !important;
@@ -721,7 +721,7 @@ body {
 }
 [data-editor-theme="dark"] .cm-comment, 
 [data-editor-theme="dark"] .cm-code {
-    background-color: rgba(255, 255, 255, 0.08) !important;
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
     color: var(--code-color, #fb7185) !important;
 }
 [data-editor-theme="dark"] .cm-keyword, 
@@ -773,7 +773,7 @@ body {
 }
 [data-editor-theme="light"] .cm-comment, 
 [data-editor-theme="light"] .cm-code {
-    background-color: rgba(0, 0, 0, 0.06) !important;
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
     color: var(--code-color, #e11d48) !important;
 }
 [data-editor-theme="light"] .cm-keyword, 
@@ -963,7 +963,7 @@ body {
 }
 
 /* Code & Pre */
-.markdown-body code {
+.markdown-body code:not(pre code) {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
@@ -978,7 +978,7 @@ body {
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
-    background-color: #f6f8fa;
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, #f6f8fa)) !important;
     border-radius: 6px;
     border: 1px solid var(--preview-border);
 }
@@ -989,7 +989,7 @@ body {
     font-size: 100%;
     word-break: normal;
     white-space: pre;
-    background: transparent;
+    background: transparent !important;
     border: 0;
 }
 
