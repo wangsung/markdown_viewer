@@ -115,6 +115,21 @@ const ExportManager = (function() {
             return null;
         }
 
+        // 1. 프리뷰 DOM을 복제하여 인라인 스타일 변환 작업 진행
+        const clonedPreview = previewEl.cloneNode(true);
+        const sourceSpans = previewEl.querySelectorAll('code.hljs span');
+        const targetSpans = clonedPreview.querySelectorAll('code.hljs span');
+
+        // 프리뷰 화면에서 실제 렌더링된 구문 강조 span의 computed color를 inline style로 영구 고착화
+        if (sourceSpans.length === targetSpans.length && sourceSpans.length > 0) {
+            for (let i = 0; i < sourceSpans.length; i++) {
+                const computedColor = window.getComputedStyle(sourceSpans[i]).color;
+                if (computedColor) {
+                    targetSpans[i].style.color = computedColor;
+                }
+            }
+        }
+
         const {
             theme = 'dark',
             lineColor = '#3b82f6',
@@ -274,14 +289,14 @@ const ExportManager = (function() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${safeTitle} - Preview Export</title>
     <style>
-        /* 1. Syntax Highlighting CSS */
+        /* 1. Core Markdown Typography CSS (Lightweight 1KB Template) */
+        ${coreMarkdownCss}
+
+        /* 2. Syntax Highlighting CSS (Highlight.js) */
         ${githubCss}
 
-        /* 2. KaTeX Math CSS */
+        /* 3. KaTeX Math CSS */
         ${katexCss}
-
-        /* 3. Core Markdown Typography CSS (Lightweight 1KB Template) */
-        ${coreMarkdownCss}
 
         /* 4. Dynamic Style Themes & Root Override */
         :root, [data-editor-theme="${currentTheme}"] {
@@ -316,7 +331,7 @@ const ExportManager = (function() {
     <div class="preview-viewport" style="width:100%; display:flex; justify-content:center; background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'});">
         <div class="export-container">
             <article class="markdown-body">
-                ${previewEl.innerHTML}
+                ${clonedPreview.innerHTML}
             </article>
         </div>
     </div>
