@@ -563,15 +563,23 @@ class ScrollSync {
     const maxPreviewScrollY = this.previewViewport.scrollHeight - this.previewViewport.clientHeight;
 
     // Edge boundary checks (Top / Bottom overscroll)
-    if (scrollTop < 0) {
-      this.previewViewport.scrollTop = 0;
+    if (scrollTop <= 0) {
+      if (typeof this.previewViewport.scrollTo === 'function') {
+        this.previewViewport.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        this.previewViewport.scrollTop = 0;
+      }
       this.lastPreviewScrollTop = 0;
       this._notifyDebug();
       this._detectActiveLineFromPreview();
       return;
     }
     if (scrollTop >= maxEditorScrollTop && maxEditorScrollTop > 0) {
-      this.previewViewport.scrollTop = maxPreviewScrollY;
+      if (typeof this.previewViewport.scrollTo === 'function') {
+        this.previewViewport.scrollTo({ top: maxPreviewScrollY, behavior: 'smooth' });
+      } else {
+        this.previewViewport.scrollTop = maxPreviewScrollY;
+      }
       this.lastPreviewScrollTop = maxPreviewScrollY;
       this._notifyDebug();
       this._detectActiveLineFromPreview();
@@ -654,6 +662,16 @@ class ScrollSync {
     }
 
     if (this.previewViewport.scrollTop === this.lastPreviewScrollTop) return;
+
+    // Edge boundary check for Preview Top (0px)
+    if (this.previewViewport.scrollTop <= 0) {
+      this.lastPreviewScrollTop = 0;
+      this.lastEditorScrollTop = 0;
+      this.cm.scrollTo(null, 0);
+      this._notifyDebug();
+      this._detectActiveLineFromPreview();
+      return;
+    }
 
     this.lastPreviewScrollTop = this.previewViewport.scrollTop;
     const targetScroll = this.getEditorScrollForPreview(this.previewViewport.scrollTop);
