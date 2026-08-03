@@ -963,7 +963,7 @@ body {
 }
 
 /* Code & Pre */
-.markdown-body code {
+.markdown-body code:not(pre code) {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
@@ -978,7 +978,8 @@ body {
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
-    background-color: #f6f8fa;
+    color: var(--preview-code-text, inherit);
+    background-color: var(--preview-code-bg, #f6f8fa) !important;
     border-radius: 6px;
     border: 1px solid var(--preview-border);
 }
@@ -989,6 +990,7 @@ body {
     font-size: 100%;
     word-break: normal;
     white-space: pre;
+    color: var(--preview-code-text, inherit);
     background: transparent;
     border: 0;
 }

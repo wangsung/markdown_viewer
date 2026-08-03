@@ -1056,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
         const cssVarList = [
             '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
-            '--preview-code-bg', '--preview-blockquote-bg', '--preview-blockquote-text',
+            '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text',
             '--h1-color', '--h1-size', '--h1-border',
             '--h2-color', '--h2-size', '--h2-border',
             '--h3-color', '--h3-size', '--h3-border',

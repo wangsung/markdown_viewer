@@ -313,6 +313,19 @@ window.EditorManager = (function() {
             targetEl.style.setProperty('--code-color', targetCodeColor);
         }
 
+        // 📦 ``` ``` Codeblock
+        if (styles.codeblock) {
+            const cbObj = styles.codeblock;
+            const targetCbColor = currentTheme === 'light'
+                ? (cbObj.colorLight || cbObj.color || '#24292e')
+                : (cbObj.colorDark || cbObj.color || '#f8fafc');
+            const targetCbBg = currentTheme === 'light'
+                ? (cbObj.bgLight || '#f6f8fa')
+                : (cbObj.bgDark || '#0f172a');
+            targetEl.style.setProperty('--preview-code-text', targetCbColor);
+            targetEl.style.setProperty('--preview-code-bg', targetCbBg);
+        }
+
         // 💬 인용문 (Blockquote)
         if (styles.blockquote) {
             const bqObj = styles.blockquote;

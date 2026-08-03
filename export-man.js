@@ -222,6 +222,7 @@ const ExportManager = (function() {
 
         .markdown-body strong { font-weight: 600; color: var(--bold-color, inherit) !important; }
         .markdown-body em { font-style: italic; color: var(--italic-color, inherit) !important; }
+        .markdown-body code:not(pre code) { color: var(--code-color, inherit) !important; }
 
         .markdown-body a,
         .markdown-body .md-bracket-link {
@@ -243,6 +244,7 @@ const ExportManager = (function() {
             overflow: auto;
             font-size: 85%;
             line-height: 1.45;
+            color: var(--preview-code-text, inherit);
             background-color: var(--preview-code-bg, rgba(0,0,0,0.05)) !important;
             border-radius: 6px;
             border: 1px solid var(--preview-border, rgba(255,255,255,0.1)) !important;
@@ -256,6 +258,7 @@ const ExportManager = (function() {
             font-size: 100%;
             word-break: normal;
             white-space: pre;
+            color: var(--preview-code-text, inherit);
             background: transparent !important;
             border: 0;
         }
