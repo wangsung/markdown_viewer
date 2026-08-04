@@ -864,7 +864,7 @@
             container.appendChild(emRow);
 
             // 💻 Code (인라인 코드) 행
-            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8', useCodeblockBg: true };
+            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8', useCodeblockBg: false };
             const codeRow = document.createElement('div');
             codeRow.style.display = 'flex';
             codeRow.style.alignItems = 'center';
@@ -874,7 +874,7 @@
             codeRow.style.border = '1px solid var(--border-frame)';
             codeRow.style.borderRadius = '4px';
 
-            const useCbBgChecked = codeObj.useCodeblockBg !== false ? 'checked' : '';
+            const useCbBgChecked = codeObj.useCodeblockBg === true ? 'checked' : '';
 
             codeRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` Inline code \`</span>
@@ -1070,7 +1070,7 @@
                 styles.code = {
                     colorLight: codeLight.value,
                     colorDark: codeDark.value,
-                    useCodeblockBg: codeUseCbBg ? codeUseCbBg.checked : true
+                    useCodeblockBg: codeUseCbBg ? codeUseCbBg.checked : false
                 };
             }
 

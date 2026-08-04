@@ -312,24 +312,23 @@ window.EditorManager = (function() {
                 : (codeObj.colorDark || codeObj.color || '#38bdf8');
             targetEl.style.setProperty('--code-color', targetCodeColor);
             
-            // code block 배경 동기화 체크 여부 확인
-            const useCbBg = codeObj.useCodeblockBg !== false;
+            // code block 배경 동기화 체크 여부 확인 (명시적 true 일 때만 동기화)
+            const useCbBg = codeObj.useCodeblockBg === true;
             let targetInlineBg = null;
             if (useCbBg && styles.codeblock) {
                 targetInlineBg = currentTheme === 'light'
                     ? (styles.codeblock.bgLight || '#f6f8fa')
                     : (styles.codeblock.bgDark || '#0f172a');
             } else {
+                const defaultTranslucentBg = currentTheme === 'light' 
+                    ? 'rgba(0, 0, 0, 0.06)' 
+                    : 'rgba(255, 255, 255, 0.08)';
                 targetInlineBg = currentTheme === 'light'
-                    ? (codeObj.inlineBgLight || codeObj.inlineBg || null)
-                    : (codeObj.inlineBgDark || codeObj.inlineBg || null);
+                    ? (codeObj.inlineBgLight || codeObj.inlineBg || defaultTranslucentBg)
+                    : (codeObj.inlineBgDark || codeObj.inlineBg || defaultTranslucentBg);
             }
 
-            if (targetInlineBg && targetInlineBg !== 'transparent' && targetInlineBg !== 'rgba(0, 0, 0, 0)') {
-                targetEl.style.setProperty('--custom-inline-code-bg', targetInlineBg);
-            } else {
-                targetEl.style.removeProperty('--custom-inline-code-bg');
-            }
+            targetEl.style.setProperty('--custom-inline-code-bg', targetInlineBg);
         }
 
         // 📦 ``` Code block
