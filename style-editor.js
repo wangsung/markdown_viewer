@@ -863,33 +863,6 @@
             `;
             container.appendChild(emRow);
 
-            // 💻 Code (인라인 코드) 행
-            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8', useCodeblockBg: false };
-            const codeRow = document.createElement('div');
-            codeRow.style.display = 'flex';
-            codeRow.style.alignItems = 'center';
-            codeRow.style.gap = '6px';
-            codeRow.style.padding = '1px 6px'; /* 패딩 수직 압축 */
-            codeRow.style.background = 'var(--input-frame-bg)';
-            codeRow.style.border = '1px solid var(--border-frame)';
-            codeRow.style.borderRadius = '4px';
-
-            const useCbBgChecked = codeObj.useCodeblockBg === true ? 'checked' : '';
-
-            codeRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` Inline code \`</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Inline Code 색상">
-                    ☀️<input type="color" id="modal-code-color-light" value="${codeObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-                <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 Inline Code 색상">
-                    🌙<input type="color" id="modal-code-color-dark" value="${codeObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-                <label style="font-size: 0.72rem; color: var(--text-frame-muted); margin-left: 6px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="체크 시 Code Block 배경색을 동기화하여 적용합니다">
-                    <input type="checkbox" id="modal-code-use-codeblock-bg" ${useCbBgChecked} style="cursor:pointer;"> code block 배경 적용
-                </label>
-            `;
-            container.appendChild(codeRow);
 
             // 📦 Code block 행
             const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
@@ -903,7 +876,7 @@
             cbRow.style.borderRadius = '4px';
 
             cbRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">📦 \`\`\` Code block \`\`\`</span>
+                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \`\`\` Code block \`\`\`</span>
                 <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
                 <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Code Block 글자 색상">
                     ☀️<input type="color" id="modal-codeblock-color-light" value="${cbObj.colorLight || '#24292e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -1062,19 +1035,7 @@
                 };
             }
 
-            // 💻 Code 수거
-            const codeLight = document.getElementById('modal-code-color-light');
-            const codeDark = document.getElementById('modal-code-color-dark');
-            const codeUseCbBg = document.getElementById('modal-code-use-codeblock-bg');
-            if (codeLight && codeDark) {
-                styles.code = {
-                    colorLight: codeLight.value,
-                    colorDark: codeDark.value,
-                    useCodeblockBg: codeUseCbBg ? codeUseCbBg.checked : false
-                };
-            }
-
-            // 📦 Code block 수거
+            // 📦 Code block 수거 및 Code (Inline Code) 동기화
             const cbLight = document.getElementById('modal-codeblock-color-light');
             const cbDark = document.getElementById('modal-codeblock-color-dark');
             const cbBgLight = document.getElementById('modal-codeblock-bg-light');
@@ -1085,6 +1046,12 @@
                     colorDark: cbDark.value,
                     bgLight: cbBgLight.value,
                     bgDark: cbBgDark.value
+                };
+                // Inline Code 글자색 및 배경색을 Code Block 스타일로 100% 통합 동기화
+                styles.code = {
+                    colorLight: cbLight.value,
+                    colorDark: cbDark.value,
+                    useCodeblockBg: true
                 };
             }
 

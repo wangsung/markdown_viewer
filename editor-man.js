@@ -305,33 +305,7 @@ window.EditorManager = (function() {
         }
 
         // 💻 ` ` Inline code
-        if (styles.code) {
-            const codeObj = styles.code;
-            const targetCodeColor = currentTheme === 'light'
-                ? (codeObj.colorLight || codeObj.color || '#0969da')
-                : (codeObj.colorDark || codeObj.color || '#38bdf8');
-            targetEl.style.setProperty('--code-color', targetCodeColor);
-            
-            // code block 배경 동기화 체크 여부 확인 (명시적 true 일 때만 동기화)
-            const useCbBg = codeObj.useCodeblockBg === true;
-            let targetInlineBg = null;
-            if (useCbBg && styles.codeblock) {
-                targetInlineBg = currentTheme === 'light'
-                    ? (styles.codeblock.bgLight || '#f6f8fa')
-                    : (styles.codeblock.bgDark || '#0f172a');
-            } else {
-                const defaultTranslucentBg = currentTheme === 'light' 
-                    ? 'rgba(0, 0, 0, 0.06)' 
-                    : 'rgba(255, 255, 255, 0.08)';
-                targetInlineBg = currentTheme === 'light'
-                    ? (codeObj.inlineBgLight || codeObj.inlineBg || defaultTranslucentBg)
-                    : (codeObj.inlineBgDark || codeObj.inlineBg || defaultTranslucentBg);
-            }
-
-            targetEl.style.setProperty('--custom-inline-code-bg', targetInlineBg);
-        }
-
-        // 📦 ``` Code block
+        // 📦 ``` Code block & 💻 ` ` Inline code 스타일 통합 바인딩
         if (styles.codeblock) {
             const cbObj = styles.codeblock;
             const targetCbText = currentTheme === 'light'
@@ -344,6 +318,10 @@ window.EditorManager = (function() {
             targetEl.style.setProperty('--custom-code-block-fg', targetCbText);
             targetEl.style.setProperty('--preview-code-bg', targetCbBg);
             targetEl.style.setProperty('--custom-code-block-bg', targetCbBg);
+
+            // Inline Code의 글자색과 배경색을 Code block 스타일과 100% 동일하게 자동 동기화 바인딩
+            targetEl.style.setProperty('--inline-code-fg', targetCbText);
+            targetEl.style.setProperty('--custom-inline-code-bg', targetCbBg);
         }
 
         // 💬 인용문 (Blockquote)

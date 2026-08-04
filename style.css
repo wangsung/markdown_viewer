@@ -658,7 +658,7 @@ body {
     background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
     padding: 1px 4px;
     border-radius: 4px;
-    color: var(--custom-code-block-fg, var(--code-color, #f43f5e)) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #f43f5e)) !important;
 }
 
 .cm-formatting-code ~ .cm-code,
@@ -667,7 +667,7 @@ body {
     background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.06)) !important;
     padding: 1px 4px;
     border-radius: 4px;
-    color: var(--code-color, inherit) !important;
+    color: var(--inline-code-fg, inherit) !important;
 }
 
 .cm-link {
@@ -730,12 +730,12 @@ body {
 }
 [data-editor-theme="dark"] .cm-comment {
     background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
-    color: var(--custom-code-block-fg, var(--code-color, #fb7185)) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #fb7185)) !important;
 }
 [data-editor-theme="dark"] .cm-formatting-code ~ .cm-code,
 [data-editor-theme="dark"] .cm-code:not(.cm-comment):not(.cm-formatting-code-block) {
     background-color: var(--custom-inline-code-bg, rgba(255, 255, 255, 0.08)) !important;
-    color: var(--code-color, #38bdf8) !important;
+    color: var(--inline-code-fg, #38bdf8) !important;
 }
 [data-editor-theme="dark"] .cm-keyword, 
 [data-editor-theme="dark"] .cm-meta {
@@ -786,12 +786,12 @@ body {
 }
 [data-editor-theme="light"] .cm-comment {
     background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
-    color: var(--custom-code-block-fg, var(--code-color, #e11d48)) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #e11d48)) !important;
 }
 [data-editor-theme="light"] .cm-formatting-code ~ .cm-code,
 [data-editor-theme="light"] .cm-code:not(.cm-comment):not(.cm-formatting-code-block) {
     background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.06)) !important;
-    color: var(--code-color, #0969da) !important;
+    color: var(--inline-code-fg, #0969da) !important;
 }
 [data-editor-theme="light"] .cm-keyword, 
 [data-editor-theme="light"] .cm-meta {
@@ -984,7 +984,7 @@ body {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
-    color: var(--code-color, inherit);
+    color: var(--inline-code-fg, inherit);
     background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.05));
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;

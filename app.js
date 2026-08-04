@@ -1072,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '--h5-color', '--h5-size', '--h5-border',
             '--h6-color', '--h6-size', '--h6-border',
             '--link-color', '--link-decoration',
-            '--bold-color', '--italic-color', '--code-color',
+            '--bold-color', '--italic-color', '--inline-code-fg',
             '--blockquote-text-color', '--blockquote-border-color',
             '--line-color', '--line-border',
             '--preview-font-family', '--preview-font-size'
