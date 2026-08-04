@@ -47,4 +47,13 @@
 - **상위 비즈니스/상태 관리 함수**: camelCase (예: `applyHeadingPreset`, `handleSaveCurrentDocument`)
 - **순수 하위 서브 함수 (Pure Sub-function)**: 착오 방지를 위해 **모두 소문자 snake_case (예: `apply_heading_preset`, `join_paragraphs`, `insert_formatting`)**로 정의 및 표기해야 합니다.
 
+## 메타성 버그 해결 깃 커밋 기록 지침 (Meta-Bug Fix Commit Logging Policy)
+- 비즈니스 로직 버그가 아닌 **Git 충돌 마커 미제거, 오타/문법 오류(SyntaxError), 파일 구조 깨짐, 빌드/스크립트 환경 장애 등 메타(Meta)성 이슈 해결 시**에는 깃 커밋 메시지 본문(Body)에 관련 트러블슈팅 이력을 구체적으로 포함하여 기록해야 합니다.
+- **커밋 본문 포함 구조**:
+  ```text
+  [Issue Description] 발생했던 메타성 장애 내용
+  [Root Cause] 원인이 되었던 구문/Git/환경 요소
+  [Resolution] 적용된 해결 조치 및 교정 방법
+  ```
+
 
