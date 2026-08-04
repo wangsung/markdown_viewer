@@ -1662,11 +1662,19 @@ div.katex-error {
 #heading-modal {
     background-color: transparent !important;
     backdrop-filter: none !important;
+    pointer-events: none !important;
 }
 
-/* 스타일 편집기 다이얼로그 외곽 경계를 뒷배경과 뚜렷이 구분하기 위한 엣지 효과 및 상하 위치 밀착 */
 #heading-modal .modal-content {
+    pointer-events: auto !important;
     margin: 4% auto !important; /* 상하 여백 조밀화로 화면 배치 최적화 */
+    width: 620px !important;
+    max-width: 90vw !important;
+    min-width: 580px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
     border: 2px solid var(--frame-accent-color) !important;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
                 0 25px 50px -12px rgba(0, 0, 0, 0.85),
