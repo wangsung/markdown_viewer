@@ -653,12 +653,21 @@ body {
     color: var(--italic-color, var(--text-main)) !important;
 }
 
-.cm-comment, .cm-code {
+.cm-comment {
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-    background-color: rgba(255, 255, 255, 0.06);
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
     padding: 1px 4px;
     border-radius: 4px;
-    color: var(--code-color, #f43f5e) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #f43f5e)) !important;
+}
+
+.cm-formatting-code ~ .cm-code,
+.cm-code:not(.cm-comment):not(.cm-formatting-code-block) {
+    font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
+    background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.06)) !important;
+    padding: 1px 4px;
+    border-radius: 4px;
+    color: var(--inline-code-fg, inherit) !important;
 }
 
 .cm-link {
@@ -719,10 +728,14 @@ body {
     color: var(--blockquote-text-color, var(--text-muted)) !important;
     border-left-color: var(--blockquote-border-color, var(--theme-color));
 }
-[data-editor-theme="dark"] .cm-comment, 
-[data-editor-theme="dark"] .cm-code {
-    background-color: rgba(255, 255, 255, 0.08) !important;
-    color: var(--code-color, #fb7185) !important;
+[data-editor-theme="dark"] .cm-comment {
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #fb7185)) !important;
+}
+[data-editor-theme="dark"] .cm-formatting-code ~ .cm-code,
+[data-editor-theme="dark"] .cm-code:not(.cm-comment):not(.cm-formatting-code-block) {
+    background-color: var(--custom-inline-code-bg, rgba(255, 255, 255, 0.08)) !important;
+    color: var(--inline-code-fg, #38bdf8) !important;
 }
 [data-editor-theme="dark"] .cm-keyword, 
 [data-editor-theme="dark"] .cm-meta {
@@ -771,10 +784,14 @@ body {
     color: var(--blockquote-text-color, var(--text-muted)) !important;
     border-left-color: var(--blockquote-border-color, var(--theme-color));
 }
-[data-editor-theme="light"] .cm-comment, 
-[data-editor-theme="light"] .cm-code {
-    background-color: rgba(0, 0, 0, 0.06) !important;
-    color: var(--code-color, #e11d48) !important;
+[data-editor-theme="light"] .cm-comment {
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
+    color: var(--custom-code-block-fg, var(--inline-code-fg, #e11d48)) !important;
+}
+[data-editor-theme="light"] .cm-formatting-code ~ .cm-code,
+[data-editor-theme="light"] .cm-code:not(.cm-comment):not(.cm-formatting-code-block) {
+    background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.06)) !important;
+    color: var(--inline-code-fg, #0969da) !important;
 }
 [data-editor-theme="light"] .cm-keyword, 
 [data-editor-theme="light"] .cm-meta {
@@ -967,8 +984,8 @@ body {
     padding: 0.2em 0.4em;
     margin: 0;
     font-size: 85%;
-    color: var(--code-color, inherit);
-    background-color: var(--preview-code-bg);
+    color: var(--inline-code-fg, inherit);
+    background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.05));
     border-radius: 4px;
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
@@ -978,8 +995,8 @@ body {
     overflow: auto;
     font-size: 85%;
     line-height: 1.45;
-    color: var(--preview-code-text, inherit);
-    background-color: var(--preview-code-bg, #f6f8fa) !important;
+    color: var(--custom-code-block-fg, var(--preview-code-text, inherit));
+    background-color: var(--custom-code-block-bg, var(--preview-code-bg, #f6f8fa)) !important;
     border-radius: 6px;
     border: 1px solid var(--preview-border);
 }
@@ -990,8 +1007,8 @@ body {
     font-size: 100%;
     word-break: normal;
     white-space: pre;
-    color: var(--preview-code-text, inherit);
-    background: transparent;
+    color: inherit;
+    background: transparent !important;
     border: 0;
 }
 
@@ -1007,6 +1024,7 @@ body {
 
 /* Code Syntax Styling adjustments to sync with line-color-picker theme */
 .hljs {
+    color: var(--custom-code-block-fg, #24292e);
     background: transparent !important;
     padding: 0 !important;
 }

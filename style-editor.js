@@ -38,7 +38,11 @@
                 strong: { colorLight: '#0369a1', colorDark: '#38bdf8' },
                 em: { colorLight: '#0284c7', colorDark: '#7dd3fc' },
                 code: { colorLight: '#0284c7', colorDark: '#38bdf8' },
+<<<<<<< HEAD
                 codeblock: { colorLight: '#0369a1', colorDark: '#e0f2fe', bgLight: '#e0f2fe', bgDark: '#0c4a6e' },
+=======
+                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+>>>>>>> main
                 blockquote: { colorLight: '#0369a1', colorDark: '#bae6fd', borderLight: '#0284c7', borderDark: '#38bdf8' },
                 line: { colorLight: '#38bdf8', colorDark: '#0ea5e9', border: '2px solid #38bdf8' }
             }
@@ -58,7 +62,11 @@
                 strong: { colorLight: '#047857', colorDark: '#34d399' },
                 em: { colorLight: '#059669', colorDark: '#6ee7b7' },
                 code: { colorLight: '#059669', colorDark: '#34d399' },
+<<<<<<< HEAD
                 codeblock: { colorLight: '#047857', colorDark: '#d1fae5', bgLight: '#d1fae5', bgDark: '#064e3b' },
+=======
+                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+>>>>>>> main
                 blockquote: { colorLight: '#047857', colorDark: '#a7f3d0', borderLight: '#059669', borderDark: '#34d399' },
                 line: { colorLight: '#059669', colorDark: '#10b981', border: '2px solid #059669' }
             }
@@ -77,7 +85,11 @@
                 strong: { colorLight: '#be123c', colorDark: '#fb7185' },
                 em: { colorLight: '#e11d48', colorDark: '#fda4af' },
                 code: { colorLight: '#e11d48', colorDark: '#fb7185' },
+<<<<<<< HEAD
                 codeblock: { colorLight: '#be123c', colorDark: '#ffe4e6', bgLight: '#ffe4e6', bgDark: '#881337' },
+=======
+                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+>>>>>>> main
                 blockquote: { colorLight: '#881337', colorDark: '#fecdd3', borderLight: '#e11d48', borderDark: '#fb7185' },
                 line: { colorLight: '#e11d48', colorDark: '#f43f5e', border: '2px solid #e11d48' }
             }
@@ -96,7 +108,11 @@
                 strong: { colorLight: '#6d28d9', colorDark: '#a78bfa' },
                 em: { colorLight: '#7c3aed', colorDark: '#c4b5fd' },
                 code: { colorLight: '#7c3aed', colorDark: '#a78bfa' },
+<<<<<<< HEAD
                 codeblock: { colorLight: '#6d28d9', colorDark: '#ede9fe', bgLight: '#ede9fe', bgDark: '#4c1d95' },
+=======
+                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+>>>>>>> main
                 blockquote: { colorLight: '#4c1d95', colorDark: '#ddd6fe', borderLight: '#7c3aed', borderDark: '#a78bfa' },
                 line: { colorLight: '#7c3aed', colorDark: '#8b5cf6', border: '2px dashed #8b5cf6' }
             }
@@ -863,30 +879,8 @@
             `;
             container.appendChild(emRow);
 
-            // 💻 Code (인라인 코드) 행
-            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8' };
-            const codeRow = document.createElement('div');
-            codeRow.style.display = 'flex';
-            codeRow.style.alignItems = 'center';
-            codeRow.style.gap = '6px';
-            codeRow.style.padding = '1px 6px'; /* 패딩 수직 압축 */
-            codeRow.style.background = 'var(--input-frame-bg)';
-            codeRow.style.border = '1px solid var(--border-frame)';
-            codeRow.style.borderRadius = '4px';
 
-            codeRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` Inline code \`</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Inline Code 색상">
-                    ☀️<input type="color" id="modal-code-color-light" value="${codeObj.colorLight || '#0969da'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-                <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 Inline Code 색상">
-                    🌙<input type="color" id="modal-code-color-dark" value="${codeObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-            `;
-            container.appendChild(codeRow);
-
-            // 📦 Codeblock (코드 블록 ```) 행
+            // 📦 Code block 행
             const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
             const cbRow = document.createElement('div');
             cbRow.style.display = 'flex';
@@ -898,7 +892,7 @@
             cbRow.style.borderRadius = '4px';
 
             cbRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #f43f5e; display:flex; align-items:center; gap:2px;">📦 \`\`\` Code block \`\`\`</span>
+                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \`\`\` Code block \`\`\`</span>
                 <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
                 <label style="font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 Code Block 글자 색상">
                     ☀️<input type="color" id="modal-codeblock-color-light" value="${cbObj.colorLight || '#24292e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -912,10 +906,6 @@
                 </label>
                 <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 Code Block 배경 색상">
                     🌙<input type="color" id="modal-codeblock-bg-dark" value="${cbObj.bgDark || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-            `;
-            container.appendChild(cbRow);
-
             // 💬 Blockquote (인용문) 행
             const bqObj = found.styles.blockquote || { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
             const bqRow = document.createElement('div');
@@ -970,21 +960,6 @@
                 <input type="text" id="modal-line-border" value="${lineObj.border || '1px solid #334155'}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
             `;
             container.appendChild(lineRow);
-
-            // 🔗 Inline code ↔ Code block 글자 색상 양방향 동기화 이벤트 바인딩
-            const syncColorInputs = (srcId, targetId) => {
-                const srcEl = document.getElementById(srcId);
-                const targetEl = document.getElementById(targetId);
-                if (srcEl && targetEl) {
-                    srcEl.addEventListener('input', (e) => {
-                        targetEl.value = e.target.value;
-                    });
-                }
-            };
-            syncColorInputs('modal-code-color-light', 'modal-codeblock-color-light');
-            syncColorInputs('modal-codeblock-color-light', 'modal-code-color-light');
-            syncColorInputs('modal-code-color-dark', 'modal-codeblock-color-dark');
-            syncColorInputs('modal-codeblock-color-dark', 'modal-code-color-dark');
         },
 
         /**
@@ -1040,13 +1015,23 @@
                 };
             }
 
-            // 💻 Code 수거
-            const codeLight = document.getElementById('modal-code-color-light');
-            const codeDark = document.getElementById('modal-code-color-dark');
-            if (codeLight && codeDark) {
+            // 📦 Code block 수거 및 Code (Inline Code) 동기화
+            const cbLight = document.getElementById('modal-codeblock-color-light');
+            const cbDark = document.getElementById('modal-codeblock-color-dark');
+            const cbBgLight = document.getElementById('modal-codeblock-bg-light');
+            const cbBgDark = document.getElementById('modal-codeblock-bg-dark');
+            if (cbLight && cbDark && cbBgLight && cbBgDark) {
+                styles.codeblock = {
+                    colorLight: cbLight.value,
+                    colorDark: cbDark.value,
+                    bgLight: cbBgLight.value,
+                    bgDark: cbBgDark.value
+                };
+                // Inline Code 글자색 및 배경색을 Code Block 스타일로 100% 통합 동기화
                 styles.code = {
-                    colorLight: codeLight.value,
-                    colorDark: codeDark.value
+                    colorLight: cbLight.value,
+                    colorDark: cbDark.value,
+                    useCodeblockBg: true
                 };
             }
 

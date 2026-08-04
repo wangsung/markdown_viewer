@@ -336,6 +336,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     let changed = false;
+                    
+                    parsed.forEach(p => {
+                        if (p.styles && !p.styles.codeblock) {
+                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
+                            changed = true;
+                        }
+                    });
+
                     const defaultPresets = window.StyleEditor.getDefaultPresets();
                     defaultPresets.forEach(defPreset => {
                         if (!parsed.some(p => p.id === defPreset.id)) {
@@ -1064,7 +1072,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '--h5-color', '--h5-size', '--h5-border',
             '--h6-color', '--h6-size', '--h6-border',
             '--link-color', '--link-decoration',
-            '--bold-color', '--italic-color', '--code-color',
+            '--bold-color', '--italic-color', '--inline-code-fg',
             '--blockquote-text-color', '--blockquote-border-color',
             '--line-color', '--line-border',
             '--preview-font-family', '--preview-font-size'

@@ -305,12 +305,23 @@ window.EditorManager = (function() {
         }
 
         // 💻 ` ` Inline code
-        if (styles.code) {
-            const codeObj = styles.code;
-            const targetCodeColor = currentTheme === 'light'
-                ? (codeObj.colorLight || codeObj.color || '#0969da')
-                : (codeObj.colorDark || codeObj.color || '#38bdf8');
-            targetEl.style.setProperty('--code-color', targetCodeColor);
+        // 📦 ``` Code block & 💻 ` ` Inline code 스타일 통합 바인딩
+        if (styles.codeblock) {
+            const cbObj = styles.codeblock;
+            const targetCbText = currentTheme === 'light'
+                ? (cbObj.colorLight || '#24292e')
+                : (cbObj.colorDark || '#f8fafc');
+            const targetCbBg = currentTheme === 'light'
+                ? (cbObj.bgLight || '#f6f8fa')
+                : (cbObj.bgDark || '#0f172a');
+            targetEl.style.setProperty('--preview-code-text', targetCbText);
+            targetEl.style.setProperty('--custom-code-block-fg', targetCbText);
+            targetEl.style.setProperty('--preview-code-bg', targetCbBg);
+            targetEl.style.setProperty('--custom-code-block-bg', targetCbBg);
+
+            // Inline Code의 글자색과 배경색을 Code block 스타일과 100% 동일하게 자동 동기화 바인딩
+            targetEl.style.setProperty('--inline-code-fg', targetCbText);
+            targetEl.style.setProperty('--custom-inline-code-bg', targetCbBg);
         }
 
         // 📦 ``` ``` Codeblock
