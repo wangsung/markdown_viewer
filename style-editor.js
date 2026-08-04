@@ -864,7 +864,7 @@
             container.appendChild(emRow);
 
             // 💻 Code (인라인 코드) 행
-            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8' };
+            const codeObj = found.styles.code || { colorLight: '#0969da', colorDark: '#38bdf8', useCodeblockBg: true };
             const codeRow = document.createElement('div');
             codeRow.style.display = 'flex';
             codeRow.style.alignItems = 'center';
@@ -874,6 +874,8 @@
             codeRow.style.border = '1px solid var(--border-frame)';
             codeRow.style.borderRadius = '4px';
 
+            const useCbBgChecked = codeObj.useCodeblockBg !== false ? 'checked' : '';
+
             codeRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \` Inline code \`</span>
                 <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
@@ -882,6 +884,9 @@
                 </label>
                 <label style="font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 Inline Code 색상">
                     🌙<input type="color" id="modal-code-color-dark" value="${codeObj.colorDark || '#38bdf8'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                </label>
+                <label style="font-size: 0.72rem; color: var(--text-frame-muted); margin-left: 6px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="체크 시 Code Block 배경색을 동기화하여 적용합니다">
+                    <input type="checkbox" id="modal-code-use-codeblock-bg" ${useCbBgChecked} style="cursor:pointer;"> code block 배경 적용
                 </label>
             `;
             container.appendChild(codeRow);
@@ -1060,10 +1065,12 @@
             // 💻 Code 수거
             const codeLight = document.getElementById('modal-code-color-light');
             const codeDark = document.getElementById('modal-code-color-dark');
+            const codeUseCbBg = document.getElementById('modal-code-use-codeblock-bg');
             if (codeLight && codeDark) {
                 styles.code = {
                     colorLight: codeLight.value,
-                    colorDark: codeDark.value
+                    colorDark: codeDark.value,
+                    useCodeblockBg: codeUseCbBg ? codeUseCbBg.checked : true
                 };
             }
 

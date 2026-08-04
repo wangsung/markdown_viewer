@@ -312,9 +312,19 @@ window.EditorManager = (function() {
                 : (codeObj.colorDark || codeObj.color || '#38bdf8');
             targetEl.style.setProperty('--code-color', targetCodeColor);
             
-            const targetInlineBg = currentTheme === 'light'
-                ? (codeObj.inlineBgLight || codeObj.inlineBg || null)
-                : (codeObj.inlineBgDark || codeObj.inlineBg || null);
+            // code block 배경 동기화 체크 여부 확인
+            const useCbBg = codeObj.useCodeblockBg !== false;
+            let targetInlineBg = null;
+            if (useCbBg && styles.codeblock) {
+                targetInlineBg = currentTheme === 'light'
+                    ? (styles.codeblock.bgLight || '#f6f8fa')
+                    : (styles.codeblock.bgDark || '#0f172a');
+            } else {
+                targetInlineBg = currentTheme === 'light'
+                    ? (codeObj.inlineBgLight || codeObj.inlineBg || null)
+                    : (codeObj.inlineBgDark || codeObj.inlineBg || null);
+            }
+
             if (targetInlineBg && targetInlineBg !== 'transparent' && targetInlineBg !== 'rgba(0, 0, 0, 0)') {
                 targetEl.style.setProperty('--custom-inline-code-bg', targetInlineBg);
             } else {

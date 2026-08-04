@@ -655,7 +655,7 @@ body {
 
 .cm-comment, .cm-code {
     font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
+    background-color: var(--custom-inline-code-bg, var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06)))) !important;
     padding: 1px 4px;
     border-radius: 4px;
     color: var(--custom-code-block-fg, var(--code-color, #f43f5e)) !important;
@@ -721,7 +721,7 @@ body {
 }
 [data-editor-theme="dark"] .cm-comment, 
 [data-editor-theme="dark"] .cm-code {
-    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
+    background-color: var(--custom-inline-code-bg, var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06)))) !important;
     color: var(--custom-code-block-fg, var(--code-color, #fb7185)) !important;
 }
 [data-editor-theme="dark"] .cm-keyword, 
@@ -773,7 +773,7 @@ body {
 }
 [data-editor-theme="light"] .cm-comment, 
 [data-editor-theme="light"] .cm-code {
-    background-color: var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06))) !important;
+    background-color: var(--custom-inline-code-bg, var(--custom-code-block-bg, var(--preview-code-bg, rgba(0, 0, 0, 0.06)))) !important;
     color: var(--custom-code-block-fg, var(--code-color, #e11d48)) !important;
 }
 [data-editor-theme="light"] .cm-keyword, 
