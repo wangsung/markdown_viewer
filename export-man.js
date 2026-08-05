@@ -222,7 +222,15 @@ const ExportManager = (function() {
 
         .markdown-body strong { font-weight: 600; color: var(--bold-color, inherit) !important; }
         .markdown-body em { font-style: italic; color: var(--italic-color, inherit) !important; }
-        .markdown-body code:not(pre code) { color: var(--code-color, inherit) !important; }
+        .markdown-body code:not(pre code) {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            color: var(--inline-code-fg, inherit) !important;
+            background-color: var(--custom-inline-code-bg, rgba(0, 0, 0, 0.06)) !important;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+        }
 
         .markdown-body a,
         .markdown-body .md-bracket-link {
