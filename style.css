@@ -1852,4 +1852,7 @@ div.katex-error {
     border-color: #fff;
 }
 
-
+/* 프리셋 옵션 팝오버 메뉴 아이템 호버 효과 */
+.preset-menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}

@@ -647,10 +647,28 @@
                 });
             }
 
+            // [2-1] 프리셋 더보기 옵션 (점 3개) 팝오버 리스너
+            const btnMore = document.getElementById('btn-preset-more');
+            const menuMore = document.getElementById('preset-more-menu');
+            if (btnMore && menuMore) {
+                btnMore.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = menuMore.style.display === 'block';
+                    menuMore.style.display = isOpen ? 'none' : 'block';
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (menuMore && !menuMore.contains(e.target) && e.target !== btnMore) {
+                        menuMore.style.display = 'none';
+                    }
+                });
+            }
+
             // [3] 새 스타일 추가 버튼 리스너
             const btnAdd = document.getElementById('btn-add-heading-preset');
             if (btnAdd) {
                 btnAdd.addEventListener('click', () => {
+                    if (menuMore) menuMore.style.display = 'none';
                     const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
                     const currentId = options.presetSelect ? options.presetSelect.value : '';
                     const currentPreset = presets.find(p => p.id === currentId);
@@ -690,6 +708,7 @@
             const btnDelete = document.getElementById('btn-delete-heading-preset');
             if (btnDelete) {
                 btnDelete.addEventListener('click', () => {
+                    if (menuMore) menuMore.style.display = 'none';
                     const currentId = options.presetSelect ? options.presetSelect.value : '';
                     const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
                     if (presets.length <= 1) {
