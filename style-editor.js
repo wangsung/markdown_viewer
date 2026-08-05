@@ -1043,7 +1043,10 @@
             const thRow = document.createElement('div');
             thRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             thRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#38bdf8; display:flex; align-items:center; gap:2px;">📊 • 헤더 (TH)</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#0284c7; color:#ffffff; border-radius:3px; font-family:monospace; line-height:1.1;">TH</span>
+                    <span>표 머리글</span>
+                </span>
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">글자:</span>
                 <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 TH 글자색">
                     ☀️<input type="color" id="modal-table-header-color-light" value="${tableObj.headerColorLight || '#0f172a'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -1061,12 +1064,49 @@
             `;
             container.appendChild(thRow);
 
-            // [2] 행 배경 행
+            // [1-2] TH 표 머리 구분선 행
+            const isHeaderBorder = tableObj.headerBorderEnabled !== false;
+            const thBorderRow = document.createElement('div');
+            thBorderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
+            thBorderRow.innerHTML = `
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg>
+                    </span>
+                    <span>표 머리 구분선</span>
+                </span>
+                <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                    <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
+                </label>
+                <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
+                    <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 표 머리 구분선 색상">
+                        ☀️<input type="color" id="modal-table-header-border-color-light" value="${tableObj.headerBorderColorLight || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 표 머리 구분선 색상">
+                        🌙<input type="color" id="modal-table-header-border-color-dark" value="${tableObj.headerBorderColorDark || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
+                    <select id="modal-table-header-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                        <option value="2px solid" ${tableObj.headerBorderStyle === '2px solid' || !tableObj.headerBorderStyle ? 'selected' : ''}>2px solid (기본)</option>
+                        <option value="1px solid" ${tableObj.headerBorderStyle === '1px solid' ? 'selected' : ''}>1px solid (얇게)</option>
+                        <option value="3px solid" ${tableObj.headerBorderStyle === '3px solid' ? 'selected' : ''}>3px solid (두껍게)</option>
+                        <option value="1px dashed" ${tableObj.headerBorderStyle === '1px dashed' ? 'selected' : ''}>1px dashed (점선)</option>
+                        <option value="2px dashed" ${tableObj.headerBorderStyle === '2px dashed' ? 'selected' : ''}>2px dashed (두꺼운 점선)</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(thBorderRow);
+
+            // [2] 행 배경 행 (TR 역상)
             const isRowTrans = tableObj.rowBgTransparent !== false;
             const rowBgRow = document.createElement('div');
             rowBgRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             rowBgRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:2px;">• 행 배경</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f8fafc; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR</span>
+                    <span>행 배경</span>
+                </span>
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="radio" name="modal-table-row-bg-mode" value="transparent" ${isRowTrans ? 'checked' : ''}> 투명 (문서 배경)
                 </label>
@@ -1084,12 +1124,15 @@
             `;
             container.appendChild(rowBgRow);
 
-            // [3] 짝수 행 배경 행
+            // [3] 짝수 행 배경 행 (TR2)
             const isStripe = tableObj.stripeEnabled !== false;
             const stripeRow = document.createElement('div');
             stripeRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             stripeRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:2px;">• 짝수 행 배경</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#38bdf8; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR2</span>
+                    <span>짝수 행 배경</span>
+                </span>
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="radio" name="modal-table-stripe-mode" value="standard" ${!isStripe ? 'checked' : ''}> 반투명 교차 (표준)
                 </label>
@@ -1107,12 +1150,17 @@
             `;
             container.appendChild(stripeRow);
 
-            // [4] 행 호버 강조 행
+            // [4] 행 호버 강조 행 (마우스 아이콘)
             const isHover = tableObj.hoverEnabled !== false;
             const hoverRow = document.createElement('div');
             hoverRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             hoverRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:2px;">• 행 호버 강조</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg>
+                    </span>
+                    <span>행 호버 강조</span>
+                </span>
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-hover-enabled" ${isHover ? 'checked' : ''}> 마우스 호버 사용
                 </label>
@@ -1127,11 +1175,16 @@
             `;
             container.appendChild(hoverRow);
 
-            // [5] 표 테두리 행
+            // [5] 표 테두리 행 (그리드 아이콘)
             const borderRow = document.createElement('div');
             borderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             borderRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#10b981; display:flex; align-items:center; gap:2px;">• 표 테두리</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                    </span>
+                    <span>표 테두리</span>
+                </span>
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
                 <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 테두리 색상">
                     ☀️<input type="color" id="modal-table-border-color-light" value="${tableObj.borderColorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
@@ -1149,11 +1202,14 @@
             `;
             container.appendChild(borderRow);
 
-            // [6] 셀 여백 (Pad) 행
+            // [6] 셀 여백 (TD 패딩) 행
             const padRow = document.createElement('div');
             padRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             padRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f59e0b; display:flex; align-items:center; gap:2px;">• 셀 여백 (Pad)</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f59e0b; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TD</span>
+                    <span>셀 여백 (Pad)</span>
+                </span>
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">여백:</span>
                 <select id="modal-table-padding" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                     <option value="none" ${tableObj.padding === 'none' ? 'selected' : ''}>없음 (0px)</option>
@@ -1165,11 +1221,16 @@
             `;
             container.appendChild(padRow);
 
-            // [7] 셀 정렬 행
+            // [7] 셀 정렬 행 (상하 정렬 아이콘)
             const alignRow = document.createElement('div');
             alignRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             alignRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#a78bfa; display:flex; align-items:center; gap:2px;">• 셀 정렬</span>
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"></line><polyline points="8 7 12 3 16 7"></polyline><polyline points="8 17 12 21 16 17"></polyline></svg>
+                    </span>
+                    <span>셀 정렬</span>
+                </span>
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">세로 정렬:</span>
                 <select id="modal-table-vertical-align" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                     <option value="top" ${tableObj.verticalAlign === 'top' ? 'selected' : ''}>상단 (Top)</option>
@@ -1207,6 +1268,18 @@
                             options.onLivePreview();
                         }
                     });
+                });
+            }
+
+            const chkHeaderBorder = document.getElementById('modal-table-header-border-enabled');
+            const headerBorderPickers = document.getElementById('modal-table-header-border-pickers');
+            if (chkHeaderBorder && headerBorderPickers) {
+                chkHeaderBorder.addEventListener('change', (e) => {
+                    headerBorderPickers.style.opacity = e.target.checked ? '1' : '0.35';
+                    headerBorderPickers.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+                    if (typeof options.onLivePreview === 'function') {
+                        options.onLivePreview();
+                    }
                 });
             }
 
@@ -1332,6 +1405,11 @@
             const thBgLight = document.getElementById('modal-table-header-bg-light');
             const thBgDark = document.getElementById('modal-table-header-bg-dark');
 
+            const headerBorderEnabled = document.getElementById('modal-table-header-border-enabled');
+            const headerBorderColorLight = document.getElementById('modal-table-header-border-color-light');
+            const headerBorderColorDark = document.getElementById('modal-table-header-border-color-dark');
+            const headerBorderStyle = document.getElementById('modal-table-header-border-style');
+
             const rowTrans = document.getElementById('modal-table-row-bg-transparent');
             const rowBgLight = document.getElementById('modal-table-row-bg-light');
             const rowBgDark = document.getElementById('modal-table-row-bg-dark');
@@ -1359,6 +1437,11 @@
                 if (thColorDark) styles.table.headerColorDark = thColorDark.value;
                 if (thBgLight) styles.table.headerBgLight = thBgLight.value;
                 if (thBgDark) styles.table.headerBgDark = thBgDark.value;
+
+                if (headerBorderEnabled) styles.table.headerBorderEnabled = headerBorderEnabled.checked;
+                if (headerBorderColorLight) styles.table.headerBorderColorLight = headerBorderColorLight.value;
+                if (headerBorderColorDark) styles.table.headerBorderColorDark = headerBorderColorDark.value;
+                if (headerBorderStyle) styles.table.headerBorderStyle = headerBorderStyle.value;
 
                 if (rowBgModeRadio) styles.table.rowBgTransparent = (rowBgModeRadio.value === 'transparent');
                 if (rowBgLight) styles.table.rowBgLight = rowBgLight.value;

@@ -968,12 +968,12 @@ body {
     font-weight: 600;
     background-color: var(--table-header-bg, var(--preview-table-th-bg));
     color: var(--table-header-color, var(--preview-heading));
-    border-bottom: 2px solid var(--theme-color);
+    border-bottom: var(--table-header-border-bottom, 2px solid var(--theme-color));
 }
 
 .markdown-body table tr {
     background-color: var(--table-row-bg, var(--preview-table-tr-bg));
-    border-top: 1px solid var(--table-border-color, var(--preview-border));
+    border-top: var(--table-border-style, 1px solid) var(--table-border-color, var(--preview-border));
 }
 
 .markdown-body table tr:nth-child(even) {

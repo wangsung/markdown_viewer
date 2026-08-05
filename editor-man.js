@@ -409,6 +409,17 @@ window.EditorManager = (function() {
         targetEl.style.setProperty('--table-header-color', targetThColor);
         targetEl.style.setProperty('--table-header-bg', targetThBg);
 
+        // 표 머리 구분선 (TH border-bottom)
+        if (tableObj.headerBorderEnabled !== false) {
+            const targetHeaderBorderColor = currentTheme === 'light'
+                ? (tableObj.headerBorderColorLight || 'var(--theme-color)')
+                : (tableObj.headerBorderColorDark || 'var(--theme-color)');
+            const headerBorderStyle = tableObj.headerBorderStyle || '2px solid';
+            targetEl.style.setProperty('--table-header-border-bottom', `${headerBorderStyle} ${targetHeaderBorderColor}`);
+        } else {
+            targetEl.style.setProperty('--table-header-border-bottom', 'none');
+        }
+
         // 행 배경
         if (tableObj.rowBgTransparent) {
             targetEl.style.setProperty('--table-row-bg', 'transparent');
