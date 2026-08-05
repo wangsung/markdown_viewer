@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Style Editor Verification Test</title>
+</head>
+<body>
+    <div id="heading-modal">
+        <div class="modal-content" style="position: absolute; top: 10px; left: 10px; width: 600px;">
+            <div class="modal-header">
+                <h2>🎨 스타일 편집</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <select id="modal-heading-preset-select">
+                    <option value="github_classic">GitHub Classic</option>
+                </select>
+                <!-- Controls will be generated here -->
+                <div id="heading-style-controls"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="test-results" style="margin-top: 300px; font-family: sans-serif; padding: 20px;">
+        <h3>Test Results:</h3>
+        <ul id="results-list"></ul>
+    </div>
+
+    <script src="style-editor.js"></script>
+    <script>
+        const resultsList = document.getElementById('results-list');
+        function logResult(msg, success) {
+            const li = document.createElement('li');
+            li.style.color = success ? 'green' : 'red';
+            li.textContent = (success ? '✅ PASS: ' : '❌ FAIL: ') + msg;
+            resultsList.appendChild(li);
+        }
+
+        try {
+            // Initialize StyleEditor
+            window.StyleEditor.init({
+                controlsContainer: document.getElementById('heading-style-controls'),
+                presetSelect: document.getElementById('modal-heading-preset-select'),
+                getPresetsData: () => window.StyleEditor.getDefaultPresets()
+            });
+            
+            // Render controls
+            window.StyleEditor.renderControls('github_classic');
+            
+            // Test 1: Check if #heading-style-controls has child elements
+            const controls = document.getElementById('heading-style-controls');
+            if (controls.children.length > 0) {
+                logResult('renderControls successfully generated child elements (' + controls.children.length + ' rows).', true);
+            } else {
+                logResult('renderControls failed to generate child elements.', false);
+            }
+            
+            // Test 2: Simulate drag on modal header
+            const header = document.querySelector('.modal-header');
+            const modalContent = document.querySelector('.modal-content');
+            
+            // Mouse down
+            const mousedown = new MouseEvent('mousedown', {
+                bubbles: true,
+                cancelable: true,
+                clientX: 100,
+                clientY: 100
+            });
+            header.dispatchEvent(mousedown);
+            
+            // Mouse move
+            const mousemove = new MouseEvent('mousemove', {
+                bubbles: true,
+                cancelable: true,
+                clientX: 150, // drag right 50px
+                clientY: 120  // drag down 20px
+            });
+            document.dispatchEvent(mousemove);
+            
+            // Mouse up
+            const mouseup = new MouseEvent('mouseup', {
+                bubbles: true,
+                cancelable: true
+            });
+            document.dispatchEvent(mouseup);
+            
+            // Verify transform
+            const transformValue = modalContent.style.transform;
+            if (transformValue === 'translate(50px, 20px)') {
+                logResult('Modal drag correctly applied transform: ' + transformValue, true);
+            } else {
+                logResult('Modal drag failed. Transform is: ' + transformValue, false);
+            }
+            
+        } catch (e) {
+            logResult('Test script encountered an error: ' + e.message, false);
+        }
+    </script>
+</body>
+</html>

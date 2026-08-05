@@ -380,6 +380,16 @@ class ScrollSync {
       return;
     }
 
+    // Protection for EOF / last line: if cursor is at or near the last line of document, maintain max preview scroll
+    const totalLines = this.cm.lineCount();
+    if (cursorLine >= totalLines) {
+      const maxScroll = this.previewViewport.scrollHeight - this.previewViewport.clientHeight;
+      this.previewViewport.scrollTo({ top: maxScroll, behavior: 'smooth' });
+      this.lastPreviewScrollTop = maxScroll;
+      this._notifyDebug();
+      return;
+    }
+
     let targetId = this.getLineIdentifier(cursorLine);
     let targetEl = targetId ? this.findPreviewElementByIdentifier(targetId) : null;
 
@@ -415,6 +425,13 @@ class ScrollSync {
       let newScrollTop = this.previewViewport.scrollTop + topOffset - targetPreviewRelativeTop;
       const maxScroll = this.previewViewport.scrollHeight - containerRect.height;
       newScrollTop = Math.max(0, Math.min(newScrollTop, maxScroll));
+
+      // 마지막 구간 보호: Editor가 최하단 스크롤 상태이거나 이미 Preview가 최하단 부근(95% 이상)에 도달해 있는 경우
+      // 마우스 클릭 시 Preview가 역방향(위쪽)으로 끌려 올라가서 하단 내용이 가려지지 않도록 clamping 처리
+      const maxScrollEditor = scrollInfo.height - scrollInfo.clientHeight;
+      if (scrollInfo.top >= maxScrollEditor - 5 || this.previewViewport.scrollTop >= maxScroll * 0.95) {
+        newScrollTop = Math.max(this.previewViewport.scrollTop, newScrollTop);
+      }
 
       this.previewViewport.scrollTo({ top: newScrollTop, behavior: 'smooth' });
       const newPercent = maxScroll > 0 ? newScrollTop / maxScroll : 0;
@@ -630,12 +647,19 @@ class ScrollSync {
 
     // Anomaly Check 2: scaleFactor is Zero or invalid -> Fallback to Linear Interpolation Mapping
     if (scaleFactor <= 0) {
-      const fallbackScroll = this.getPreviewScrollForEditor(scrollTop);
-      this.lastPreviewScrollTop = fallbackScroll;
-      this.previewViewport.scrollTop = fallbackScroll;
-      this._notifyDebug();
-      this._detectActiveLineFromPreview();
-      return;
+      // If we are in the last segment and Editor is near bottom, fallback scaleFactor based on remaining scroll space
+      const remainingEd = maxEditorScrollTop - scrollTop;
+      const remainingPr = maxPreviewScrollY - this.previewViewport.scrollTop;
+      if (remainingEd > 0 && remainingPr > 0) {
+        scaleFactor = remainingPr / remainingEd;
+      } else {
+        const fallbackScroll = this.getPreviewScrollForEditor(scrollTop);
+        this.lastPreviewScrollTop = fallbackScroll;
+        this.previewViewport.scrollTop = fallbackScroll;
+        this._notifyDebug();
+        this._detectActiveLineFromPreview();
+        return;
+      }
     }
 
     // Normal Execution: Relative Delta-Y calculation
@@ -802,6 +826,48 @@ class ScrollSync {
       { event: 'focus', handler: onCmFocus },
       { event: 'scroll', handler: onCmScroll }
     ];
+
+    // CodeMirror overscroll wheel listener for smooth preview progression when Editor is at scroll bottom
+    if (cmWrapper) {
+      const onCmWheel = (e) => {
+        if (!this.isEnabled || this.isSyncing) return;
+        const scrollInfo = this.cm.getScrollInfo();
+        const maxEditorScrollTop = scrollInfo.height - scrollInfo.clientHeight;
+
+        // Editor is at bottom boundary and user scrolls down
+        if (scrollInfo.top >= maxEditorScrollTop - 1 && e.deltaY > 0) {
+          const maxPreviewScrollY = this.previewViewport.scrollHeight - this.previewViewport.clientHeight;
+          if (this.previewViewport.scrollTop < maxPreviewScrollY) {
+            // Determine active segment scaleFactor
+            const currentPercent = maxEditorScrollTop > 0 ? scrollInfo.top / maxEditorScrollTop : 1.0;
+            let kfBefore = this.keyframes[0];
+            let kfAfter = this.keyframes[this.keyframes.length - 1];
+            for (let i = 0; i < this.keyframes.length; i++) {
+              if (this.keyframes[i].editorPercent <= currentPercent) {
+                kfBefore = this.keyframes[i];
+              } else {
+                kfAfter = this.keyframes[i];
+                break;
+              }
+            }
+            const height_ed_range = (kfAfter.editorPercent - kfBefore.editorPercent) * maxEditorScrollTop;
+            const height_pr_range = kfAfter.previewScrollY - kfBefore.previewScrollY;
+            let scaleFactor = (height_ed_range > 0 && height_pr_range > 0) ? (height_pr_range / height_ed_range) : 1.0;
+
+            const deltaY_pr = e.deltaY * scaleFactor;
+            const targetPreviewTop = Math.min(maxPreviewScrollY, this.previewViewport.scrollTop + deltaY_pr);
+            
+            this.activeScrollSource = 'editor';
+            this.previewViewport.scrollTo({ top: targetPreviewTop, behavior: 'smooth' });
+            this.lastPreviewScrollTop = targetPreviewTop;
+            this._notifyDebug();
+            this._detectActiveLineFromPreview();
+          }
+        }
+      };
+      cmWrapper.addEventListener('wheel', onCmWheel, { passive: true });
+      this._listeners.push({ target: cmWrapper, event: 'wheel', handler: onCmWheel });
+    }
 
     // Preview scroll handler
     const onPreviewScroll = () => { this._handlePreviewScroll(); };

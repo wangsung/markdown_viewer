@@ -38,7 +38,7 @@
                 strong: { colorLight: '#0369a1', colorDark: '#38bdf8' },
                 em: { colorLight: '#0284c7', colorDark: '#7dd3fc' },
                 code: { colorLight: '#0284c7', colorDark: '#38bdf8' },
-                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+                codeblock: { colorLight: '#0369a1', colorDark: '#e0f2fe', bgLight: '#e0f2fe', bgDark: '#0c4a6e' },
                 blockquote: { colorLight: '#0369a1', colorDark: '#bae6fd', borderLight: '#0284c7', borderDark: '#38bdf8' },
                 line: { colorLight: '#38bdf8', colorDark: '#0ea5e9', border: '2px solid #38bdf8' }
             }
@@ -58,7 +58,7 @@
                 strong: { colorLight: '#047857', colorDark: '#34d399' },
                 em: { colorLight: '#059669', colorDark: '#6ee7b7' },
                 code: { colorLight: '#059669', colorDark: '#34d399' },
-                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+                codeblock: { colorLight: '#047857', colorDark: '#d1fae5', bgLight: '#d1fae5', bgDark: '#064e3b' },
                 blockquote: { colorLight: '#047857', colorDark: '#a7f3d0', borderLight: '#059669', borderDark: '#34d399' },
                 line: { colorLight: '#059669', colorDark: '#10b981', border: '2px solid #059669' }
             }
@@ -77,7 +77,7 @@
                 strong: { colorLight: '#be123c', colorDark: '#fb7185' },
                 em: { colorLight: '#e11d48', colorDark: '#fda4af' },
                 code: { colorLight: '#e11d48', colorDark: '#fb7185' },
-                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+                codeblock: { colorLight: '#be123c', colorDark: '#ffe4e6', bgLight: '#ffe4e6', bgDark: '#881337' },
                 blockquote: { colorLight: '#881337', colorDark: '#fecdd3', borderLight: '#e11d48', borderDark: '#fb7185' },
                 line: { colorLight: '#e11d48', colorDark: '#f43f5e', border: '2px solid #e11d48' }
             }
@@ -96,7 +96,7 @@
                 strong: { colorLight: '#6d28d9', colorDark: '#a78bfa' },
                 em: { colorLight: '#7c3aed', colorDark: '#c4b5fd' },
                 code: { colorLight: '#7c3aed', colorDark: '#a78bfa' },
-                codeblock: { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' },
+                codeblock: { colorLight: '#6d28d9', colorDark: '#ede9fe', bgLight: '#ede9fe', bgDark: '#4c1d95' },
                 blockquote: { colorLight: '#4c1d95', colorDark: '#ddd6fe', borderLight: '#7c3aed', borderDark: '#a78bfa' },
                 line: { colorLight: '#7c3aed', colorDark: '#8b5cf6', border: '2px dashed #8b5cf6' }
             }
@@ -536,43 +536,42 @@
             const self = this;
 
             // 🎨 모달 다이얼로그 마우스 드래그 이동(Draggable) 연동 구현 (CSS transform 기반 무중력 드래그)
-            const modalContent = document.querySelector('#heading-modal .modal-content');
-            if (modalContent) {
-                const header = modalContent.querySelector('.modal-header');
-                if (header) {
-                    header.style.cursor = 'move';
-                    header.addEventListener('mousedown', (e) => {
-                        // 닫기 단추(X) 클릭 시에는 드래그 무시
-                        if (e.target.closest('.close-modal')) return;
-                        
-                        e.preventDefault();
-                        const startX = e.clientX;
-                        const startY = e.clientY;
-                        
-                        const initialX = dragX;
-                        const initialY = dragY;
-                        
-                        function onMouseMove(moveEvent) {
-                            const deltaX = moveEvent.clientX - startX;
-                            const deltaY = moveEvent.clientY - startY;
-                            
-                            dragX = initialX + deltaX;
-                            dragY = initialY + deltaY;
-                            
-                            // 기존 layout margin/position 건드리지 않고 transform을 통하여 부드럽고 튐 없는 드래그 연출
-                            modalContent.style.transform = `translate(${dragX}px, ${dragY}px)`;
-                        }
-                        
-                        function onMouseUp() {
-                            document.removeEventListener('mousemove', onMouseMove);
-                            document.removeEventListener('mouseup', onMouseUp);
-                        }
-                        
-                        document.addEventListener('mousemove', onMouseMove);
-                        document.addEventListener('mouseup', onMouseUp);
-                    });
+            document.addEventListener('mousedown', (e) => {
+                const header = e.target.closest('#heading-modal .modal-header');
+                if (!header) return;
+                // 닫기 단추(X) 클릭 시에는 드래그 무시
+                if (e.target.closest('.close-modal')) return;
+
+                const modalContent = document.querySelector('#heading-modal .modal-content');
+                if (!modalContent) return;
+
+                header.style.cursor = 'move';
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                
+                const initialX = dragX;
+                const initialY = dragY;
+                
+                function onMouseMove(moveEvent) {
+                    const deltaX = moveEvent.clientX - startX;
+                    const deltaY = moveEvent.clientY - startY;
+                    
+                    dragX = initialX + deltaX;
+                    dragY = initialY + deltaY;
+                    
+                    // 기존 layout margin/position 건드리지 않고 transform을 통하여 부드럽고 튐 없는 드래그 연출
+                    modalContent.style.transform = `translate(${dragX}px, ${dragY}px)`;
                 }
-            }
+                
+                function onMouseUp() {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
  
             // 🎨 모달 다이얼로그 바깥 백드롭 영역 마우스 휠 이벤트 가로채기 & 리디렉션
             const headingModal = document.getElementById('heading-modal');
@@ -863,7 +862,6 @@
             `;
             container.appendChild(emRow);
 
-
             // 📦 Code block 행
             const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
             const cbRow = document.createElement('div');
@@ -948,38 +946,6 @@
                 <input type="text" id="modal-line-border" value="${lineObj.border || '1px solid #334155'}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
             `;
             container.appendChild(lineRow);
-
-            // 코드 / 코드블럭 양방향 연동
-            const inLight = document.getElementById('modal-code-color-light');
-            const inDark = document.getElementById('modal-code-color-dark');
-            const cbLight = document.getElementById('modal-codeblock-color-light');
-            const cbDark = document.getElementById('modal-codeblock-color-dark');
-            
-            if (inLight && cbLight) {
-                inLight.addEventListener('input', (e) => {
-                    if (cbLight.value !== e.target.value) {
-                        cbLight.value = e.target.value;
-                    }
-                });
-                cbLight.addEventListener('input', (e) => {
-                    if (inLight.value !== e.target.value) {
-                        inLight.value = e.target.value;
-                    }
-                });
-            }
-            
-            if (inDark && cbDark) {
-                inDark.addEventListener('input', (e) => {
-                    if (cbDark.value !== e.target.value) {
-                        cbDark.value = e.target.value;
-                    }
-                });
-                cbDark.addEventListener('input', (e) => {
-                    if (inDark.value !== e.target.value) {
-                        inDark.value = e.target.value;
-                    }
-                });
-            }
         },
 
         /**

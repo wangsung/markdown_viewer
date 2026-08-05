@@ -364,10 +364,9 @@ greet('사용자');
     <!-- 설정 모달 다이얼로그 (SettingsManager 동적 템플릿 주입) -->
     <div id="settings-modal" class="modal"></div>
 
-    <!-- Heading Style 커스텀 편집 모달 -->
     <div id="heading-modal" class="modal">
-        <div class="modal-content" style="max-width: 580px; padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
-            <div class="modal-header" style="padding-bottom: 4px; margin-bottom: 5px;"> <!-- 헤더 마진/패딩 축소 -->
+        <div class="modal-content" style="padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
+            <div class="modal-header" style="padding-bottom: 4px; margin-bottom: 5px; user-select: none; -webkit-user-select: none;"> <!-- 헤더 마진/패딩 축소 및 드래그 텍스트 선택 방지 -->
                 <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 스타일 편집</h2>
                 <span class="close-modal" id="close-heading-modal">&times;</span>
             </div>
@@ -394,7 +393,6 @@ greet('사용자');
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             저장 및 적용
                         </button>
-                    </div>
                     </div>
                 </div>
             </div>
