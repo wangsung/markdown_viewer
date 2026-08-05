@@ -366,33 +366,30 @@ greet('사용자');
 
     <div id="heading-modal" class="modal">
         <div class="modal-content" style="padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
-            <div class="modal-header" style="padding-bottom: 4px; margin-bottom: 5px; user-select: none; -webkit-user-select: none;"> <!-- 헤더 마진/패딩 축소 및 드래그 텍스트 선택 방지 -->
-                <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0;">🎨 스타일 편집</h2>
-                <span class="close-modal" id="close-heading-modal">&times;</span>
-            </div>
-            <div class="modal-body" style="padding: 0;">
-                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 5px; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-frame);"> <!-- 프리셋 행 간격/패딩 축소 -->
-                    <label for="modal-heading-preset-select" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">Preset Set:</label>
-                    <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
-                    </select>
-                    <!-- 더보기 옵션 드롭다운 (새 스타일 생성 / 현재 스타일 삭제) -->
-                    <div style="position: relative; display: inline-flex; align-items: center;">
-                        <button id="btn-preset-more" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;" title="프리셋 옵션">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+            <div class="modal-header" style="display: flex; align-items: center; gap: 8px; padding-bottom: 6px; margin-bottom: 6px; user-select: none; -webkit-user-select: none;">
+                <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap;">🎨 스타일 편집</h2>
+                <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
+                </select>
+                <!-- 더보기 옵션 드롭다운 (새 스타일 생성 / 현재 스타일 삭제) -->
+                <div style="position: relative; display: inline-flex; align-items: center;">
+                    <button id="btn-preset-more" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center;" title="프리셋 옵션">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                    </button>
+                    <div id="preset-more-menu" class="preset-more-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #1e293b; border: 1px solid var(--border-frame); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 999; min-width: 145px; padding: 4px 0;">
+                        <button id="btn-add-heading-preset" class="preset-menu-item" style="width: 100%; text-align: left; padding: 6px 12px; background: transparent; border: none; color: #f8fafc; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            새 스타일 생성
                         </button>
-                        <div id="preset-more-menu" class="preset-more-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #1e293b; border: 1px solid var(--border-frame); border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 999; min-width: 145px; padding: 4px 0;">
-                            <button id="btn-add-heading-preset" class="preset-menu-item" style="width: 100%; text-align: left; padding: 6px 12px; background: transparent; border: none; color: #f8fafc; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                새 스타일 생성
-                            </button>
-                            <div style="height: 1px; background: var(--border-frame); margin: 3px 0;"></div>
-                            <button id="btn-delete-heading-preset" class="preset-menu-item" style="width: 100%; text-align: left; padding: 6px 12px; background: transparent; border: none; color: #f59e0b; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                현재 스타일 삭제
-                            </button>
-                        </div>
+                        <div style="height: 1px; background: var(--border-frame); margin: 3px 0;"></div>
+                        <button id="btn-delete-heading-preset" class="preset-menu-item" style="width: 100%; text-align: left; padding: 6px 12px; background: transparent; border: none; color: #f59e0b; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            현재 스타일 삭제
+                        </button>
                     </div>
                 </div>
+                <span class="close-modal" id="close-heading-modal" style="margin-left: 6px;">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 0;">
 
                 <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
                     <!-- H1 ~ H6 컨트롤 생성 위치 -->

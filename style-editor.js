@@ -539,8 +539,8 @@
             document.addEventListener('mousedown', (e) => {
                 const header = e.target.closest('#heading-modal .modal-header');
                 if (!header) return;
-                // 닫기 단추(X) 클릭 시에는 드래그 무시
-                if (e.target.closest('.close-modal')) return;
+                // 닫기 단추(X), Select 선택상자, 버튼, 팝오버 메뉴 클릭 시에는 드래그 무시
+                if (e.target.closest('.close-modal, select, button, .preset-more-menu')) return;
 
                 const modalContent = document.querySelector('#heading-modal .modal-content');
                 if (!modalContent) return;
