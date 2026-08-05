@@ -1072,9 +1072,14 @@ document.addEventListener('DOMContentLoaded', () => {
             '--h5-color', '--h5-size', '--h5-border',
             '--h6-color', '--h6-size', '--h6-border',
             '--link-color', '--link-decoration',
-            '--bold-color', '--italic-color', '--inline-code-fg',
+            '--bold-color', '--italic-color', '--inline-code-fg', '--custom-inline-code-bg',
+            '--custom-code-block-bg', '--custom-code-block-fg',
             '--blockquote-text-color', '--blockquote-border-color',
             '--line-color', '--line-border',
+            '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
+            '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
+            '--table-border-color', '--table-border-style', '--table-cell-padding',
+            '--table-vertical-align', '--table-row-border-bottom',
             '--preview-font-family', '--preview-font-size'
         ];
 
