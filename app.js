@@ -1075,6 +1075,10 @@ document.addEventListener('DOMContentLoaded', () => {
             '--bold-color', '--italic-color', '--inline-code-fg',
             '--blockquote-text-color', '--blockquote-border-color',
             '--line-color', '--line-border',
+            '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
+            '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
+            '--table-border-color', '--table-border-style', '--table-cell-padding',
+            '--table-vertical-align', '--table-row-border-bottom',
             '--preview-font-family', '--preview-font-size'
         ];
 
