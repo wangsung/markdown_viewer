@@ -1039,7 +1039,109 @@
                 verticalAlign: 'middle'
             };
 
-            // [1] TH 헤더 행
+            // [1] 표 테두리 행 (맨 위)
+            const isTableBorder = tableObj.borderEnabled !== false;
+            const borderRow = document.createElement('div');
+            borderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
+            borderRow.innerHTML = `
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
+                    </span>
+                    <span>표 테두리</span>
+                </span>
+                <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                    <input type="checkbox" id="modal-table-border-enabled" ${isTableBorder ? 'checked' : ''}> 테두리
+                </label>
+                <div id="modal-table-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isTableBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
+                    <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 테두리 색상">
+                        ☀️<input type="color" id="modal-table-border-color-light" value="${tableObj.borderColorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 테두리 색상">
+                        🌙<input type="color" id="modal-table-border-color-dark" value="${tableObj.borderColorDark || '#334155'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
+                    <select id="modal-table-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                        <option value="none" ${tableObj.borderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
+                        <option value="1px solid" ${tableObj.borderStyle === '1px solid' || !tableObj.borderStyle ? 'selected' : ''}>가는 선 ( 1px solid )</option>
+                        <option value="1px dashed" ${tableObj.borderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
+                        <option value="2px solid" ${tableObj.borderStyle === '2px solid' ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
+                        <option value="2px dashed" ${tableObj.borderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(borderRow);
+
+            // [2] TH 표 머리 구분선 행 (2번째)
+            const isHeaderBorder = tableObj.headerBorderEnabled !== false;
+            const thBorderRow = document.createElement('div');
+            thBorderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
+            thBorderRow.innerHTML = `
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg>
+                    </span>
+                    <span>표 머리 구분선</span>
+                </span>
+                <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                    <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
+                </label>
+                <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
+                    <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 표 머리 구분선 색상">
+                        ☀️<input type="color" id="modal-table-header-border-color-light" value="${tableObj.headerBorderColorLight || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 표 머리 구분선 색상">
+                        🌙<input type="color" id="modal-table-header-border-color-dark" value="${tableObj.headerBorderColorDark || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
+                    <select id="modal-table-header-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                        <option value="none" ${tableObj.headerBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
+                        <option value="1px solid" ${tableObj.headerBorderStyle === '1px solid' ? 'selected' : ''}>가는 선 ( 1px solid )</option>
+                        <option value="1px dashed" ${tableObj.headerBorderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
+                        <option value="2px solid" ${tableObj.headerBorderStyle === '2px solid' || !tableObj.headerBorderStyle ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
+                        <option value="2px dashed" ${tableObj.headerBorderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(thBorderRow);
+
+            // [3] 행 구분선 행 (3번째)
+            const isRowBorder = tableObj.rowBorderEnabled !== false;
+            const rowBorderRow = document.createElement('div');
+            rowBorderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
+            rowBorderRow.innerHTML = `
+                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="20" x2="21" y2="20"></line><rect x="3" y="4" width="18" height="12" rx="1"></rect></svg>
+                    </span>
+                    <span>행 구분선</span>
+                </span>
+                <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
+                    <input type="checkbox" id="modal-table-row-border-enabled" ${isRowBorder ? 'checked' : ''}> 구분선
+                </label>
+                <div id="modal-table-row-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isRowBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
+                    <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 행 구분선 색상">
+                        ☀️<input type="color" id="modal-table-row-border-color-light" value="${tableObj.rowBorderColorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 행 구분선 색상">
+                        🌙<input type="color" id="modal-table-row-border-color-dark" value="${tableObj.rowBorderColorDark || '#334155'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
+                    </label>
+                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
+                    <select id="modal-table-row-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
+                        <option value="none" ${tableObj.rowBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
+                        <option value="1px solid" ${tableObj.rowBorderStyle === '1px solid' || !tableObj.rowBorderStyle ? 'selected' : ''}>가는 선 ( 1px solid )</option>
+                        <option value="1px dashed" ${tableObj.rowBorderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
+                        <option value="2px solid" ${tableObj.rowBorderStyle === '2px solid' ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
+                        <option value="2px dashed" ${tableObj.rowBorderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(rowBorderRow);
+
+            // [4] TH 표 머리글 행 (4번째)
             const thRow = document.createElement('div');
             thRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             thRow.innerHTML = `
@@ -1064,41 +1166,7 @@
             `;
             container.appendChild(thRow);
 
-            // [1-2] TH 표 머리 구분선 행
-            const isHeaderBorder = tableObj.headerBorderEnabled !== false;
-            const thBorderRow = document.createElement('div');
-            thBorderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
-            thBorderRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
-                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg>
-                    </span>
-                    <span>표 머리 구분선</span>
-                </span>
-                <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
-                    <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
-                </label>
-                <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
-                    <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 표 머리 구분선 색상">
-                        ☀️<input type="color" id="modal-table-header-border-color-light" value="${tableObj.headerBorderColorLight || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                    </label>
-                    <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 표 머리 구분선 색상">
-                        🌙<input type="color" id="modal-table-header-border-color-dark" value="${tableObj.headerBorderColorDark || '#f43f5e'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                    </label>
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
-                    <select id="modal-table-header-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                        <option value="2px solid" ${tableObj.headerBorderStyle === '2px solid' || !tableObj.headerBorderStyle ? 'selected' : ''}>2px solid (기본)</option>
-                        <option value="1px solid" ${tableObj.headerBorderStyle === '1px solid' ? 'selected' : ''}>1px solid (얇게)</option>
-                        <option value="3px solid" ${tableObj.headerBorderStyle === '3px solid' ? 'selected' : ''}>3px solid (두껍게)</option>
-                        <option value="1px dashed" ${tableObj.headerBorderStyle === '1px dashed' ? 'selected' : ''}>1px dashed (점선)</option>
-                        <option value="2px dashed" ${tableObj.headerBorderStyle === '2px dashed' ? 'selected' : ''}>2px dashed (두꺼운 점선)</option>
-                    </select>
-                </div>
-            `;
-            container.appendChild(thBorderRow);
-
-            // [2] 행 배경 행 (TR 역상)
+            // [5] 행 배경 행 (TR 역상)
             const isRowTrans = tableObj.rowBgTransparent !== false;
             const rowBgRow = document.createElement('div');
             rowBgRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
@@ -1108,7 +1176,7 @@
                     <span>행 배경</span>
                 </span>
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
-                    <input type="radio" name="modal-table-row-bg-mode" value="transparent" ${isRowTrans ? 'checked' : ''}> 투명 (문서 배경)
+                    <input type="radio" name="modal-table-row-bg-mode" value="transparent" ${isRowTrans ? 'checked' : ''}> 투명 (문서 배경색)
                 </label>
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap; margin-left:4px;">
                     <input type="radio" name="modal-table-row-bg-mode" value="custom" ${!isRowTrans ? 'checked' : ''}> 배경:
@@ -1124,7 +1192,7 @@
             `;
             container.appendChild(rowBgRow);
 
-            // [3] 짝수 행 배경 행 (TR2)
+            // [6] 짝수 행 배경 행 (TR2)
             const isStripe = tableObj.stripeEnabled !== false;
             const stripeRow = document.createElement('div');
             stripeRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
@@ -1150,7 +1218,7 @@
             `;
             container.appendChild(stripeRow);
 
-            // [4] 행 호버 강조 행 (마우스 아이콘)
+            // [7] 행 호버 강조 행 (마우스 아이콘)
             const isHover = tableObj.hoverEnabled !== false;
             const hoverRow = document.createElement('div');
             hoverRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
@@ -1175,34 +1243,7 @@
             `;
             container.appendChild(hoverRow);
 
-            // [5] 표 테두리 행 (그리드 아이콘)
-            const borderRow = document.createElement('div');
-            borderRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
-            borderRow.innerHTML = `
-                <span style="font-weight:700; width:135px; font-size:0.76rem; color:#f8fafc; display:flex; align-items:center; gap:6px;">
-                    <span style="display:inline-flex; width:28px; justify-content:center; align-items:center;">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-                    </span>
-                    <span>표 테두리</span>
-                </span>
-                <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
-                <label style="font-size:0.72rem; color:#0f172a; background:#ffffff; padding:1px 5px; border-radius:4px; border:1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="라이트 모드 테두리 색상">
-                    ☀️<input type="color" id="modal-table-border-color-light" value="${tableObj.borderColorLight || '#cbd5e1'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-                <label style="font-size:0.72rem; color:#f8fafc; background:#0f172a; padding:1px 5px; border-radius:4px; border:1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;" title="다크 모드 테두리 색상">
-                    🌙<input type="color" id="modal-table-border-color-dark" value="${tableObj.borderColorDark || '#334155'}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;">
-                </label>
-                <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
-                <select id="modal-table-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                    <option value="1px solid" ${tableObj.borderStyle === '1px solid' || !tableObj.borderStyle ? 'selected' : ''}>1px solid (기본)</option>
-                    <option value="1px dashed" ${tableObj.borderStyle === '1px dashed' ? 'selected' : ''}>1px dashed (점선)</option>
-                    <option value="2px solid" ${tableObj.borderStyle === '2px solid' ? 'selected' : ''}>2px solid (두껍게)</option>
-                    <option value="none" ${tableObj.borderStyle === 'none' ? 'selected' : ''}>none (테두리 없음)</option>
-                </select>
-            `;
-            container.appendChild(borderRow);
-
-            // [6] 셀 여백 (TD 패딩) 행
+            // [8] 셀 여백 (TD 패딩) 행
             const padRow = document.createElement('div');
             padRow.style.cssText = 'display:flex; align-items:center; gap:6px; padding:1px 6px; background:var(--input-frame-bg); border:1px solid var(--border-frame); border-radius:4px;';
             padRow.innerHTML = `
@@ -1271,12 +1312,36 @@
                 });
             }
 
+            const chkTableBorder = document.getElementById('modal-table-border-enabled');
+            const borderPickers = document.getElementById('modal-table-border-pickers');
+            if (chkTableBorder && borderPickers) {
+                chkTableBorder.addEventListener('change', (e) => {
+                    borderPickers.style.opacity = e.target.checked ? '1' : '0.35';
+                    borderPickers.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+                    if (typeof options.onLivePreview === 'function') {
+                        options.onLivePreview();
+                    }
+                });
+            }
+
             const chkHeaderBorder = document.getElementById('modal-table-header-border-enabled');
             const headerBorderPickers = document.getElementById('modal-table-header-border-pickers');
             if (chkHeaderBorder && headerBorderPickers) {
                 chkHeaderBorder.addEventListener('change', (e) => {
                     headerBorderPickers.style.opacity = e.target.checked ? '1' : '0.35';
                     headerBorderPickers.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+                    if (typeof options.onLivePreview === 'function') {
+                        options.onLivePreview();
+                    }
+                });
+            }
+
+            const chkRowBorder = document.getElementById('modal-table-row-border-enabled');
+            const rowBorderPickers = document.getElementById('modal-table-row-border-pickers');
+            if (chkRowBorder && rowBorderPickers) {
+                chkRowBorder.addEventListener('change', (e) => {
+                    rowBorderPickers.style.opacity = e.target.checked ? '1' : '0.35';
+                    rowBorderPickers.style.pointerEvents = e.target.checked ? 'auto' : 'none';
                     if (typeof options.onLivePreview === 'function') {
                         options.onLivePreview();
                     }
@@ -1418,10 +1483,16 @@
             const stripeBgLight = document.getElementById('modal-table-stripe-bg-light');
             const stripeBgDark = document.getElementById('modal-table-stripe-bg-dark');
 
+            const rowBorderEnabled = document.getElementById('modal-table-row-border-enabled');
+            const rowBorderColorLight = document.getElementById('modal-table-row-border-color-light');
+            const rowBorderColorDark = document.getElementById('modal-table-row-border-color-dark');
+            const rowBorderStyle = document.getElementById('modal-table-row-border-style');
+
             const hoverEnabled = document.getElementById('modal-table-hover-enabled');
             const hoverBgLight = document.getElementById('modal-table-hover-bg-light');
             const hoverBgDark = document.getElementById('modal-table-hover-bg-dark');
 
+            const borderEnabled = document.getElementById('modal-table-border-enabled');
             const borderColorLight = document.getElementById('modal-table-border-color-light');
             const borderColorDark = document.getElementById('modal-table-border-color-dark');
             const borderStyle = document.getElementById('modal-table-border-style');
@@ -1452,10 +1523,16 @@
                 if (stripeBgLight) styles.table.stripeBgLight = stripeBgLight.value;
                 if (stripeBgDark) styles.table.stripeBgDark = stripeBgDark.value;
 
+                if (rowBorderEnabled) styles.table.rowBorderEnabled = rowBorderEnabled.checked;
+                if (rowBorderColorLight) styles.table.rowBorderColorLight = rowBorderColorLight.value;
+                if (rowBorderColorDark) styles.table.rowBorderColorDark = rowBorderColorDark.value;
+                if (rowBorderStyle) styles.table.rowBorderStyle = rowBorderStyle.value;
+
                 if (hoverEnabled) styles.table.hoverEnabled = hoverEnabled.checked;
                 if (hoverBgLight) styles.table.hoverBgLight = hoverBgLight.value;
                 if (hoverBgDark) styles.table.hoverBgDark = hoverBgDark.value;
 
+                if (borderEnabled) styles.table.borderEnabled = borderEnabled.checked;
                 if (borderColorLight) styles.table.borderColorLight = borderColorLight.value;
                 if (borderColorDark) styles.table.borderColorDark = borderColorDark.value;
                 if (borderStyle) styles.table.borderStyle = borderStyle.value;

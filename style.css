@@ -973,7 +973,7 @@ body {
 
 .markdown-body table tr {
     background-color: var(--table-row-bg, var(--preview-table-tr-bg));
-    border-top: var(--table-border-style, 1px solid) var(--table-border-color, var(--preview-border));
+    border-bottom: var(--table-row-border-bottom, var(--table-border-style, 1px solid) var(--table-border-color, var(--preview-border)));
 }
 
 .markdown-body table tr:nth-child(even) {

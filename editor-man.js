@@ -440,6 +440,21 @@ window.EditorManager = (function() {
             targetEl.style.setProperty('--table-stripe-bg', 'var(--preview-table-tr-even-bg)');
         }
 
+        // 행 구분선 (TR border-bottom)
+        if (tableObj.rowBorderEnabled !== false) {
+            const targetRowBorderColor = currentTheme === 'light'
+                ? (tableObj.rowBorderColorLight || tableObj.borderColorLight || '#cbd5e1')
+                : (tableObj.rowBorderColorDark || tableObj.borderColorDark || '#334155');
+            const rowStyle = tableObj.rowBorderStyle || tableObj.borderStyle || '1px solid';
+            if (rowStyle === 'none') {
+                targetEl.style.setProperty('--table-row-border-bottom', 'none');
+            } else {
+                targetEl.style.setProperty('--table-row-border-bottom', `${rowStyle} ${targetRowBorderColor}`);
+            }
+        } else {
+            targetEl.style.setProperty('--table-row-border-bottom', 'none');
+        }
+
         // 마우스 호버 강조
         if (tableObj.hoverEnabled) {
             const targetHoverBg = currentTheme === 'light'
@@ -451,11 +466,16 @@ window.EditorManager = (function() {
         }
 
         // 테두리
-        const targetBorderColor = currentTheme === 'light'
-            ? (tableObj.borderColorLight || '#cbd5e1')
-            : (tableObj.borderColorDark || '#334155');
-        targetEl.style.setProperty('--table-border-color', targetBorderColor);
-        targetEl.style.setProperty('--table-border-style', tableObj.borderStyle || '1px solid');
+        if (tableObj.borderEnabled !== false) {
+            const targetBorderColor = currentTheme === 'light'
+                ? (tableObj.borderColorLight || '#cbd5e1')
+                : (tableObj.borderColorDark || '#334155');
+            targetEl.style.setProperty('--table-border-color', targetBorderColor);
+            targetEl.style.setProperty('--table-border-style', tableObj.borderStyle || '1px solid');
+        } else {
+            targetEl.style.setProperty('--table-border-color', 'transparent');
+            targetEl.style.setProperty('--table-border-style', 'none');
+        }
 
         // 셀 여백 (패딩)
         let padVal = '8px 12px';
