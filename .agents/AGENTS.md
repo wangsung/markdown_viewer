@@ -55,5 +55,13 @@
   [Root Cause] 원인이 되었던 구문/Git/환경 요소
   [Resolution] 적용된 해결 조치 및 교정 방법
   ```
-
-
+## 프로젝트 기능 관계 작업 룰 (Project Feature Dependency & Workflow Policy)
+- **1차 작업 (1st Phase: UI Change & Live Preview Application)**:
+  - UI 모달/다이얼로그 컨트롤 추가 및 프리뷰 뷰어 화면(`markdown-body`)에 실시간 리액티브 렌더링(Live Preview)을 보장하는 작업.
+  - 대상 모듈: `style-editor.js`, `editor-man.js`, `style.css`, `markdown_viewer.html`.
+- **2차 작업 (2nd Phase: Related Feature Integration & Export Preservations)**:
+  - 1차 작업에서 신규 추가/변경된 UI 스타일 커스텀 프로퍼티 및 레이아웃 상태를 **파생 연관 기능(HTML 파일 내보내기 다운로드, HTML 새창 띄우기, 클립보드 복사 등)에 100% 누락 없이 이식 및 보존**하는 2단계 연동 작업을 필수 완료해야 합니다.
+  - **2차 연관 기능 필수 점검 체크리스트**:
+    1. **`app.js` (`collectExportOptions`)**: 신규 생성된 모든 CSS 커스텀 변수 수집 목록(`cssVarList`) 100% 동기화
+    2. **`export-man.js` (`coreMarkdownCss`)**: 독립 HTML 템플릿 내 CSS 바인딩 클래스 및 셀렉터 룰 100% 이식
+    3. **Export 연동 검수**: "Preview HTML 저장", "HTML 새창 띄우기 (스타일)", "HTML 새창 띄우기 (기본)" 실행 시 1차 작업 결과물(스타일 및 레이아웃) 100% 보존 검증
