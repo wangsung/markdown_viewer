@@ -376,6 +376,86 @@ window.EditorManager = (function() {
             targetEl.style.setProperty('--line-border', lineObj.border || '1px solid #334155');
             targetEl.style.setProperty('--theme-color', targetLineColor);
         }
+
+        // 📊 Table (표) 스타일 적용
+        const tableObj = styles.table || {
+            headerColorLight: '#0f172a',
+            headerColorDark: '#f8fafc',
+            headerBgLight: '#f1f5f9',
+            headerBgDark: '#1e293b',
+            rowBgTransparent: true,
+            rowBgLight: '#ffffff',
+            rowBgDark: '#0f172a',
+            stripeEnabled: true,
+            stripeBgLight: '#f8fafc',
+            stripeBgDark: '#1e293b',
+            hoverEnabled: true,
+            hoverBgLight: '#e2e8f0',
+            hoverBgDark: '#334155',
+            borderColorLight: '#cbd5e1',
+            borderColorDark: '#334155',
+            borderStyle: '1px solid',
+            padding: 'normal',
+            verticalAlign: 'middle'
+        };
+
+        const targetThColor = currentTheme === 'light'
+            ? (tableObj.headerColorLight || '#0f172a')
+            : (tableObj.headerColorDark || '#f8fafc');
+        const targetThBg = currentTheme === 'light'
+            ? (tableObj.headerBgLight || '#f1f5f9')
+            : (tableObj.headerBgDark || '#1e293b');
+
+        targetEl.style.setProperty('--table-header-color', targetThColor);
+        targetEl.style.setProperty('--table-header-bg', targetThBg);
+
+        // 행 배경
+        if (tableObj.rowBgTransparent) {
+            targetEl.style.setProperty('--table-row-bg', 'transparent');
+        } else {
+            const targetRowBg = currentTheme === 'light'
+                ? (tableObj.rowBgLight || '#ffffff')
+                : (tableObj.rowBgDark || '#0f172a');
+            targetEl.style.setProperty('--table-row-bg', targetRowBg);
+        }
+
+        // 짝수 행 설정
+        if (tableObj.stripeEnabled) {
+            const targetStripeBg = currentTheme === 'light'
+                ? (tableObj.stripeBgLight || '#f8fafc')
+                : (tableObj.stripeBgDark || '#1e293b');
+            targetEl.style.setProperty('--table-stripe-bg', targetStripeBg);
+        } else {
+            targetEl.style.setProperty('--table-stripe-bg', 'var(--preview-table-tr-even-bg)');
+        }
+
+        // 마우스 호버 강조
+        if (tableObj.hoverEnabled) {
+            const targetHoverBg = currentTheme === 'light'
+                ? (tableObj.hoverBgLight || '#e2e8f0')
+                : (tableObj.hoverBgDark || '#334155');
+            targetEl.style.setProperty('--table-hover-bg', targetHoverBg);
+        } else {
+            targetEl.style.setProperty('--table-hover-bg', 'inherit');
+        }
+
+        // 테두리
+        const targetBorderColor = currentTheme === 'light'
+            ? (tableObj.borderColorLight || '#cbd5e1')
+            : (tableObj.borderColorDark || '#334155');
+        targetEl.style.setProperty('--table-border-color', targetBorderColor);
+        targetEl.style.setProperty('--table-border-style', tableObj.borderStyle || '1px solid');
+
+        // 셀 여백 (패딩)
+        let padVal = '8px 12px';
+        if (tableObj.padding === 'none') padVal = '0px';
+        else if (tableObj.padding === 'micro') padVal = '2px 4px';
+        else if (tableObj.padding === 'compact') padVal = '4px 8px';
+        else if (tableObj.padding === 'spacious') padVal = '12px 16px';
+        targetEl.style.setProperty('--table-cell-padding', padVal);
+
+        // 세로 정렬
+        targetEl.style.setProperty('--table-vertical-align', tableObj.verticalAlign || 'middle');
     }
 
     /**

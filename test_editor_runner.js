@@ -176,6 +176,21 @@ async function runTestSuite() {
         assert(styleVars['--h1-size'] === '2.2em', "apply_heading_preset: --h1-size CSS 변수 올바르게 주입");
         assert(styleVars['--link-color'] === '#38bdf8', "apply_heading_preset: --link-color CSS 변수 올바르게 주입");
         assert(styleVars['--list-marker-color'] === '#38bdf8', "apply_heading_preset: --list-marker-color CSS 변수 올바르게 주입");
+        assert(styleVars['--table-header-color'] === '#f8fafc', "apply_heading_preset: --table-header-color CSS 변수 올바르게 주입");
+        assert(styleVars['--table-header-bg'] === '#1e293b', "apply_heading_preset: --table-header-bg CSS 변수 올바르게 주입");
+        assert(styleVars['--table-vertical-align'] === 'middle', "apply_heading_preset: --table-vertical-align CSS 변수 올바르게 주입");
+
+        // Test stripe disabled fallback
+        const mockStripeOffStyles = { table: { stripeEnabled: false } };
+        EditorManager.apply_heading_preset(mockTargetEl, mockStripeOffStyles, 'dark');
+        assert(styleVars['--table-stripe-bg'] === 'var(--preview-table-tr-even-bg)', "apply_heading_preset: stripeOff 일 때 --table-stripe-bg가 var(--preview-table-tr-even-bg)로 올바르게 덮어씌워짐");
+
+        // Test padding options
+        EditorManager.apply_heading_preset(mockTargetEl, { table: { padding: 'none' } }, 'dark');
+        assert(styleVars['--table-cell-padding'] === '0px', "apply_heading_preset: padding none 일 때 0px 적용");
+
+        EditorManager.apply_heading_preset(mockTargetEl, { table: { padding: 'micro' } }, 'dark');
+        assert(styleVars['--table-cell-padding'] === '2px 4px', "apply_heading_preset: padding micro 일 때 2px 4px 적용");
     } else {
         assert(false, "apply_heading_preset 순수 서브 함수 추출 실패");
     }

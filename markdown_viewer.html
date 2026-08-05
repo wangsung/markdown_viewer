@@ -390,6 +390,11 @@ greet('사용자');
                 <span class="close-modal" id="close-heading-modal" style="margin-left: 6px;">&times;</span>
             </div>
             <div class="modal-body" style="padding: 0;">
+                <!-- 스타일 편집 모달 탭 스위처 바 -->
+                <div class="style-editor-tab-bar" style="display: flex; gap: 4px; margin-bottom: 6px; border-bottom: 1px solid var(--border-frame); padding-bottom: 4px;">
+                    <button id="tab-btn-text" class="btn style-editor-tab-btn active" style="flex: 1; font-size: 0.78rem; padding: 4px 8px; font-weight: 600; border-radius: 4px 4px 0 0;">📄 텍스트 & 요소 스타일</button>
+                    <button id="tab-btn-table" class="btn style-editor-tab-btn" style="flex: 1; font-size: 0.78rem; padding: 4px 8px; font-weight: 600; border-radius: 4px 4px 0 0;">📊 표 (Table) 스타일</button>
+                </div>
 
                 <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
                     <!-- H1 ~ H6 컨트롤 생성 위치 -->
