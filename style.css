@@ -1862,26 +1862,60 @@ div.katex-error {
     background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* 스타일 편집 모달 탭 버튼 전용 스타일 */
-.style-editor-tab-btn {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-frame-muted, #94a3b8);
-    border: 1px solid var(--border-frame, #334155);
-    border-bottom: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
+/* 스타일 편집 모달 폴더형 탭 바 및 탭 버튼 전용 스타일 */
+.style-editor-tab-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    border-bottom: 2px solid #38bdf8;
+    padding: 0 4px;
+    position: relative;
+    z-index: 2;
 }
 
-.style-editor-tab-btn.active {
-    background: #2563eb !important;
-    color: #ffffff !important;
-    border-color: #3b82f6 !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+.style-editor-tab-btn {
+    flex: 1;
+    font-size: 0.78rem;
+    padding: 6px 12px;
+    font-weight: 600;
+    background: #151d2a;
+    color: #94a3b8;
+    border: 1.5px solid #475569;
+    border-bottom: 2px solid #38bdf8;
+    border-radius: 7px 7px 0 0;
+    cursor: pointer;
+    text-align: left;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    position: relative;
+    bottom: -2px;
+    margin-top: 3px;
+    transition: all 0.15s ease;
+    user-select: none;
+    z-index: 1;
 }
 
 .style-editor-tab-btn:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--text-frame-main, #f8fafc);
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: #64748b #64748b #38bdf8 #64748b;
+}
+
+.style-editor-tab-btn.active {
+    background: var(--input-frame-bg, #0f172a) !important;
+    color: #38bdf8 !important;
+    font-weight: 700;
+    border-top: 3px solid #38bdf8 !important;
+    border-left: 2px solid #38bdf8 !important;
+    border-right: 2px solid #38bdf8 !important;
+    border-bottom: 2px solid var(--input-frame-bg, #0f172a) !important;
+    border-radius: 7px 7px 0 0;
+    box-shadow: 0 -3px 10px rgba(56, 189, 248, 0.35);
+    margin-top: 0;
+    padding-top: 6px;
+    padding-bottom: 7px;
+    z-index: 10;
 }
 

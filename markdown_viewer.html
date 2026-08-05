@@ -390,17 +390,17 @@ greet('사용자');
                 <span class="close-modal" id="close-heading-modal" style="margin-left: 6px;">&times;</span>
             </div>
             <div class="modal-body" style="padding: 0;">
-                <!-- 스타일 편집 모달 탭 스위처 바 -->
-                <div class="style-editor-tab-bar" style="display: flex; gap: 4px; margin-bottom: 6px; border-bottom: 1px solid var(--border-frame); padding-bottom: 4px;">
-                    <button id="tab-btn-text" class="btn style-editor-tab-btn active" style="flex: 1; font-size: 0.78rem; padding: 4px 8px; font-weight: 600; border-radius: 4px 4px 0 0;">📄 텍스트 & 요소 스타일</button>
-                    <button id="tab-btn-table" class="btn style-editor-tab-btn" style="flex: 1; font-size: 0.78rem; padding: 4px 8px; font-weight: 600; border-radius: 4px 4px 0 0;">📊 표 (Table) 스타일</button>
+                <!-- 스타일 편집 모달 탭 스위처 바 (폴더 탭 구조) -->
+                <div class="style-editor-tab-bar">
+                    <button id="tab-btn-text" class="btn style-editor-tab-btn active">📄 제목 & 본문 스타일</button>
+                    <button id="tab-btn-table" class="btn style-editor-tab-btn">📋 표 스타일</button>
                 </div>
 
                 <div id="heading-style-controls" style="display: flex; flex-direction: column; gap: 2.5px;"> <!-- 행 갭 축소 (4px -> 2.5px) -->
                     <!-- H1 ~ H6 컨트롤 생성 위치 -->
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid var(--border-frame); padding-top: 5px;"> <!-- 하단 버튼 단락 마진/패딩 축소 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 2px solid #38bdf8; padding-top: 8px;"> <!-- 하단 버튼 단락 구분선 (2px cyan border) -->
                     <div style="display: flex; gap: 6px;">
                         <button id="btn-reset-heading-presets" class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px; color: #ef4444;" title="기본값 초기화">초기화</button>
                     </div>
