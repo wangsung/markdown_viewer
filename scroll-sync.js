@@ -78,7 +78,19 @@ class ScrollSync {
   findPreviewElementByIdentifier(id) {
     if (!id || id === '[START]' || id === '[END]' || !this.previewContainer) return null;
 
-    // 코드 블록 내부 요소 오매칭 방지 (pre code 태그 내부 자식 요소 제외)
+    // 1. data-line 번호 추출 및 정밀 1:1 DOM 매칭 최우선 수행
+    const lineMatch = id.match(/_line_(\d+)$/);
+    if (lineMatch) {
+      const lineNum = parseInt(lineMatch[1], 10);
+      if (!isNaN(lineNum)) {
+        const exactDataLineEl = this.previewContainer.querySelector(`[data-line="${lineNum}"]`);
+        if (exactDataLineEl) {
+          return exactDataLineEl;
+        }
+      }
+    }
+
+    // 2. data-line 속성이 없는 경우 텍스트 기반 보완 탐색 (코드 블록 내부 요소 제외)
     const candidates = Array.from(this.previewContainer.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li, blockquote, pre, table'))
       .filter(el => !el.closest('pre code') || el.tagName.toLowerCase() === 'pre');
 
