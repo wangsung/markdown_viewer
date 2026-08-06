@@ -177,6 +177,10 @@ const ExportManager = (function() {
 
         // 경량화된 마크다운 본문 및 H1~H6 타이포그래피 핵심 전용 CSS 템플릿
         const coreMarkdownCss = `
+        .markdown-body *, .markdown-body *::before, .markdown-body *::after {
+            box-sizing: border-box;
+        }
+
         .markdown-body {
             max-width: 800px;
             margin: 0 auto;
@@ -186,6 +190,15 @@ const ExportManager = (function() {
             font-size: var(--preview-font-size, 16px);
             line-height: 1.7;
             word-wrap: break-word;
+        }
+
+        .markdown-body img, .markdown-body svg, .markdown-body canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .markdown-body ul, .markdown-body ol {
+            padding-left: 1.8em;
         }
 
         .markdown-body h1,
@@ -370,6 +383,48 @@ const ExportManager = (function() {
             padding: 40px 24px;
             box-sizing: border-box;
             background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'}) !important;
+        }
+
+        /* 5. A4 Print & PDF Export Optimization */
+        @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            body, .preview-viewport {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-sizing: border-box !important;
+            }
+            .export-container, .markdown-body {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                line-height: 1.5 !important;
+            }
+            .markdown-body h1:first-child,
+            .markdown-body h1:first-of-type,
+            .markdown-body > *:first-child {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+            .markdown-body pre,
+            .markdown-body table,
+            .markdown-body blockquote,
+            .markdown-body img,
+            .markdown-body .mermaid,
+            .markdown-body .katex-display {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
         }
     </style>
 </head>
