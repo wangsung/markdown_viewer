@@ -141,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExport = document.getElementById('btn-export');
     const exportMenu = document.getElementById('export-menu');
     const btnExportHtml = document.getElementById('btn-export-html');
+    const btnExportPdfPrint = document.getElementById('btn-export-pdf-print');
+    const btnExportPdfHtml2Pdf = document.getElementById('btn-export-pdf-html2pdf');
     const btnOpenNewWindow = document.getElementById('btn-open-new-window');
     const btnOpenNewWindowDefault = document.getElementById('btn-open-new-window-default');
     const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
@@ -1103,6 +1105,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const exportOptions = collectExportOptions();
             ExportManager.downloadPreviewHtml(preview, currentFilename, exportOptions);
+        });
+    }
+
+    if (btnExportPdfPrint) {
+        btnExportPdfPrint.addEventListener('click', () => {
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+            const exportOptions = collectExportOptions();
+            ExportManager.printToPdf(preview, currentFilename, exportOptions);
+        });
+    }
+
+    if (btnExportPdfHtml2Pdf) {
+        btnExportPdfHtml2Pdf.addEventListener('click', () => {
+            if (btnExportPdfHtml2Pdf.disabled) return;
+            if (exportMenu) {
+                exportMenu.classList.remove('show');
+            }
+            const exportOptions = collectExportOptions();
+            ExportManager.saveToPdfFile(preview, currentFilename, exportOptions);
         });
     }
 

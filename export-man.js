@@ -588,6 +588,135 @@ const ExportManager = (function() {
         }
     }
 
+    /**
+     * 숨겨진 iframe을 생성하여 generatePreviewHtmlContent() 결과를 주입하고 print()를 호출하는 순수 서브 함수.
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
+     * @param {string} filename - 기준 파일명
+     * @param {Object} [options={}] - 설정 옵션 객체 ({ theme, lineColor, styleVars })
+     * @returns {Promise<boolean>} 성공 여부
+     */
+    async function print_to_pdf(previewEl, filename, options = {}) {
+        try {
+            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, options);
+            if (!htmlContent) {
+                if (typeof alert === 'function') alert('내보낼 프리뷰 내용이 없습니다.');
+                return false;
+            }
+
+            if (typeof document === 'undefined' || !document.createElement) {
+                console.warn('DOM 환경이 아니므로 iframe 기반 printToPdf 실행을 건너땁니다.');
+                return true;
+            }
+
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+
+            const iframeDoc = iframe.contentWindow.document || iframe.contentDocument;
+            iframeDoc.open();
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+
+            return new Promise((resolve) => {
+                const triggerPrint = () => {
+                    try {
+                        if (iframe.contentWindow) {
+                            iframe.contentWindow.focus();
+                            iframe.contentWindow.print();
+                        }
+                    } catch (e) {
+                        console.error('PDF 인쇄 실행 오류:', e);
+                    } finally {
+                        setTimeout(() => {
+                            if (iframe.parentNode) {
+                                document.body.removeChild(iframe);
+                            }
+                            resolve(true);
+                        }, 1000);
+                    }
+                };
+
+                if (iframe.contentWindow && iframe.contentWindow.document && iframe.contentWindow.document.readyState === 'complete') {
+                    setTimeout(triggerPrint, 250);
+                } else {
+                    iframe.onload = () => setTimeout(triggerPrint, 250);
+                }
+            });
+        } catch (err) {
+            console.error('PDF 인쇄 처리 실패:', err);
+            if (typeof alert === 'function') alert('PDF 저장에 실패했습니다.');
+            return false;
+        }
+    }
+
+    /**
+     * html2pdf 라이브러리를 이용하여 오프스크린 PDF 파일을 자동 렌더링/다운로드하는 순수 서브 함수.
+     * html2pdf 미존재 시 print_to_pdf로 안전하게 fallback함.
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
+     * @param {string} filename - 기준 파일명
+     * @param {Object} [options={}] - 설정 옵션 객체 ({ theme, lineColor, styleVars })
+     * @returns {Promise<boolean>} 성공 여부
+     */
+    async function save_to_pdf_file(previewEl, filename, options = {}) {
+        const hasHtml2Pdf = (typeof html2pdf !== 'undefined') || (typeof window !== 'undefined' && typeof window.html2pdf !== 'undefined');
+        if (!hasHtml2Pdf) {
+            console.warn('html2pdf 라이브러리를 찾을 수 없어 print_to_pdf로 안전하게 fallback합니다.');
+            return await print_to_pdf(previewEl, filename, options);
+        }
+
+        try {
+            const htmlContent = await generatePreviewHtmlContent(previewEl, filename, options);
+            if (!htmlContent) {
+                if (typeof alert === 'function') alert('내보낼 프리뷰 내용이 없습니다.');
+                return false;
+            }
+
+            const currentName = filename || 'untitled.md';
+            const lastDotIndex = currentName.lastIndexOf('.');
+            const baseName = lastDotIndex !== -1 ? currentName.substring(0, lastDotIndex) : currentName;
+            const targetFilename = `${baseName}.pdf`;
+
+            if (typeof document === 'undefined' || !document.createElement) {
+                console.warn('DOM 환경이 아니므로 html2pdf 실행을 건너땁니다.');
+                return true;
+            }
+
+            const tempContainer = document.createElement('div');
+            tempContainer.style.position = 'fixed';
+            tempContainer.style.left = '-9999px';
+            tempContainer.style.top = '0';
+            tempContainer.style.width = '800px';
+            tempContainer.innerHTML = htmlContent;
+            document.body.appendChild(tempContainer);
+
+            const targetEl = tempContainer.querySelector('.export-container') || tempContainer;
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: targetFilename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const html2pdfFunc = typeof html2pdf !== 'undefined' ? html2pdf : window.html2pdf;
+            await html2pdfFunc().set(opt).from(targetEl).save();
+
+            if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
+            }
+            return true;
+        } catch (err) {
+            console.error('html2pdf PDF 저장 실패, print_to_pdf fallback 시도:', err);
+            return await print_to_pdf(previewEl, filename, options);
+        }
+    }
+
     // 외부로 공개하는 모듈 API
     return {
         copyPreviewToClipboard,
@@ -596,7 +725,11 @@ const ExportManager = (function() {
         downloadPreviewHtml,
         openPreviewHtmlInNewWindow,
         openDefaultPreviewHtmlInNewWindow,
-        downloadCurrentContent
+        downloadCurrentContent,
+        printToPdf: print_to_pdf,
+        saveToPdfFile: save_to_pdf_file,
+        print_to_pdf,
+        save_to_pdf_file
     };
 })();
 
