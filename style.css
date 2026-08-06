@@ -684,7 +684,8 @@ body {
     font-style: italic;
 }
 
-.cm-formatting-quote {
+.cm-formatting-quote,
+.CodeMirror-line > span > .cm-quote:first-child {
     border-left: 3px solid var(--blockquote-border-color, var(--theme-color));
     padding-left: 6px;
 }
@@ -730,7 +731,8 @@ body {
 [data-editor-theme="dark"] .cm-quote {
     color: var(--blockquote-text-color, var(--text-muted)) !important;
 }
-[data-editor-theme="dark"] .cm-formatting-quote {
+[data-editor-theme="dark"] .cm-formatting-quote,
+[data-editor-theme="dark"] .CodeMirror-line > span > .cm-quote:first-child {
     border-left-color: var(--blockquote-border-color, var(--theme-color));
 }
 [data-editor-theme="dark"] .cm-comment {
@@ -788,7 +790,8 @@ body {
 [data-editor-theme="light"] .cm-quote {
     color: var(--blockquote-text-color, var(--text-muted)) !important;
 }
-[data-editor-theme="light"] .cm-formatting-quote {
+[data-editor-theme="light"] .cm-formatting-quote,
+[data-editor-theme="light"] .CodeMirror-line > span > .cm-quote:first-child {
     border-left-color: var(--blockquote-border-color, var(--theme-color));
 }
 [data-editor-theme="light"] .cm-comment {
