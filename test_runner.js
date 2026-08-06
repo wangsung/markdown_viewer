@@ -60,7 +60,7 @@ function assert(condition, message) {
 async function runTestSuite() {
     console.log('🚀 Running ExportManager Unit Test Suite...\n');
 
-    const previewEl = { children: [1], innerHTML: '<h1>Title</h1>' };
+    const previewEl = { children: [1], innerHTML: '<h1>Title</h1>', cloneNode: function() { return { querySelectorAll: () => [], innerHTML: this.innerHTML }; }, querySelectorAll: () => [] };
     const emptyPreviewEl = { children: [] };
     const exportMenuEl = { classList: { remove: (cls) => { exportMenuEl.removed = cls; } } };
 
