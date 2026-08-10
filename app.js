@@ -1104,9 +1104,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
-    function collectExportOptions() {
+    function collectExportOptions(overrideOptions = {}) {
         const root = document.documentElement;
         const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+        const targetTheme = overrideOptions.theme || currentTheme;
         const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
         const computedStyle = getComputedStyle(root);
         
@@ -1124,6 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             '--bold-color', '--italic-color', '--inline-code-fg', '--custom-inline-code-bg',
             '--custom-code-block-bg', '--custom-code-block-fg',
             '--blockquote-text-color', '--blockquote-border-color',
+            '--list-marker-color', '--list-item-gap',
             '--line-color', '--line-border',
             '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
             '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
@@ -1133,13 +1135,48 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const styleVars = {};
+        
+        // 1. 현재 DOM computedStyle로부터 기본 스타일 수집
         cssVarList.forEach(varName => {
             const val = computedStyle.getPropertyValue(varName).trim();
             if (val) styleVars[varName] = val;
         });
 
+        // 2. targetTheme가 현재 화면 테마와 다른 경우 (예: 다크 모드 화면에서 PDF 라이트 모드 출력)
+        // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
+        if (targetTheme !== currentTheme && typeof EditorManager !== 'undefined' && EditorManager.apply_heading_preset) {
+            const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+            const presets = typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []);
+            const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
+
+            if (foundPreset && foundPreset.styles) {
+                const tempEl = document.createElement('div');
+                EditorManager.apply_heading_preset(tempEl, foundPreset.styles, targetTheme);
+                
+                // tempEl에 바인딩된 targetTheme 전용 스타일 변수로 styleVars 수집
+                cssVarList.forEach(varName => {
+                    const tempVal = tempEl.style.getPropertyValue(varName);
+                    if (tempVal) {
+                        styleVars[varName] = tempVal.trim();
+                    }
+                });
+            }
+        }
+
+        // 3. targetTheme 폴백 보정
+        if (targetTheme === 'light') {
+            styleVars['--preview-bg'] = '#ffffff';
+            styleVars['--preview-text'] = '#1f2937';
+            styleVars['--preview-heading'] = styleVars['--h1-color'] || '#0f172a';
+            styleVars['--preview-border'] = '#e2e8f0';
+        } else if (targetTheme === 'dark') {
+            styleVars['--preview-bg'] = '#1e293b';
+            styleVars['--preview-text'] = '#f8fafc';
+            styleVars['--preview-border'] = '#334155';
+        }
+
         return {
-            theme: currentTheme,
+            theme: targetTheme,
             lineColor: activeLineColor,
             styleVars: styleVars
         };
@@ -1164,13 +1201,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. 인쇄 시작 전 전역 하단 배너 노출 (닫기 버튼 제외)
             showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
 
-            const exportOptions = collectExportOptions();
+            // PDF 인쇄 전용 라이트 모드 옵션 수집 (theme: 'light' 강제)
+            const exportOptions = collectExportOptions({ theme: 'light' });
 
             try {
                 // 2. PDF 인쇄 대화 상자 실행
                 await ExportManager.printToPdf(preview, currentFilename, exportOptions);
             } finally {
-                // 3. 인쇄 창 닫히는 즉시 전역 배너 자동 닫기 (지연 없이 즉시 실행)
+                // 3. 인쇄 창 닫히는 즉시 전역 배너 자동 닫기
                 hideGlobalBottomBanner();
             }
         });

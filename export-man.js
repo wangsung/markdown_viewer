@@ -120,21 +120,41 @@ const ExportManager = (function() {
         const sourceSpans = previewEl.querySelectorAll('code.hljs span');
         const targetSpans = clonedPreview.querySelectorAll('code.hljs span');
 
-        // 프리뷰 화면에서 실제 렌더링된 구문 강조 span의 computed color를 inline style로 영구 고착화
-        if (sourceSpans.length === targetSpans.length && sourceSpans.length > 0) {
-            for (let i = 0; i < sourceSpans.length; i++) {
-                const computedColor = window.getComputedStyle(sourceSpans[i]).color;
-                if (computedColor) {
-                    targetSpans[i].style.color = computedColor;
-                }
-            }
-        }
-
         const {
             theme = 'dark',
             lineColor = '#3b82f6',
             styleVars = {}
         } = options;
+
+        const currentTheme = theme || 'dark';
+
+        // 프리뷰 화면에서 실제 렌더링된 구문 강조 span의 computed color를 inline style로 영구 고착화
+        // 단, options.theme === 'light'인 경우 흰색/밝은 텍스트가 흰 배경에 가려지지 않도록 보정
+        if (sourceSpans.length === targetSpans.length && sourceSpans.length > 0) {
+            for (let i = 0; i < sourceSpans.length; i++) {
+                const computedColor = window.getComputedStyle(sourceSpans[i]).color;
+                if (computedColor) {
+                    if (currentTheme === 'light') {
+                        const rgbMatch = computedColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if (rgbMatch) {
+                            const r = parseInt(rgbMatch[1], 10);
+                            const g = parseInt(rgbMatch[2], 10);
+                            const b = parseInt(rgbMatch[3], 10);
+                            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                            if (brightness > 200) {
+                                targetSpans[i].style.color = '#1e293b';
+                            } else {
+                                targetSpans[i].style.color = computedColor;
+                            }
+                        } else {
+                            targetSpans[i].style.color = computedColor;
+                        }
+                    } else {
+                        targetSpans[i].style.color = computedColor;
+                    }
+                }
+            }
+        }
 
         let githubCss = '';
         let katexCss = '';
@@ -328,7 +348,6 @@ const ExportManager = (function() {
         const fontStyle = styleVars['--preview-font-family'] || 'system-ui, -apple-system, sans-serif';
         const fontSizeStyle = styleVars['--preview-font-size'] || '16px';
         const activeLineColor = lineColor || styleVars['--theme-color'] || '#3b82f6';
-        const currentTheme = theme || 'dark';
         const safeTitle = (filename || 'untitled.md').replace(/\.[^/.]+$/, "");
 
         // 동적 CSS 변수 조립 (options.styleVars 객체로부터 100% 순수 인라인화)
