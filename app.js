@@ -820,7 +820,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 1. Font Family Selector
     fontSelect.addEventListener('change', () => {
-        preview.style.setProperty('--preview-font-family', fontSelect.value);
+        const selectedFont = fontSelect.value;
+        if (preview) preview.style.setProperty('--preview-font-family', selectedFont);
+        document.documentElement.style.setProperty('--preview-font-family', selectedFont);
         saveDocumentSession();
     });
 
@@ -828,6 +830,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fontSizeSelect.addEventListener('change', () => {
         const selectedSize = fontSizeSelect.value;
         if (preview) preview.style.setProperty('--preview-font-size', selectedSize);
+        document.documentElement.style.setProperty('--preview-font-size', selectedSize);
         document.documentElement.style.setProperty('--editor-font-size', selectedSize);
         if (cm && typeof cm.refresh === 'function') cm.refresh();
         saveDocumentSession();
@@ -1135,12 +1138,28 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const styleVars = {};
+        const previewEl = document.getElementById('preview');
+        const previewComputedStyle = previewEl ? getComputedStyle(previewEl) : null;
         
-        // 1. 현재 DOM computedStyle로부터 기본 스타일 수집
+        // 1. 현재 DOM computedStyle (root & previewEl)로부터 기본 스타일 수집
         cssVarList.forEach(varName => {
-            const val = computedStyle.getPropertyValue(varName).trim();
+            let val = computedStyle.getPropertyValue(varName).trim();
+            if (!val && previewComputedStyle) {
+                val = previewComputedStyle.getPropertyValue(varName).trim();
+            }
+            if (!val && previewEl && previewEl.style) {
+                val = previewEl.style.getPropertyValue(varName).trim();
+            }
             if (val) styleVars[varName] = val;
         });
+
+        // 메뉴바 fontSizeSelect & fontSelect 설정값을 수집에 확정 반영
+        if (typeof fontSizeSelect !== 'undefined' && fontSizeSelect && fontSizeSelect.value) {
+            styleVars['--preview-font-size'] = fontSizeSelect.value;
+        }
+        if (typeof fontSelect !== 'undefined' && fontSelect && fontSelect.value) {
+            styleVars['--preview-font-family'] = fontSelect.value;
+        }
 
         // 2. targetTheme가 현재 화면 테마와 다른 경우 (예: 다크 모드 화면에서 PDF 라이트 모드 출력)
         // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
