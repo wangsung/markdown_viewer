@@ -14,7 +14,7 @@ const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 const htmlChecks = [
     'id="btn-export-pdf-print"',
     'id="btn-export-pdf-html2pdf"',
-    'PDF 인쇄 (PDF로 저장)',
+    'PDF 저장 (인쇄)',
     'PDF 파일 바로 저장 (비활성화)'
 ];
 

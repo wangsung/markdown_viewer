@@ -98,7 +98,20 @@ async function runTestSuite() {
     await ExportManager.downloadPreviewHtml(previewEl, 'report_full.md', mockOptions);
     assert(global.lastOpts && global.lastOpts.filename === 'report_full.html', 'ExportManager.downloadPreviewHtml computes .html target filename');
 
-    // Test 7: Default Preview Window Export
+    // Test 7: Styled Preview Window Export (@media print Verification)
+    let openedStyledHtml = null;
+    global.window.open = () => ({
+        document: {
+            open: () => {},
+            write: (content) => { openedStyledHtml = content; },
+            close: () => {}
+        }
+    });
+    await ExportManager.openPreviewHtmlInNewWindow(previewEl, 'styled_report.md', mockOptions);
+    assert(openedStyledHtml && openedStyledHtml.includes('@media print'), 'ExportManager.openPreviewHtmlInNewWindow includes @media print CSS');
+    assert(openedStyledHtml && openedStyledHtml.includes('margin: 1in;'), 'ExportManager.openPreviewHtmlInNewWindow includes @page 1in margin');
+
+    // Test 8: Default Preview Window Export
     let openedHtml = null;
     global.window.open = () => ({
         document: {
