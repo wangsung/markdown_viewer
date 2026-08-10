@@ -70,6 +70,53 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
+    /**
+     * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
+     * @param {string} message - 표시할 안내 문구
+     * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
+     */
+    function showGlobalBottomBanner(message, showCloseBtn = false) {
+        let banner = document.getElementById('global-bottom-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'global-bottom-banner';
+            document.body.appendChild(banner);
+        }
+
+        let contentHtml = `<div class="banner-content">${message || ''}</div>`;
+        if (showCloseBtn) {
+            contentHtml += `<button type="button" class="banner-close-btn" aria-label="Close banner">✕</button>`;
+        }
+        banner.innerHTML = contentHtml;
+
+        if (showCloseBtn) {
+            const closeBtn = banner.querySelector('.banner-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    hideGlobalBottomBanner();
+                });
+            }
+        }
+
+        banner.offsetHeight;
+        banner.classList.add('show');
+    }
+
+    /**
+     * 화면 최하단의 전역 안내 배너를 슬라이드 다운 후 숨기는 함수.
+     */
+    function hideGlobalBottomBanner() {
+        const banner = document.getElementById('global-bottom-banner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+    }
+
+    if (typeof window !== 'undefined') {
+        window.showGlobalBottomBanner = showGlobalBottomBanner;
+        window.hideGlobalBottomBanner = hideGlobalBottomBanner;
+    }
+
     // DOM Elements
     const editor = document.getElementById('editor');
     
@@ -1109,12 +1156,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (btnExportPdfPrint) {
-        btnExportPdfPrint.addEventListener('click', () => {
+        btnExportPdfPrint.addEventListener('click', async () => {
             if (exportMenu) {
                 exportMenu.classList.remove('show');
             }
+            
+            // 1. 인쇄 시작 전 전역 하단 배너 노출 (닫기 버튼 제외)
+            showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
+
             const exportOptions = collectExportOptions();
-            ExportManager.printToPdf(preview, currentFilename, exportOptions);
+
+            try {
+                // 2. PDF 인쇄 대화 상자 실행
+                await ExportManager.printToPdf(preview, currentFilename, exportOptions);
+            } finally {
+                // 3. 인쇄 창 닫히는 즉시 전역 배너 자동 닫기 (지연 없이 즉시 실행)
+                hideGlobalBottomBanner();
+            }
         });
     }
 

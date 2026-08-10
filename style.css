@@ -1919,3 +1919,77 @@ div.katex-error {
     z-index: 10;
 }
 
+/* ==========================================================================
+   Global Bottom Banner Styles (#global-bottom-banner)
+   ========================================================================== */
+#global-bottom-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 99999;
+    padding: 6px 16px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.0;
+    background-color: #1e3a5f;
+    border-top: 1px solid #2b5288;
+    color: #93c5fd;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
+    /* 닫힐 때 즉시 반응하는 빠른 애니메이션 (0.1s) */
+    transition: transform 0.1s ease-in, opacity 0.1s ease-in;
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+#global-bottom-banner.show {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    /* 열릴 때 슬라이드 애니메이션 (0.3s) */
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-out;
+}
+
+[data-editor-theme="light"] #global-bottom-banner {
+    background-color: #eff6ff;
+    border-top: 1px solid #bfdbfe;
+    color: #1e40af;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#global-bottom-banner .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    justify-content: flex-start;
+}
+
+#global-bottom-banner .banner-content strong {
+    color: inherit;
+    font-weight: 700;
+}
+
+#global-bottom-banner .banner-close-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: auto;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+    border-radius: 4px;
+}
+
+#global-bottom-banner .banner-close-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
