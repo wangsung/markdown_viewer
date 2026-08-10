@@ -389,7 +389,7 @@ const ExportManager = (function() {
         @media print {
             @page {
                 size: A4;
-                margin: 0;
+                margin: 1in;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
