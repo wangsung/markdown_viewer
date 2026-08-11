@@ -1239,10 +1239,16 @@ document.addEventListener('DOMContentLoaded', () => {
             styleVars['--preview-text'] = '#1f2937';
             styleVars['--preview-heading'] = styleVars['--h1-color'] || '#0f172a';
             styleVars['--preview-border'] = '#e2e8f0';
+            styleVars['--preview-blockquote-bg'] = (styleVars['--preview-blockquote-bg'] && styleVars['--preview-blockquote-bg'] !== '#0f172a') ? styleVars['--preview-blockquote-bg'] : '#f9fafb';
+            styleVars['--preview-blockquote-text'] = styleVars['--blockquote-text-color'] || '#475569';
+            styleVars['--blockquote-text-color'] = styleVars['--blockquote-text-color'] || '#475569';
+            styleVars['--preview-code-bg'] = '#f8fafc';
+            styleVars['--preview-code-text'] = '#1e293b';
         } else if (targetTheme === 'dark') {
             styleVars['--preview-bg'] = '#1e293b';
             styleVars['--preview-text'] = '#f8fafc';
             styleVars['--preview-border'] = '#334155';
+            styleVars['--preview-blockquote-bg'] = '#0f172a';
         }
 
         return {

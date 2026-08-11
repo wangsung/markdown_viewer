@@ -67,6 +67,8 @@ assert.strictEqual(lightOpts.theme, 'light', 'PASS: collectExportOptions({ theme
 assert.strictEqual(lightOpts.styleVars['--preview-bg'], '#ffffff', 'PASS: --preview-bg forced to #ffffff for Light Mode');
 assert.strictEqual(lightOpts.styleVars['--preview-text'], '#1f2937', 'PASS: --preview-text forced to #1f2937 for Light Mode');
 assert.strictEqual(lightOpts.styleVars['--h1-color'], '#00875a', 'PASS: --h1-color recalculated to Light Mode preset color (#00875a)');
+assert.strictEqual(lightOpts.styleVars['--preview-blockquote-bg'], '#f9fafb', 'PASS: --preview-blockquote-bg recalculated to Light Mode light gray (#f9fafb)');
+assert.strictEqual(lightOpts.styleVars['--blockquote-text-color'], '#475569', 'PASS: --blockquote-text-color recalculated to Light Mode slate text (#475569)');
 
 // 3. Load ExportManager and test generatePreviewHtmlContent with light mode
 global.chrome = undefined;

@@ -346,8 +346,13 @@ window.EditorManager = (function() {
             const targetBqBorder = currentTheme === 'light'
                 ? (bqObj.borderLight || bqObj.borderColor || '#0969da')
                 : (bqObj.borderDark || bqObj.borderColor || '#38bdf8');
+            const targetBqBg = currentTheme === 'light'
+                ? (bqObj.bgLight || '#f9fafb')
+                : (bqObj.bgDark || '#0f172a');
             targetEl.style.setProperty('--blockquote-text-color', targetBqColor);
             targetEl.style.setProperty('--blockquote-border-color', targetBqBorder);
+            targetEl.style.setProperty('--preview-blockquote-bg', targetBqBg);
+            targetEl.style.setProperty('--preview-blockquote-text', targetBqColor);
         }
 
         // 📋 리스트 (List / Bullet & Numbering)
