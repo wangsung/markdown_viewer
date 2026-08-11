@@ -122,10 +122,10 @@ body {
     border: 1px solid var(--border-frame);
     padding: 3px 8px;
     border-radius: 16px;
-    font-size: 0.78rem;
+    font-size: calc(0.78rem + 1pt);
     color: var(--text-frame-muted);
     font-weight: 500;
-    max-width: 220px;
+    max-width: 240px;
     transition: all 0.25s ease;
     user-select: none;
     white-space: nowrap !important;
