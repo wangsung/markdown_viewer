@@ -374,6 +374,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${month}-${day} ${hours}:${minutes}`;
     }
 
+    // 다른 창/탭에서 최근 파일 목록이 변경되었을 때 실시간 동기화를 위한 storage 이벤트 리스너
+    window.addEventListener('storage', (e) => {
+        if (e.key === RECENT_FILES_KEY) {
+            render_recent_files_menu();
+        }
+    });
+
     function get_recent_files() {
         try {
             const raw = localStorage.getItem(RECENT_FILES_KEY);
