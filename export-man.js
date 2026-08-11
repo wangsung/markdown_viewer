@@ -305,8 +305,8 @@ const ExportManager = (function() {
             padding: 0;
             margin: 0;
             font-size: 100%;
-            word-break: normal;
-            white-space: pre;
+            word-break: var(--preview-code-word-break, normal);
+            white-space: var(--preview-code-whitespace, pre);
             color: var(--preview-code-text, inherit);
             background: transparent !important;
             border: 0;

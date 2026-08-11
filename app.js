@@ -193,6 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('font-size-select');
     const lineColorPicker = document.getElementById('line-color-picker');
     const scrollSyncCheckbox = document.getElementById('scroll-sync');
+    const codeblockScrollCheckbox = document.getElementById('codeblock-scroll');
+    const codeblockScrollWrapper = document.getElementById('codeblock-scroll-wrapper');
     const mathRenderCheckbox = document.getElementById('math-render');
     const mathRenderWrapper = document.getElementById('math-render-wrapper');
     const diagramRenderCheckbox = document.getElementById('diagram-render');
@@ -909,6 +911,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2-3. Codeblock Scroll Toggle (보기 메뉴 -> 코드블록 스크롤 토글)
+    function updateCodeblockScroll(useScroll) {
+        const isScrollOn = (useScroll !== false && useScroll !== 'false');
+        const wsVal = isScrollOn ? 'pre' : 'pre-wrap';
+        const wbVal = isScrollOn ? 'normal' : 'break-word';
+        
+        if (preview) {
+            preview.style.setProperty('--preview-code-whitespace', wsVal);
+            preview.style.setProperty('--preview-code-word-break', wbVal);
+        }
+        document.documentElement.style.setProperty('--preview-code-whitespace', wsVal);
+        document.documentElement.style.setProperty('--preview-code-word-break', wbVal);
+    }
+
+    if (codeblockScrollCheckbox) {
+        const savedScroll = localStorage.getItem('markvi_codeblock_scroll');
+        const isScrollOn = (savedScroll !== 'false');
+        codeblockScrollCheckbox.checked = isScrollOn;
+        updateCodeblockScroll(isScrollOn);
+
+        codeblockScrollCheckbox.addEventListener('change', () => {
+            const isChecked = codeblockScrollCheckbox.checked;
+            localStorage.setItem('markvi_codeblock_scroll', isChecked ? 'true' : 'false');
+            updateCodeblockScroll(isChecked);
+        });
+
+        if (codeblockScrollWrapper) {
+            codeblockScrollWrapper.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+    }
+
     // 3. Line Color Picker (Dynamic CSS Theme Variables)
     function updateThemeColors(colorHex) {
         document.documentElement.style.setProperty('--theme-color', colorHex);
@@ -1185,7 +1220,8 @@ document.addEventListener('DOMContentLoaded', () => {
             '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
             '--table-border-color', '--table-border-style', '--table-cell-padding',
             '--table-vertical-align', '--table-row-border-bottom',
-            '--preview-font-family', '--preview-font-size'
+            '--preview-font-family', '--preview-font-size',
+            '--preview-code-whitespace', '--preview-code-word-break'
         ];
 
         const styleVars = {};
