@@ -137,11 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const editor = document.getElementById('editor');
     
-    // Initialize CodeMirror v5
+    // Initialize CodeMirror v5 (dragDrop: false로 커서 위치 파일 텍스트 끼워넣기 차단)
     const cm = CodeMirror.fromTextArea(editor, {
         mode: 'markdown',
         lineNumbers: true,
         lineWrapping: true,
+        dragDrop: false,
         theme: 'default',
         extraKeys: {
             "Tab": function(cm) {
@@ -1705,12 +1706,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 드래그 앤 드롭 파일 로딩 연동
+    // 드래그 앤 드롭 파일 로딩 연동 (새 창/새 탭 구동)
     editorContainer.addEventListener('drop', async (e) => {
         e.preventDefault();
         dragCounter = 0;
         editorContainer.classList.remove('drag-over');
         
+        let targetFile = null;
+        let targetHandle = null;
+
         // FileSystemAccess API: Drag & Drop 항목에서 FileHandle 추출 시도
         if (e.dataTransfer && e.dataTransfer.items) {
             for (const item of e.dataTransfer.items) {
@@ -1718,10 +1722,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     try {
                         const handle = await item.getAsFileSystemHandle();
                         if (handle && handle.kind === 'file') {
-                            const file = await handle.getFile();
-                            currentFileHandle = handle;
-                            loadSingleFile(file);
-                            return;
+                            targetFile = await handle.getFile();
+                            targetHandle = handle;
+                            break;
                         }
                     } catch (err) {
                         console.warn('getAsFileSystemHandle 실패 fallback 진행:', err);
@@ -1730,12 +1733,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const files = e.dataTransfer ? e.dataTransfer.files : null;
-        if (files && files.length > 0) {
-            currentFileHandle = null;
-            loadSingleFile(files[0]);
+        if (!targetFile && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            targetFile = e.dataTransfer.files[0];
+        }
+
+        if (targetFile) {
+            const fileName = targetFile.name;
+            const extension = fileName.split('.').pop().toLowerCase();
+            const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
+
+            if (allowedExtensions.includes(extension) || targetFile.type.startsWith('text/')) {
+                // 최근 파일 목록 및 IndexedDB에 저장
+                add_recent_file_entry(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
+
+                // 마우스 드롭 User Gesture 문맥 내에서 즉시 새 창 구동
+                const originUrl = new URL(window.location.origin + window.location.pathname);
+                originUrl.searchParams.set('openRecent', targetFile.name);
+                window.open(originUrl.toString(), '_blank');
+            } else {
+                alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.');
+            }
         }
     });
+
+    // CodeMirror 내부 커서 위치 파일 텍스트 끼워넣기 이중 차단
+    if (cm) {
+        cm.on('drop', (cmInstance, e) => {
+            e.preventDefault();
+            if (typeof e.stopPropagation === 'function') {
+                e.stopPropagation();
+            }
+        });
+    }
 
     // 숨김 파일 인풋 change 이벤트 연동 (md 불러오기)
     if (fileInput) {
