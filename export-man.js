@@ -280,6 +280,14 @@ const ExportManager = (function() {
             border-radius: 0 6px 6px 0;
         }
 
+        .markdown-body blockquote p:first-child {
+            margin-top: 0 !important;
+        }
+
+        .markdown-body blockquote p:last-child {
+            margin-bottom: 0 !important;
+        }
+
         .markdown-body pre {
             padding: 16px;
             overflow: auto;
@@ -433,7 +441,6 @@ const ExportManager = (function() {
             .markdown-body h1:first-of-type,
             .markdown-body > *:first-child {
                 margin-top: 0 !important;
-                padding-top: 0 !important;
             }
             .markdown-body pre,
             .markdown-body table,

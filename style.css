@@ -936,6 +936,10 @@ body {
     border-radius: 0 6px 6px 0;
 }
 
+.markdown-body blockquote p:first-child {
+    margin-top: 0;
+}
+
 .markdown-body blockquote p:last-child {
     margin-bottom: 0;
 }
