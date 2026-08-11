@@ -845,12 +845,20 @@ body {
     max-width: 800px;
     margin: 0 auto;
     padding: 40px 48px;
+    box-sizing: border-box;
     color: var(--preview-text);
     font-family: var(--preview-font-family);
     font-size: var(--preview-font-size);
     line-height: 1.7;
     word-wrap: break-word;
-    transition: font-family 0.15s, font-size 0.15s;
+    transition: font-family 0.15s, font-size 0.15s, max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 최대폭 제한 해제 시 (Window 크기 증가에 따라 본문 가로폭 확장, 최소 여백 보존) */
+.preview-viewport.full-width .markdown-body {
+    max-width: 100%;
+    margin: 0;
+    padding: 40px 48px;
 }
 
 /* Markdown typography details */

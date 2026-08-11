@@ -194,6 +194,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontSizeSelect = document.getElementById('font-size-select');
     const lineColorPicker = document.getElementById('line-color-picker');
     const scrollSyncCheckbox = document.getElementById('scroll-sync');
+    const togglePreviewMaxWidthCheckbox = document.getElementById('toggle-preview-max-width');
+    const previewMaxWidthWrapper = document.getElementById('preview-max-width-wrapper');
     const codeblockScrollCheckbox = document.getElementById('codeblock-scroll');
     const codeblockScrollWrapper = document.getElementById('codeblock-scroll-wrapper');
     const mathRenderCheckbox = document.getElementById('math-render');
@@ -568,6 +570,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
+    // Preview Max Width Limit Control (snake_case sub-function)
+    // ==========================================================================
+    function apply_preview_max_width_limit(isLimited = true) {
+        const previewViewport = document.querySelector('.preview-viewport');
+        if (previewViewport) {
+            if (isLimited) {
+                previewViewport.classList.remove('full-width');
+            } else {
+                previewViewport.classList.add('full-width');
+            }
+        }
+        if (togglePreviewMaxWidthCheckbox) {
+            togglePreviewMaxWidthCheckbox.checked = !!isLimited;
+        }
+    }
+
+    // ==========================================================================
     // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
     // ==========================================================================
     const SESSION_STORAGE_KEY = 'markvi_document_session';
@@ -582,7 +601,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 editorWidthPercent: editorPanel ? editorPanel.style.width : '',
                 fontFamily: fontSelect ? fontSelect.value : '',
                 fontSize: fontSizeSelect ? fontSizeSelect.value : '',
-                lineColor: lineColorPicker ? lineColorPicker.value : ''
+                lineColor: lineColorPicker ? lineColorPicker.value : '',
+                previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true
             };
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
         } catch (e) {
@@ -642,6 +662,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof updateThemeColors === 'function') {
                     updateThemeColors(session.lineColor);
                 }
+            }
+
+            // 7. Preview Max Width Limit Restore (Default: true)
+            if (typeof session.previewMaxWidthLimited === 'boolean') {
+                apply_preview_max_width_limit(session.previewMaxWidthLimited);
+            } else {
+                apply_preview_max_width_limit(true);
             }
         } catch (e) {
             console.warn('Failed to restore document session:', e);
@@ -1189,6 +1216,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         document.documentElement.style.setProperty('--preview-code-whitespace', wsVal);
         document.documentElement.style.setProperty('--preview-code-word-break', wbVal);
+    }
+
+    if (togglePreviewMaxWidthCheckbox) {
+        togglePreviewMaxWidthCheckbox.addEventListener('change', () => {
+            apply_preview_max_width_limit(togglePreviewMaxWidthCheckbox.checked);
+            saveDocumentSession();
+        });
+
+        if (previewMaxWidthWrapper) {
+            previewMaxWidthWrapper.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
     }
 
     if (codeblockScrollCheckbox) {
