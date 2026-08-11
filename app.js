@@ -2112,7 +2112,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSave.addEventListener('click', handleSaveDirect);
     }
     if (btnSaveAs) {
-        btnSaveAs.addEventListener('click', handleSaveCurrentDocument);
+        btnSaveAs.addEventListener('click', () => {
+            if (mainMenu) mainMenu.classList.remove('show');
+            handleSaveCurrentDocument();
+        });
     }
 
     // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)
