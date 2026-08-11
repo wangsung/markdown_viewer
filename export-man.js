@@ -443,6 +443,12 @@ const ExportManager = (function() {
                 margin-top: 0 !important;
             }
             .markdown-body pre,
+            .markdown-body pre code {
+                white-space: pre-wrap !important;
+                word-break: break-word !important;
+                overflow-x: visible !important;
+            }
+            .markdown-body pre,
             .markdown-body table,
             .markdown-body blockquote,
             .markdown-body img,
