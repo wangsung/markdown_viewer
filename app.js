@@ -1597,9 +1597,12 @@ document.addEventListener('DOMContentLoaded', () => {
             styleVars['--preview-blockquote-bg'] = '#0f172a';
         }
 
+        const isLimited = togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true;
+
         return {
             theme: targetTheme,
             lineColor: activeLineColor,
+            isMaxWidthLimited: isLimited,
             styleVars: styleVars
         };
     }

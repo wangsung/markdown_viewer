@@ -205,11 +205,22 @@ const ExportManager = (function() {
             max-width: 800px;
             margin: 0 auto;
             padding: 40px 48px;
+            box-sizing: border-box;
             color: var(--preview-text, #1f2937);
             font-family: var(--preview-font-family, system-ui, sans-serif);
             font-size: var(--preview-font-size, 16px);
             line-height: 1.7;
             word-wrap: break-word;
+        }
+
+        /* 최대폭 제한 해제 시 (Window 크기에 맞춰 내보내기/새창 가로폭 확장, 최소 여백 보존) */
+        .markdown-body.full-width,
+        body.full-width .markdown-body,
+        .export-container.full-width,
+        .preview-viewport.full-width .export-container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 40px 48px !important;
         }
 
         .markdown-body img, .markdown-body svg, .markdown-body canvas {
@@ -357,6 +368,8 @@ const ExportManager = (function() {
         const fontSizeStyle = styleVars['--preview-font-size'] || '16px';
         const activeLineColor = lineColor || styleVars['--theme-color'] || '#3b82f6';
         const safeTitle = (filename || 'untitled.md').replace(/\.[^/.]+$/, "");
+        const isMaxWidthLimited = (options && typeof options.isMaxWidthLimited === 'boolean') ? options.isMaxWidthLimited : true;
+        const fullWidthClass = isMaxWidthLimited ? '' : ' full-width';
 
         // 동적 CSS 변수 조립 (options.styleVars 객체로부터 100% 순수 인라인화)
         let injectedCssVars = '';
@@ -460,10 +473,10 @@ const ExportManager = (function() {
         }
     </style>
 </head>
-<body data-editor-theme="${currentTheme}">
-    <div class="preview-viewport" style="width:100%; display:flex; justify-content:center; background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'});">
-        <div class="export-container">
-            <article class="markdown-body">
+<body data-editor-theme="${currentTheme}" class="${fullWidthClass.trim()}">
+    <div class="preview-viewport${fullWidthClass}" style="width:100%; display:flex; justify-content:center; background-color: var(--preview-bg, ${currentTheme === 'dark' ? '#1e293b' : '#ffffff'});">
+        <div class="export-container${fullWidthClass}">
+            <article class="markdown-body${fullWidthClass}">
                 ${clonedPreview.innerHTML}
             </article>
         </div>
