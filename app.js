@@ -71,6 +71,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * 순수 하위 서브 함수: 10pt (100%) 기준 비율(% -> pt) 계산 함수
+     * @param {string|number} percentStr - 입력 비율 문자열 (예: "120%", 120)
+     * @param {number} basePt - 기준 pt 크기 (기본값: 10pt)
+     * @returns {string} - 계산된 pt 단위 문자열 (예: "12pt", "10.5pt")
+     */
+    function calc_scaled_font_size(percentStr, basePt = 10) {
+        if (!percentStr) return `${basePt}pt`;
+        const str = String(percentStr).trim();
+        if (str.endsWith('pt') || str.endsWith('px')) return str;
+        const num = parseFloat(str);
+        if (isNaN(num)) return `${basePt}pt`;
+        const scaled = (basePt * (num / 100)).toFixed(1);
+        const cleanPt = scaled.endsWith('.0') ? scaled.slice(0, -2) : scaled;
+        return `${cleanPt}pt`;
+    }
+
+    /**
      * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
      * @param {string} message - 표시할 안내 문구
      * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
@@ -333,11 +350,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (preview) preview.style.setProperty('--preview-font-family', session.fontFamily);
             }
 
-            // 5. Font Size Restore
-            if (session.fontSize && fontSizeSelect) {
-                fontSizeSelect.value = session.fontSize;
-                if (preview) preview.style.setProperty('--preview-font-size', session.fontSize);
-                document.documentElement.style.setProperty('--editor-font-size', session.fontSize);
+            // 5. Font Size Restore (Default: 120% / 12pt)
+            if (fontSizeSelect) {
+                let valToSet = session.fontSize || '120%';
+                if (valToSet.endsWith('px')) {
+                    if (valToSet === '12px') valToSet = '100%';
+                    else if (valToSet === '14px') valToSet = '110%';
+                    else if (valToSet === '16px') valToSet = '120%';
+                    else if (valToSet === '18px') valToSet = '130%';
+                    else if (valToSet === '20px') valToSet = '140%';
+                    else valToSet = '120%';
+                }
+                fontSizeSelect.value = valToSet;
+                const computedPt = calc_scaled_font_size(valToSet, 10);
+                if (preview) preview.style.setProperty('--preview-font-size', computedPt);
+                document.documentElement.style.setProperty('--preview-font-size', computedPt);
+                document.documentElement.style.setProperty('--editor-font-size', computedPt);
             }
 
             // 6. Line Color Restore
@@ -826,35 +854,58 @@ document.addEventListener('DOMContentLoaded', () => {
         saveDocumentSession();
     });
 
-    // 2. Font Size Selector
+    // 2. Font Size Selector (% 비율 기반 -> 10pt == 100% 환산 적용)
     fontSizeSelect.addEventListener('change', () => {
-        const selectedSize = fontSizeSelect.value;
-        if (preview) preview.style.setProperty('--preview-font-size', selectedSize);
-        document.documentElement.style.setProperty('--preview-font-size', selectedSize);
-        document.documentElement.style.setProperty('--editor-font-size', selectedSize);
+        const selectedVal = fontSizeSelect.value;
+        const computedPt = calc_scaled_font_size(selectedVal, 10);
+        if (preview) preview.style.setProperty('--preview-font-size', computedPt);
+        document.documentElement.style.setProperty('--preview-font-size', computedPt);
+        document.documentElement.style.setProperty('--editor-font-size', computedPt);
         if (cm && typeof cm.refresh === 'function') cm.refresh();
         saveDocumentSession();
     });
 
-    // 2-2. Font Size Spin Buttons (Up/Down)
+    // 2-2. Font Size Spin Buttons (Up/Down 10% / 1pt 단위 증감)
     const btnFontSizeUp = document.getElementById('btn-font-size-up');
     const btnFontSizeDown = document.getElementById('btn-font-size-down');
 
     if (btnFontSizeUp && btnFontSizeDown && fontSizeSelect) {
         btnFontSizeUp.addEventListener('click', () => {
-            const currentIndex = fontSizeSelect.selectedIndex;
-            if (currentIndex < fontSizeSelect.options.length - 1) {
-                fontSizeSelect.selectedIndex = currentIndex + 1;
-                fontSizeSelect.dispatchEvent(new Event('change'));
+            const currentVal = fontSizeSelect.value;
+            let currentPercent = parseFloat(currentVal);
+            if (isNaN(currentPercent)) currentPercent = 120;
+            
+            // 10% (1pt) 증가
+            const newPercent = Math.min(300, Math.round(currentPercent + 10));
+            const newPercentStr = `${newPercent}%`;
+            
+            let matchedOption = Array.from(fontSizeSelect.options).find(opt => opt.value === newPercentStr);
+            if (!matchedOption) {
+                const ptVal = calc_scaled_font_size(newPercentStr, 10);
+                matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
+                fontSizeSelect.add(matchedOption);
             }
+            fontSizeSelect.value = newPercentStr;
+            fontSizeSelect.dispatchEvent(new Event('change'));
         });
 
         btnFontSizeDown.addEventListener('click', () => {
-            const currentIndex = fontSizeSelect.selectedIndex;
-            if (currentIndex > 0) {
-                fontSizeSelect.selectedIndex = currentIndex - 1;
-                fontSizeSelect.dispatchEvent(new Event('change'));
+            const currentVal = fontSizeSelect.value;
+            let currentPercent = parseFloat(currentVal);
+            if (isNaN(currentPercent)) currentPercent = 120;
+            
+            // 10% (1pt) 감소 (최소 30%)
+            const newPercent = Math.max(30, Math.round(currentPercent - 10));
+            const newPercentStr = `${newPercent}%`;
+            
+            let matchedOption = Array.from(fontSizeSelect.options).find(opt => opt.value === newPercentStr);
+            if (!matchedOption) {
+                const ptVal = calc_scaled_font_size(newPercentStr, 10);
+                matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
+                fontSizeSelect.add(matchedOption);
             }
+            fontSizeSelect.value = newPercentStr;
+            fontSizeSelect.dispatchEvent(new Event('change'));
         });
     }
 
@@ -1153,9 +1204,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val) styleVars[varName] = val;
         });
 
-        // 메뉴바 fontSizeSelect & fontSelect 설정값을 수집에 확정 반영
+        // 메뉴바 fontSizeSelect & fontSelect 설정값을 수집에 확정 반영 (10pt == 100% 환산 반영)
         if (typeof fontSizeSelect !== 'undefined' && fontSizeSelect && fontSizeSelect.value) {
-            styleVars['--preview-font-size'] = fontSizeSelect.value;
+            styleVars['--preview-font-size'] = calc_scaled_font_size(fontSizeSelect.value, 10);
         }
         if (typeof fontSelect !== 'undefined' && fontSelect && fontSelect.value) {
             styleVars['--preview-font-family'] = fontSelect.value;
