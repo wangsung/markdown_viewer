@@ -1611,8 +1611,8 @@ div.katex-error {
     display: none;
     position: absolute;
     left: 100%;
-    top: 0;
-    margin-left: 4px;
+    top: -4px;
+    margin-left: 0;
     background-color: #0f172a;
     border: 1.5px solid #64748b;
     border-radius: 8px;
