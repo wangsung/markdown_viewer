@@ -1945,9 +1945,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const SAVE_SECURITY_NOTICE = '[App] 브라우저 보안사항으로 파일 접근 권한에 대한 확인창이 뜰 수 있습니다. ';
+
+    function triggerSaveSecurityNotice() {
+        showGlobalBottomBanner(SAVE_SECURITY_NOTICE, false);
+    }
+
+    function dismissSaveSecurityNoticeDelayed(delayMs = 1000) {
+        setTimeout(() => {
+            hideGlobalBottomBanner();
+        }, delayMs);
+    }
+
     // 새이름저장 (Save As 다이얼로그) 헬퍼 함수
     function handleSaveCurrentDocument() {
         if (!cm) return;
+        triggerSaveSecurityNotice();
         const textContent = cm.getValue();
         ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName, handle) => {
             if (handle) {
@@ -1956,12 +1969,14 @@ document.addEventListener('DOMContentLoaded', () => {
             updateFilenameDisplay(savedName, false);
             saveDocumentSession();
             showToast(`"${savedName}" 파일이 저장되었습니다.`);
+            dismissSaveSecurityNoticeDelayed(1000); // 저장 완료 1초 후 배너 숨김
         });
     }
 
     // [저장] 버튼: 직접 덮어쓰기 저장 (Direct Overwrite) 헬퍼 함수
     async function handleSaveDirect() {
         if (!cm) return;
+        triggerSaveSecurityNotice();
         const textContent = cm.getValue();
 
         // 1. 파일 핸들이 존재하는 경우 탐색기 팝업 없이 원본 파일에 직접 덮어쓰기
@@ -1975,6 +1990,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     if (perm !== 'granted') {
                         showToast('파일 쓰기 권한이 거부되었습니다.');
+                        dismissSaveSecurityNoticeDelayed(1000);
                         return;
                     }
                 }
@@ -1986,9 +2002,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateFilenameDisplay(currentFileHandle.name, false);
                 saveDocumentSession();
                 showToast(`"${currentFileHandle.name}" 파일에 직접 저장되었습니다.`);
+                dismissSaveSecurityNoticeDelayed(1000); // 저장 완료 1초 후 배너 숨김
                 return;
             } catch (err) {
                 console.warn('직접 덮어쓰기 저장 실패, SaveAs 다이얼로그로 fallback 진행:', err);
+                dismissSaveSecurityNoticeDelayed(1000);
             }
         }
 
