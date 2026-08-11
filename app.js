@@ -356,6 +356,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function format_file_size(bytes) {
+        if (typeof bytes !== 'number' || isNaN(bytes) || bytes <= 0) return '0 KB';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function format_recent_time(timestamp) {
+        if (!timestamp) return '';
+        const d = new Date(timestamp);
+        if (isNaN(d.getTime())) return '';
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${month}-${day} ${hours}:${minutes}`;
+    }
+
     function get_recent_files() {
         try {
             const raw = localStorage.getItem(RECENT_FILES_KEY);
@@ -374,15 +392,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function add_recent_file_entry(name, fullPath, handle = null) {
+    function add_recent_file_entry(name, fullPath, handle = null, size = 0) {
         if (!name || name === '제목 없음.md') return;
         const pathToSave = fullPath || name;
         let files = get_recent_files();
         files = files.filter(f => f.fullPath !== pathToSave && f.name !== name);
+        
+        let contentSize = size;
+        if (!contentSize && typeof cm !== 'undefined' && cm) {
+            try {
+                contentSize = new Blob([cm.getValue()]).size;
+            } catch (e) {
+                contentSize = 0;
+            }
+        }
+
         files.unshift({
             name: name,
             fullPath: pathToSave,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            size: contentSize || 0
         });
         if (files.length > 5) {
             files = files.slice(0, 5);
@@ -397,16 +426,43 @@ document.addEventListener('DOMContentLoaded', () => {
     async function open_recent_file_in_new_window(fileEntry) {
         if (!fileEntry) return;
         
-        // 클릭 시 사용자 직접 행동(User Gesture) 문맥에서 미리 File Handle 권한을 확인 및 요청
-        const handle = await get_handle_from_idb(fileEntry.name);
+        // 클릭 시 사용자 직접 행동(User Gesture) 문맥에서 미리 File Handle 점검 및 권한 요청
+        let handle = await get_handle_from_idb(fileEntry.name);
+        let hasValidHandle = false;
+
         if (handle && typeof handle.queryPermission === 'function') {
             try {
                 let perm = await handle.queryPermission({ mode: 'read' });
                 if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
                     perm = await handle.requestPermission({ mode: 'read' });
                 }
+                if (perm === 'granted') {
+                    hasValidHandle = true;
+                }
             } catch (err) {
                 console.warn('사용자 클릭 문맥 내 handle 권한 요청 실패:', err);
+            }
+        }
+
+        // IndexedDB에 유효한 핸들이 없거나 권한이 거부된 경우: 클릭 문맥(User Gesture)에서 즉시 파일 불러오기 창 팝업
+        if (!hasValidHandle && typeof window.showOpenFilePicker === 'function') {
+            try {
+                const [newHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Markdown Documents',
+                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
+                    }],
+                    multiple: false
+                });
+                if (newHandle) {
+                    const file = await newHandle.getFile();
+                    handle = newHandle;
+                    add_recent_file_entry(file.name, file.path || file.name, newHandle, file.size);
+                    hasValidHandle = true;
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return; // 사용자가 창을 닫은 경우 취소
+                console.warn('최근 파일 다시 선택 대화상자 실패:', err);
             }
         }
 
@@ -429,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('URL 히스토리 클린업 실패:', e);
         }
 
+        let isLoadSuccess = false;
         const handle = await get_handle_from_idb(recentName);
         if (handle) {
             try {
@@ -440,21 +497,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (perm === 'granted') {
                         const file = await handle.getFile();
                         currentFileHandle = handle;
-                        add_recent_file_entry(file.name, file.path || file.name, handle);
+                        add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
                         loadSingleFile(file);
+                        isLoadSuccess = true;
                         return;
                     }
                 }
             } catch (e) {
-                console.warn('IndexedDB handle 권한 로드 실패, 선택기 fallback 진행:', e);
+                console.warn('IndexedDB handle 권한 로드 실패:', e);
             }
         }
 
-        const btnOpen = document.getElementById('btn-open-file');
-        if (btnOpen) {
-            showToast(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 누르세요.`, 5000);
+        // 새 창에서 최근 파일 로드 실패 시 (Handle 미존재, 파일 이동/삭제 등)
+        if (!isLoadSuccess) {
+            currentFileHandle = null;
+            // 본문은 새 문서 상태 (빈 텍스트)로 깔끔하게 유지
+            cm.setValue('');
+            updateFilenameDisplay('제목 없음.md', false);
+            renderMarkdown();
+            saveDocumentSession();
+            showToast(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 이용해 주세요.`, 5000);
+            render_recent_files_menu();
         }
-        render_recent_files_menu();
     }
 
     function render_recent_files_menu() {
@@ -474,13 +538,17 @@ document.addEventListener('DOMContentLoaded', () => {
         files.forEach((entry) => {
             const itemBtn = document.createElement('button');
             itemBtn.className = 'recent-file-item';
-            itemBtn.title = `${entry.name}\n(${entry.fullPath})\n클릭 시 새 창에서 파일 열기`;
+            const timeStr = format_recent_time(entry.timestamp);
+            const sizeStr = format_file_size(entry.size);
+            const metaText = timeStr ? `${timeStr} · ${sizeStr}` : sizeStr;
+
+            itemBtn.title = `${entry.name}\n작업 일시: ${timeStr}\n크기: ${sizeStr}\n클릭 시 새 창에서 파일 열기`;
             itemBtn.innerHTML = `
                 <div class="recent-file-name">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
                     <span>${entry.name}</span>
                 </div>
-                <div class="recent-file-path">${entry.fullPath}</div>
+                <div class="recent-file-path">${metaText}</div>
             `;
             itemBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1355,32 +1423,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (btnOpenFile) {
-        btnOpenFile.addEventListener('click', async () => {
-            if (mainMenu) mainMenu.classList.remove('show');
-            if (typeof window.showOpenFilePicker === 'function') {
-                try {
-                    const [handle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'Markdown Documents',
-                            accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
-                        }],
-                        multiple: false
-                    });
-                    if (handle) {
-                        const file = await handle.getFile();
-                        currentFileHandle = handle;
-                        add_recent_file_entry(file.name, file.path || file.name, handle);
-                        loadSingleFile(file);
-                        return;
-                    }
-                } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    console.warn('showOpenFilePicker 실패, fallback input 시도:', err);
+    async function trigger_open_file_dialog() {
+        if (mainMenu) mainMenu.classList.remove('show');
+        if (typeof window.showOpenFilePicker === 'function') {
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Markdown Documents',
+                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
+                    }],
+                    multiple: false
+                });
+                if (handle) {
+                    const file = await handle.getFile();
+                    currentFileHandle = handle;
+                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                    loadSingleFile(file);
+                    return true;
                 }
+            } catch (err) {
+                if (err.name === 'AbortError') return false;
+                console.warn('showOpenFilePicker 실패, fallback input 시도:', err);
             }
-            if (fileInput) fileInput.click();
-        });
+        }
+        if (fileInput) fileInput.click();
+        return true;
+    }
+
+    if (btnOpenFile) {
+        btnOpenFile.addEventListener('click', trigger_open_file_dialog);
     }
 
     // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
@@ -1605,37 +1676,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
         
         if (allowedExtensions.includes(extension) || file.type.startsWith('text/')) {
-            let shouldLoad = true;
-            
-            if (isDirty) {
-                const saveConfirm = confirm(`작성 중인 내용이 변경되었습니다. 파일 로드 전에 현재 문서를 컴퓨터에 저장(다운로드)하시겠습니까?`);
-                if (saveConfirm) {
-                    handleSaveCurrentDocument();
-                } else {
-                    // 저장 안 함 선택 시, 덮어쓰고 계속 불러올지 재차 확인 (작업 소실 방지)
-                    shouldLoad = confirm(`현재 문서를 저장하지 않고 "${fileName}" 파일을 불러오시겠습니까?\n(확인을 누르면 작성 중이던 기존 수정 내용이 사라집니다.)`);
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                cm.setValue(event.target.result);
+                updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
+                add_recent_file_entry(file.name, file.path || file.webkitRelativePath || file.name, null, file.size);
+                renderMarkdown();
+                saveDocumentSession();
+                
+                // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
+                cm.scrollTo(0, 0);
+                const previewViewport = document.querySelector('.preview-viewport');
+                if (previewViewport) {
+                    previewViewport.scrollTop = 0;
+                    previewViewport.scrollLeft = 0;
                 }
-            }
-            
-            if (shouldLoad) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    cm.setValue(event.target.result);
-                    updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
-                    add_recent_file_entry(file.name, file.path || file.webkitRelativePath || file.name);
-                    renderMarkdown();
-                    saveDocumentSession();
-                    
-                    // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
-                    cm.scrollTo(0, 0);
-                    const previewViewport = document.querySelector('.preview-viewport');
-                    if (previewViewport) {
-                        previewViewport.scrollTop = 0;
-                        previewViewport.scrollLeft = 0;
-                    }
-                };
-                reader.readAsText(file);
-            }
+            };
+            reader.readAsText(file);
         } else {
             alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.');
         }
