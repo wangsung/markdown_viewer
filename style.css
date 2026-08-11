@@ -1537,10 +1537,12 @@ div.katex-error {
     position: absolute;
     right: 0;
     top: calc(100% + 8px);
-    background-color: #0b132b;
-    border: 1px solid #475569;
+    background-color: #0f172a;
+    border: 1.5px solid #64748b;
     border-radius: 8px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.15);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(148, 163, 184, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     z-index: 1000;
     min-width: 210px;
     padding: 6px 0;
@@ -1597,6 +1599,88 @@ div.katex-error {
 
 .dropdown-item:hover svg {
     color: var(--frame-accent-color);
+}
+
+/* Submenu Styles for Recent Files */
+.dropdown-submenu-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-submenu {
+    display: none;
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 4px;
+    background-color: #0f172a;
+    border: 1.5px solid #64748b;
+    border-radius: 8px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(148, 163, 184, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    z-index: 1010;
+    min-width: 250px;
+    max-width: 340px;
+    padding: 6px 0;
+    animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-submenu-wrapper:hover .dropdown-submenu,
+.dropdown-submenu-wrapper.active .dropdown-submenu {
+    display: block;
+}
+
+.dropdown-submenu-empty {
+    padding: 10px 16px;
+    color: var(--text-frame-muted);
+    font-size: 0.8rem;
+    font-style: italic;
+    text-align: center;
+}
+
+.recent-file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    padding: 9px 14px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    color: var(--text-frame-main);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.recent-file-item:last-child {
+    border-bottom: none;
+}
+
+.recent-file-item:hover {
+    background-color: rgba(59, 130, 246, 0.18);
+}
+
+.recent-file-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-frame-main);
+    word-break: break-all;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.recent-file-path {
+    font-size: 0.72rem;
+    color: var(--text-frame-muted);
+    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
 }
 
 .dropdown-item-toggle {
