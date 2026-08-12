@@ -2058,16 +2058,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // Heading Modal & Toast Control System
     const btnEditHeadingStyle = document.getElementById('btn-edit-heading-style');
-    const headingModal = document.getElementById('heading-modal');
-    const closeHeadingModal = document.getElementById('close-heading-modal');
     const modalHeadingSelect = document.getElementById('modal-heading-preset-select');
     const headingStyleControls = document.getElementById('heading-style-controls');
-    const btnSaveHeadingPreset = document.getElementById('btn-save-heading-preset');
-    const btnAddHeadingPreset = document.getElementById('btn-add-heading-preset');
-    const btnDeleteHeadingPreset = document.getElementById('btn-delete-heading-preset');
-    const btnResetHeadingPresets = document.getElementById('btn-reset-heading-presets');
-    const btnSaveOnlyHeadingPreset = document.getElementById('btn-save-only-heading-preset');
-    const btnCloseHeadingModal = document.getElementById('btn-close-heading-modal');
     const headingPresetSelect = document.getElementById('heading-preset-select');
 
     function showToast(message, duration = 3000) {
@@ -2082,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (btnEditHeadingStyle && headingModal) {
+    if (btnEditHeadingStyle) {
         btnEditHeadingStyle.addEventListener('click', (e) => {
             if (e) e.stopPropagation();
             if (viewMenu) viewMenu.classList.remove('show');
@@ -2096,18 +2088,18 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePresetSelectOptions();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
-            renderHeadingModalControls(currentActive);
-            headingModal.style.display = 'block';
+            if (window.StyleEditor && typeof window.StyleEditor.openModal === 'function') {
+                window.StyleEditor.openModal(currentActive);
+            }
         });
     }
 
     function closeHeadingStyleModal() {
-        if (headingModal) {
-            headingModal.style.display = 'none';
-            // 모달 닫기 시 드래그 누적 위치 및 인라인 transform 원복 리셋
-            if (window.StyleEditor && typeof window.StyleEditor.resetModalPosition === 'function') {
-                window.StyleEditor.resetModalPosition();
-            }
+        if (window.StyleEditor && typeof window.StyleEditor.closeModal === 'function') {
+            window.StyleEditor.closeModal();
+        } else {
+            const headingModal = document.getElementById('heading-modal');
+            if (headingModal) headingModal.style.display = 'none';
         }
     }
 
@@ -2125,8 +2117,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderMarkdown();
         });
     }
-    if (closeHeadingModal) closeHeadingModal.addEventListener('click', closeHeadingStyleModal);
-    if (btnCloseHeadingModal) btnCloseHeadingModal.addEventListener('click', closeHeadingStyleModal);
 
     // ==========================================================================
     // 🎨 [x] / [v] 버튼 탑재 Canvas 기반 전문 커스텀 컬러피커 팝오버 모듈
