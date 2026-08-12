@@ -618,7 +618,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSize: fontSizeSelect ? fontSizeSelect.value : '',
                 lineColor: lineColorPicker ? lineColorPicker.value : '',
                 previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true,
-                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true
+                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true,
+                scrollSyncEnabled: scrollSyncCheckbox ? scrollSyncCheckbox.checked : true
             };
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
         } catch (e) {
@@ -1344,6 +1345,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSizeSelect,
                 lineColorPicker,
                 colorSwatchCheckbox,
+                scrollSyncCheckbox,
                 preview
             },
             actions: {
@@ -1367,6 +1369,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         remove_color_swatches(preview);
                     } else {
                         inject_color_swatches(document, preview);
+                    }
+                },
+                onScrollSyncToggle: (enabled) => {
+                    enableScrollSync = enabled;
+                    if (scrollSync) {
+                        scrollSync.setEnable(enabled);
                     }
                 },
                 onNewFile: () => handleNewFile(),
@@ -1919,10 +1927,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {
             enableScrollSync = scrollSyncCheckbox.checked;
-            if (enableScrollSync) {
-                // 동기화 활성화 시 현재 커서 위치로 즉시 프리뷰 정렬
-                syncPreviewToCursor();
+            if (scrollSync) {
+                scrollSync.setEnable(enableScrollSync);
+                if (enableScrollSync && typeof scrollSync.syncPreviewToCursor === 'function') {
+                    scrollSync.syncPreviewToCursor();
+                }
             }
+            saveDocumentSession();
         });
     }
 

@@ -543,6 +543,15 @@
                 cb.onColorSwatchToggle(colorSwatchCheckbox.checked);
             }
         }
+
+        // 7. Scroll Sync Restore
+        const scrollSyncCheckbox = els.scrollSyncCheckbox || (typeof document !== 'undefined' ? document.getElementById('scroll-sync') : null);
+        if (scrollSyncCheckbox) {
+            scrollSyncCheckbox.checked = typeof sessionData.scrollSyncEnabled === 'boolean' ? sessionData.scrollSyncEnabled : true;
+            if (typeof cb.onScrollSyncToggle === 'function') {
+                cb.onScrollSyncToggle(scrollSyncCheckbox.checked);
+            }
+        }
     }
 
     // ==========================================================================
@@ -610,7 +619,8 @@
             restore_frame_settings_ui(sessionData, options.elements, {
                 onPanelResize: options.actions.onPanelResize,
                 onLineColorChange: options.actions.onLineColorChange,
-                onColorSwatchToggle: options.actions.onColorSwatchToggle
+                onColorSwatchToggle: options.actions.onColorSwatchToggle,
+                onScrollSyncToggle: options.actions.onScrollSyncToggle
             });
         },
 
