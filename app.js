@@ -1800,6 +1800,35 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDebugPanelUI(keyframes, activeScrollSource);
     }
 
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
+    function buildTOC() {
+        const tocList = document.getElementById('toc-list');
+        if (!tocList || !cm) return;
+
+        const text = cm.getValue();
+        const headings = EditorManager.build_toc(text);
+
+        tocList.innerHTML = '';
+        headings.forEach(heading => {
+            const li = document.createElement('li');
+            li.className = `toc-item toc-h${heading.level}`;
+            li.setAttribute('data-line', heading.line + 1);
+
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = heading.text;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (scrollSync) {
+                    scrollSync.scrollToLine(heading.line + 1);
+                }
+            });
+
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+    }
+
     // ==========================================================================
     // 초기 렌더링 및 이벤트 등록 (Scroll Sync 초기화 지연 방지를 위해 가장 하단에 배치)
     // ==========================================================================
