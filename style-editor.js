@@ -530,11 +530,53 @@
         },
 
         /**
+         * 모달 다이얼로그 띄우기 (Open Modal)
+         */
+        openModal: function(presetId) {
+            const headingModal = document.getElementById('heading-modal');
+            if (headingModal) {
+                if (presetId) {
+                    this.renderControls(presetId);
+                }
+                headingModal.style.display = 'block';
+            }
+        },
+
+        /**
+         * 모달 다이얼로그 닫기 (Close Modal)
+         */
+        closeModal: function() {
+            const headingModal = document.getElementById('heading-modal');
+            if (headingModal) {
+                headingModal.style.display = 'none';
+                this.resetModalPosition();
+            }
+        },
+
+        /**
          * 모듈 초기 시동 바인딩
          */
         init: function(opt) {
-            options = opt;
+            options = opt || {};
+            if (options.elements) {
+                if (options.elements.headingStyleControls && !options.controlsContainer) {
+                    options.controlsContainer = options.elements.headingStyleControls;
+                }
+                if (options.elements.modalHeadingSelect && !options.presetSelect) {
+                    options.presetSelect = options.elements.modalHeadingSelect;
+                }
+            }
             const self = this;
+
+            // 🎨 닫기 버튼 이벤트 바인딩
+            const closeHeadingModal = document.getElementById('close-heading-modal');
+            const btnCloseHeadingModal = document.getElementById('btn-close-heading-modal');
+            if (closeHeadingModal) {
+                closeHeadingModal.addEventListener('click', () => self.closeModal());
+            }
+            if (btnCloseHeadingModal) {
+                btnCloseHeadingModal.addEventListener('click', () => self.closeModal());
+            }
 
             // 🎨 탭 스위처 바인딩
             const tabBtnText = document.getElementById('tab-btn-text');

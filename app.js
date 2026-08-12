@@ -243,102 +243,107 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const preview = document.getElementById('preview');
-    const dragDivider = document.getElementById('drag-divider');
-    const editorPanel = document.getElementById('editor-panel');
-    const container = document.querySelector('.container');
-    
+    // 1. 프레임/레이아웃/뷰어 옵션 전용 구조체 (frameElements)
+    const frameElements = {
+        container: document.querySelector('.container'),
+        editorPanel: document.getElementById('editor-panel'),
+        dragDivider: document.getElementById('drag-divider'),
+        preview: document.getElementById('preview'),
+        previewViewport: document.querySelector('.preview-viewport'),
+
+        fileBadge: document.getElementById('file-badge'),
+        filenameSpan: document.getElementById('current-filename'),
+
+        btnThemeToggle: document.getElementById('btn-theme-toggle'),
+        themeIconSun: document.querySelector('.theme-icon-sun'),
+        themeIconMoon: document.querySelector('.theme-icon-moon'),
+        themeToggleText: document.getElementById('theme-toggle-text'),
+
+        fontSelect: document.getElementById('font-select'),
+        fontSizeSelect: document.getElementById('font-size-select'),
+        lineColorPicker: document.getElementById('line-color-picker'),
+        scrollSyncCheckbox: document.getElementById('scroll-sync'),
+        colorSwatchCheckbox: document.getElementById('color-swatch-toggle'),
+        togglePreviewMaxWidthCheckbox: document.getElementById('toggle-preview-max-width'),
+        previewMaxWidthWrapper: document.getElementById('preview-max-width-wrapper'),
+        codeblockScrollCheckbox: document.getElementById('codeblock-scroll'),
+        codeblockScrollWrapper: document.getElementById('codeblock-scroll-wrapper'),
+        mathRenderCheckbox: document.getElementById('math-render'),
+        mathRenderWrapper: document.getElementById('math-render-wrapper'),
+        diagramRenderCheckbox: document.getElementById('diagram-render'),
+        diagramRenderWrapper: document.getElementById('diagram-render-wrapper'),
+        colorSwatchWrapper: document.getElementById('color-swatch-wrapper')
+    };
+
+    // 2. 상단 헤더 메뉴 & 액션 버튼 전용 구조체 (menuElements)
+    const menuElements = {
+        menuDropdown: document.getElementById('menu-dropdown'),
+        btnMenu: document.getElementById('btn-menu'),
+        mainMenu: document.getElementById('main-menu'),
+        btnNewFile: document.getElementById('btn-new-file'),
+        btnOpenFile: document.getElementById('btn-open-file'),
+        fileInput: document.getElementById('file-input'),
+
+        viewDropdown: document.getElementById('view-dropdown'),
+        btnView: document.getElementById('btn-view'),
+        viewMenu: document.getElementById('view-menu'),
+
+        headingDropdown: document.getElementById('heading-dropdown'),
+        btnHeadingStyle: document.getElementById('btn-heading-style'),
+        headingStyleMenu: document.getElementById('heading-style-menu'),
+
+        exportDropdown: document.getElementById('export-dropdown'),
+        btnExport: document.getElementById('btn-export'),
+        exportMenu: document.getElementById('export-menu'),
+        btnExportHtml: document.getElementById('btn-export-html'),
+        btnExportPdfPrint: document.getElementById('btn-export-pdf-print'),
+        btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf'),
+        btnOpenNewWindow: document.getElementById('btn-open-new-window'),
+        btnOpenNewWindowDefault: document.getElementById('btn-open-new-window-default'),
+
+        btnCopy: document.getElementById('btn-copy'),
+        btnSave: document.getElementById('btn-save'),
+        btnSaveAs: document.getElementById('btn-save-as'),
+        btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
+        btnDebug: document.getElementById('btn-debug')
+    };
+
+    // 편리한 접근을 위한 로컬 구조 분해 할당 (Destructuring)
+    const {
+        container, editorPanel, dragDivider, preview, previewViewport,
+        fileBadge, filenameSpan,
+        btnThemeToggle, themeIconSun, themeIconMoon, themeToggleText,
+        fontSelect, fontSizeSelect, lineColorPicker, scrollSyncCheckbox,
+        colorSwatchCheckbox, togglePreviewMaxWidthCheckbox, previewMaxWidthWrapper,
+        codeblockScrollCheckbox, codeblockScrollWrapper, mathRenderCheckbox,
+        mathRenderWrapper, diagramRenderCheckbox, diagramRenderWrapper, colorSwatchWrapper
+    } = frameElements;
+
+    const {
+        menuDropdown, btnMenu, mainMenu, btnNewFile, btnOpenFile, fileInput,
+        viewDropdown, btnView, viewMenu,
+        headingDropdown, btnHeadingStyle, headingStyleMenu,
+        exportDropdown, btnExport, exportMenu, btnExportHtml, btnExportPdfPrint,
+        btnExportPdfHtml2Pdf, btnOpenNewWindow, btnOpenNewWindowDefault,
+        btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
+    } = menuElements;
+
     // TOC 사이드바 DOM 요소
     const tocSidebar = document.getElementById('toc-sidebar');
     const btnTocToggleInner = document.getElementById('btn-toc-toggle-inner');
     const tocToggleBar = document.getElementById('toc-toggle-bar');
-    
-    const fontSelect = document.getElementById('font-select');
-    const fontSizeSelect = document.getElementById('font-size-select');
-    const lineColorPicker = document.getElementById('line-color-picker');
-    const scrollSyncCheckbox = document.getElementById('scroll-sync');
-    const togglePreviewMaxWidthCheckbox = document.getElementById('toggle-preview-max-width');
-    const previewMaxWidthWrapper = document.getElementById('preview-max-width-wrapper');
-    const codeblockScrollCheckbox = document.getElementById('codeblock-scroll');
-    const codeblockScrollWrapper = document.getElementById('codeblock-scroll-wrapper');
-    const mathRenderCheckbox = document.getElementById('math-render');
-    const mathRenderWrapper = document.getElementById('math-render-wrapper');
-    const diagramRenderCheckbox = document.getElementById('diagram-render');
-    const diagramRenderWrapper = document.getElementById('diagram-render-wrapper');
-    const colorSwatchCheckbox = document.getElementById('color-swatch-toggle');
-    const colorSwatchWrapper = document.getElementById('color-swatch-wrapper');
-    const btnCopy = document.getElementById('btn-copy');
-    const btnSave = document.getElementById('btn-save');
-    const btnSaveAs = document.getElementById('btn-save-as');
-    const btnDebug = document.getElementById('btn-debug');
-    const exportDropdown = document.getElementById('export-dropdown');
-    const btnExport = document.getElementById('btn-export');
-    const exportMenu = document.getElementById('export-menu');
-    const btnExportHtml = document.getElementById('btn-export-html');
-    const btnExportPdfPrint = document.getElementById('btn-export-pdf-print');
-    const btnExportPdfHtml2Pdf = document.getElementById('btn-export-pdf-html2pdf');
-    const btnOpenNewWindow = document.getElementById('btn-open-new-window');
-    const btnOpenNewWindowDefault = document.getElementById('btn-open-new-window-default');
-    const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
-    
-    const viewDropdown = document.getElementById('view-dropdown');
-    const btnView = document.getElementById('btn-view');
-    const viewMenu = document.getElementById('view-menu');
-
-    const headingDropdown = document.getElementById('heading-dropdown');
-    const btnHeadingStyle = document.getElementById('btn-heading-style');
-    const headingStyleMenu = document.getElementById('heading-style-menu');
-
-    const menuDropdown = document.getElementById('menu-dropdown');
-    const btnMenu = document.getElementById('btn-menu');
-    const mainMenu = document.getElementById('main-menu');
-    const btnNewFile = document.getElementById('btn-new-file');
-    const btnOpenFile = document.getElementById('btn-open-file');
-    const fileInput = document.getElementById('file-input');
-
-    // Theme Toggle Elements & Logic
-    const btnThemeToggle = document.getElementById('btn-theme-toggle');
-    const themeIconSun = document.querySelector('.theme-icon-sun');
-    const themeIconMoon = document.querySelector('.theme-icon-moon');
-    const themeToggleText = document.getElementById('theme-toggle-text');
 
     function applyTheme(theme) {
-        if (container) {
-            container.setAttribute('data-editor-theme', theme);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
+            FrameManager.applyTheme(theme);
         }
-        document.documentElement.setAttribute('data-editor-theme', theme);
-        localStorage.setItem('markvi_editor_theme', theme);
-
-        if (theme === 'dark') {
-            if (themeIconSun) themeIconSun.style.display = 'none';
-            if (themeIconMoon) themeIconMoon.style.display = 'inline-block';
-            if (themeToggleText) themeToggleText.textContent = 'Dark';
-        } else {
-            if (themeIconSun) themeIconSun.style.display = 'inline-block';
-            if (themeIconMoon) themeIconMoon.style.display = 'none';
-            if (themeToggleText) themeToggleText.textContent = 'Light';
-        }
-
-        apply_code_theme(theme);
-
-        const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-        applyHeadingPreset(activePresetId);
     }
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('markvi_editor_theme') || 'dark';
-        applyTheme(savedTheme);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.initTheme === 'function') {
+            FrameManager.initTheme();
+        }
     }
-
-    if (btnThemeToggle) {
-        btnThemeToggle.addEventListener('click', () => {
-            const currentTheme = (container && container.getAttribute('data-editor-theme')) || document.documentElement.getAttribute('data-editor-theme') || 'dark';
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
-        });
-    }
-
-    initTheme();
 
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
@@ -353,19 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateFilenameDisplay(name, isModified) {
         currentFilename = name;
         isDirty = isModified;
-        const filenameSpan = document.getElementById('current-filename');
-        const fileBadge = document.getElementById('file-badge');
         
-        if (filenameSpan && fileBadge) {
-            filenameSpan.textContent = isModified ? `${name} *` : name;
-            if (isModified) {
-                fileBadge.classList.add('modified');
-                fileBadge.title = "현재 파일 (수정됨)";
-            } else {
-                fileBadge.classList.remove('modified');
-                fileBadge.title = "현재 파일";
-            }
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateFilenameDisplay === 'function') {
+            FrameManager.updateFilenameDisplay(name, isModified);
         }
+        
         if (typeof add_recent_file_entry === 'function' && name && name !== '제목 없음.md') {
             add_recent_file_entry(name, name);
         }
@@ -424,24 +421,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 resolve(null);
             }
         });
-    }
-
-    function format_file_size(bytes) {
-        if (typeof bytes !== 'number' || isNaN(bytes) || bytes <= 0) return '0 KB';
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-
-    function format_recent_time(timestamp) {
-        if (!timestamp) return '';
-        const d = new Date(timestamp);
-        if (isNaN(d.getTime())) return '';
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        return `${month}-${day} ${hours}:${minutes}`;
     }
 
     // 다른 창/탭에서 최근 파일 목록이 변경되었을 때 실시간 동기화를 위한 storage 이벤트 리스너
@@ -619,57 +598,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function render_recent_files_menu() {
-        const wrapperEl = document.getElementById('recent-files-wrapper');
-        const submenuEl = document.getElementById('recent-files-submenu');
-        if (!submenuEl) return;
-        if (wrapperEl) wrapperEl.style.display = 'block';
-
         const files = get_recent_files();
-
-        if (!files || files.length === 0) {
-            submenuEl.innerHTML = '<div class="dropdown-submenu-empty">최근 파일이 없습니다.</div>';
-            return;
-        }
-
-        submenuEl.innerHTML = '';
-        files.forEach((entry) => {
-            const itemBtn = document.createElement('button');
-            itemBtn.className = 'recent-file-item';
-            const timeStr = format_recent_time(entry.timestamp);
-            const sizeStr = format_file_size(entry.size);
-            const metaText = timeStr ? `${timeStr} · ${sizeStr}` : sizeStr;
-
-            itemBtn.title = `${entry.name}\n작업 일시: ${timeStr}\n크기: ${sizeStr}\n클릭 시 새 창에서 파일 열기`;
-            itemBtn.innerHTML = `
-                <div class="recent-file-name">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    <span>${entry.name}</span>
-                </div>
-                <div class="recent-file-path">${metaText}</div>
-            `;
-            itemBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (mainMenu) mainMenu.classList.remove('show');
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.renderRecentFilesMenu === 'function') {
+            FrameManager.renderRecentFilesMenu(files, (entry) => {
                 open_recent_file_in_new_window(entry);
             });
-            submenuEl.appendChild(itemBtn);
-        });
+        }
     }
 
     // ==========================================================================
     // Preview Max Width Limit Control (snake_case sub-function)
     // ==========================================================================
     function apply_preview_max_width_limit(isLimited = true) {
-        const previewViewport = document.querySelector('.preview-viewport');
-        if (previewViewport) {
-            if (isLimited) {
-                previewViewport.classList.remove('full-width');
-            } else {
-                previewViewport.classList.add('full-width');
-            }
-        }
-        if (togglePreviewMaxWidthCheckbox) {
-            togglePreviewMaxWidthCheckbox.checked = !!isLimited;
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyPreviewMaxWidthLimit === 'function') {
+            FrameManager.applyPreviewMaxWidthLimit(isLimited);
         }
     }
 
@@ -707,7 +649,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontSize: fontSizeSelect ? fontSizeSelect.value : '',
                 lineColor: lineColorPicker ? lineColorPicker.value : '',
                 previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true,
-                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true
+                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true,
+                scrollSyncEnabled: scrollSyncCheckbox ? scrollSyncCheckbox.checked : true
             };
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
         } catch (e) {
@@ -731,59 +674,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateFilenameDisplay(session.filename, !!session.isDirty);
             }
 
-            // 3. Panel Split Width Restore
-            if (session.editorWidthPercent && editorPanel) {
-                editorPanel.style.width = session.editorWidthPercent;
-                if (typeof cm.refresh === 'function') cm.refresh();
-            }
-
-            // 4. Font Family Restore
-            if (session.fontFamily && fontSelect) {
-                fontSelect.value = session.fontFamily;
-                if (preview) preview.style.setProperty('--preview-font-family', session.fontFamily);
-            }
-
-            // 5. Font Size Restore (Default: 120% / 12pt)
-            if (fontSizeSelect) {
-                let valToSet = session.fontSize || '120%';
-                if (valToSet.endsWith('px')) {
-                    if (valToSet === '12px') valToSet = '100%';
-                    else if (valToSet === '14px') valToSet = '110%';
-                    else if (valToSet === '16px') valToSet = '120%';
-                    else if (valToSet === '18px') valToSet = '130%';
-                    else if (valToSet === '20px') valToSet = '140%';
-                    else valToSet = '120%';
-                }
-                fontSizeSelect.value = valToSet;
-                const computedPt = calc_scaled_font_size(valToSet, 10);
-                if (preview) preview.style.setProperty('--preview-font-size', computedPt);
-                document.documentElement.style.setProperty('--preview-font-size', computedPt);
-                document.documentElement.style.setProperty('--editor-font-size', computedPt);
-            }
-
-            // 6. Line Color Restore
-            if (session.lineColor && lineColorPicker) {
-                lineColorPicker.value = session.lineColor;
-                if (typeof updateThemeColors === 'function') {
-                    updateThemeColors(session.lineColor);
-                }
-            }
-
-            // 7. Preview Max Width Limit Restore (Default: true)
-            if (typeof session.previewMaxWidthLimited === 'boolean') {
-                apply_preview_max_width_limit(session.previewMaxWidthLimited);
-            } else {
-                apply_preview_max_width_limit(true);
-            }
-
-            // 8. Color Swatch Restore (Default: true)
-            if (colorSwatchCheckbox) {
-                colorSwatchCheckbox.checked = typeof session.colorSwatchEnabled === 'boolean' ? session.colorSwatchEnabled : true;
-                if (!colorSwatchCheckbox.checked) {
-                    remove_color_swatches(preview);
-                } else {
-                    inject_color_swatches(document, preview);
-                }
+            // 3. Frame & Visual Layout Settings Restore (FrameManager 위임)
+            if (typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function') {
+                FrameManager.restoreFrameSettings(session);
             }
         } catch (e) {
             console.warn('Failed to restore document session:', e);
@@ -1183,79 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Drag-to-Resize Panel Width Logic
     // ==========================================================================
-    let isDragging = false;
-
-    function startDrag(e) {
-        isDragging = true;
-        dragDivider.classList.add('dragging');
-        document.body.style.cursor = 'col-resize';
-        
-        // Disable text selection during drag
-        document.body.style.userSelect = 'none';
-        
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag);
-        
-        // Touch events compatibility
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-    }
-
-    function drag(e) {
-        if (!isDragging) return;
-        
-        // Get clientX from mouse or touch event
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const containerRect = container.getBoundingClientRect();
-        
-        // TOC 사이드바의 실제 점유 폭 계산
-        const tocSidebar = document.getElementById('toc-sidebar');
-        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
-        
-        // TOC 시작선 및 점유 폭을 차감한 순수 에디터 시작점 기준 마우스 상대 좌표
-        const relativeX = clientX - containerRect.left - tocWidth;
-        
-        // 전체 너비에서 TOC 폭을 제외한 가용 분할 폭
-        const availableWidth = containerRect.width - tocWidth;
-        
-        // 1. 가용 분할 영역 기준의 백분율 비율 산출
-        let percentageOfAvailable = availableWidth > 0 ? (relativeX / availableWidth) * 100 : 50;
-        
-        // 2. 가용 영역에 대한 좌우 경계 제약조건 (20% ~ 80%) 강제화
-        if (percentageOfAvailable < 20) percentageOfAvailable = 20;
-        if (percentageOfAvailable > 80) percentageOfAvailable = 80;
-        
-        // 3. 제약이 적용된 에디터 패널의 실제 목표 픽셀 폭 복원
-        const targetEditorWidth = (percentageOfAvailable / 100) * availableWidth;
-        
-        // 4. 스타일 대입을 위한 전체 부모 컨테이너 기준 비율로 최종 환산
-        let percentage = (targetEditorWidth / containerRect.width) * 100;
-        
-        editorPanel.style.width = `${percentage}%`;
-        cm.refresh();
-    }
-
-    function stopDrag() {
-        if (!isDragging) return;
-        isDragging = false;
-        dragDivider.classList.remove('dragging');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        
-        document.removeEventListener('mousemove', drag);
-        document.removeEventListener('mouseup', stopDrag);
-        document.removeEventListener('touchmove', drag);
-        document.removeEventListener('touchend', stopDrag);
-        cm.refresh();
-        saveDocumentSession();
-    }
-
-    dragDivider.addEventListener('mousedown', startDrag);
-    dragDivider.addEventListener('touchstart', (e) => {
-        // Prevent default only if drag divider is touched to prevent scrolling
-        e.preventDefault();
-        startDrag(e);
-    });
+    // Resizing logic handled by FrameManager
 
     // ==========================================================================
     // Customization Settings Sync (Font, Font-size, Line color)
@@ -1515,79 +1336,90 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
     // ==========================================================================
-    // ==========================================================================
-    // 내보내기 및 보기, 메인 메뉴 드롭다운 토글 및 닫기 처리
-    // ==========================================================================
-    if (btnExport && exportMenu) {
-        btnExport.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            exportMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnView && viewMenu) {
-        btnView.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            viewMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnMenu && mainMenu) {
-        btnMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            mainMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnHeadingStyle && headingStyleMenu) {
-        btnHeadingStyle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            headingStyleMenu.classList.toggle('show');
-        });
-    }
-
-    // 드롭다운 내부 요소(셀렉트, 옵션 등) 클릭 시 드롭다운이 바로 닫히지 않도록 수용
-    [exportMenu, viewMenu, mainMenu, headingStyleMenu].forEach(menuEl => {
-        if (menuEl) {
-            menuEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-        }
-    });
-
-    // 문서의 다른 부분을 클릭하면 모든 드롭다운이 닫히도록 설정
-    document.addEventListener('click', (e) => {
-        if (exportDropdown && !exportDropdown.contains(e.target)) {
-            if (exportMenu) exportMenu.classList.remove('show');
-        }
-        if (viewDropdown && !viewDropdown.contains(e.target)) {
-            if (viewMenu) viewMenu.classList.remove('show');
-        }
-        if (menuDropdown && !menuDropdown.contains(e.target)) {
-            if (mainMenu) mainMenu.classList.remove('show');
-        }
-        if (headingDropdown && !headingDropdown.contains(e.target)) {
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-        }
-    });
-
-    // 메인 메뉴 하위 액션 연결
-    if (btnNewFile) {
-        btnNewFile.addEventListener('click', () => {
-            if (mainMenu) mainMenu.classList.remove('show');
-            handleNewFile();
+    // FrameManager UI Initialization & Action Delegation
+    if (typeof FrameManager !== 'undefined' && typeof FrameManager.init === 'function') {
+        FrameManager.init({
+            elements: {
+                ...frameElements,
+                ...menuElements
+            },
+            actions: {
+                onThemeChange: (theme) => {
+                    apply_code_theme(theme);
+                    const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+                    applyHeadingPreset(activePresetId);
+                },
+                onPanelResize: () => {
+                    if (cm && typeof cm.refresh === 'function') cm.refresh();
+                },
+                onResizeComplete: () => {
+                    if (cm && typeof cm.refresh === 'function') cm.refresh();
+                    saveDocumentSession();
+                },
+                onLineColorChange: (color) => {
+                    if (typeof updateThemeColors === 'function') updateThemeColors(color);
+                },
+                onColorSwatchToggle: (enabled) => {
+                    if (!enabled) {
+                        remove_color_swatches(preview);
+                    } else {
+                        inject_color_swatches(document, preview);
+                    }
+                },
+                onScrollSyncToggle: (enabled) => {
+                    enableScrollSync = enabled;
+                    if (scrollSync) {
+                        scrollSync.setEnable(enabled);
+                    }
+                },
+                onNewFile: () => handleNewFile(),
+                onOpenFile: () => trigger_open_file_dialog(),
+                onCopy: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
+                    }
+                },
+                onSave: () => handleSaveFile(),
+                onSaveAs: () => handleSaveAsFile(),
+                onExportHtml: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onExportPdfPrint: async () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
+                        const exportOptions = collectExportOptions({ theme: 'light' });
+                        try {
+                            await ExportManager.printToPdf(preview, currentFilename, exportOptions);
+                        } finally {
+                            hideGlobalBottomBanner();
+                        }
+                    }
+                },
+                onExportPdfHtml2Pdf: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
+                        ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onOpenNewWindow: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onOpenNewWindowDefault: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
+                    }
+                },
+                onJoinParagraphs: () => {
+                    if (typeof EditorManager !== 'undefined') {
+                        EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
+                    }
+                },
+                onToggleDebug: () => toggle_debug_panel()
+            }
         });
     }
 
@@ -1729,80 +1561,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    if (btnExportHtml) {
-        btnExportHtml.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.downloadPreviewHtml(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnExportPdfPrint) {
-        btnExportPdfPrint.addEventListener('click', async () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            
-            // 1. 인쇄 시작 전 전역 하단 배너 노출 (닫기 버튼 제외)
-            showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
-
-            // PDF 인쇄 전용 라이트 모드 옵션 수집 (theme: 'light' 강제)
-            const exportOptions = collectExportOptions({ theme: 'light' });
-
-            try {
-                // 2. PDF 인쇄 대화 상자 실행
-                await ExportManager.printToPdf(preview, currentFilename, exportOptions);
-            } finally {
-                // 3. 인쇄 창 닫히는 즉시 전역 배너 자동 닫기
-                hideGlobalBottomBanner();
-            }
-        });
-    }
-
-    if (btnExportPdfHtml2Pdf) {
-        btnExportPdfHtml2Pdf.addEventListener('click', () => {
-            if (btnExportPdfHtml2Pdf.disabled) return;
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.saveToPdfFile(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnOpenNewWindow) {
-        btnOpenNewWindow.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnOpenNewWindowDefault) {
-        btnOpenNewWindowDefault.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
-        });
-    }
-
-    // ==========================================================================
-    // 문단 모으기 (Smart Paragraph Join) 기능 (EditorManager 위임)
-    // ==========================================================================
-
-    // 문단 모으기 버튼 클릭 이벤트 핸들러 바인딩
-    if (btnJoinParagraphs) {
-        btnJoinParagraphs.addEventListener('click', () => {
-            EditorManager.apply_paragraph_join(cm, () => {
-                renderMarkdown();
-            });
-        });
-    }
+        // 💡 주: 내보내기 및 문단 모으기/디버그 액션 버튼 클릭 이벤트는 
+        // FrameManager.init({ actions: { ... } })를 통해 캡슐화 및 단일 바인딩되어 처리됩니다.
 
     // ==========================================================================
     // Drag & Drop Markdown File Loading Logic
@@ -1960,56 +1720,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 실시간 키프레임 디버깅 패널 렌더링 함수 (ScrollSync 연동)
+    // 실시간 키프레임 디버깅 패널 렌더링 및 제어 함수 (FrameManager 위임)
     // ==========================================================================
     function updateDebugPanelUI(keyframesList, activeSource) {
-        if (!debugPanel || debugPanel.style.display === 'none') return;
-        
-        const list = keyframesList || [];
-        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
-            <span>🔑 Keyframes Debug List (${list.length})</span>
-            <span style="color: var(--theme-color);">Active: ${activeSource || 'None'}</span>
-        </div>`;
-        
-        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
-                    <th style="padding: 2px;">Line</th>
-                    <th style="padding: 2px;">ID (Text)</th>
-                    <th style="padding: 2px; text-align: right;">Ed%</th>
-                    <th style="padding: 2px; text-align: right;">Pr%</th>
-                    <th style="padding: 2px; text-align: right;">Y(px)</th>
-                    <th style="padding: 2px; text-align: right;">ScaleFactor</th>
-                </tr>
-            </thead>
-            <tbody>`;
-            
-        list.forEach((kf) => {
-            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
-            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
-            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
-            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
-            const sfVal = kf.scaleFactor !== null ? kf.scaleFactor : '-';
-            
-            const sfHighlight = kf.isActiveSegment 
-                ? `background: #0284c7; color: #ffffff; padding: 1px 5px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);` 
-                : `color: ${rowColor};`;
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateDebugPanel === 'function') {
+            FrameManager.updateDebugPanel(keyframesList, activeSource);
+        }
+    }
 
-            const rowBg = kf.isActiveSegment ? 'background: rgba(2, 132, 199, 0.15);' : '';
-            const pinnedPrefix = kf.isUserPinned ? '📌 ' : '';
+    function toggle_debug_panel() {
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.toggleDebugPanel === 'function') {
+            FrameManager.toggleDebugPanel((isOpen) => {
+                if (isOpen && scrollSync) {
+                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                }
+            });
+        }
+    }
 
-            html += `<tr style="color: ${rowColor}; ${rowBg} border-bottom: 1px dashed #1e293b;">
-                <td style="padding: 3px 2px;">${Math.round(kf.line)}</td>
-                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${pinnedPrefix}${kf.id}</td>
-                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
-                <td style="padding: 3px 2px; text-align: right;"><span style="${sfHighlight}">${sfVal}</span></td>
-            </tr>`;
-        });
-        
-        html += `</tbody></table>`;
-        debugPanel.innerHTML = html;
+    function updateDebugPanel() {
+        if (scrollSync) {
+            updateDebugPanelUI(scrollSync.keyframes, scrollSync.activeScrollSource);
+        }
     }
 
     // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
@@ -2039,82 +1771,6 @@ document.addEventListener('DOMContentLoaded', () => {
             li.appendChild(a);
             tocList.appendChild(li);
         });
-    }
-
-    // ==========================================================================
-    // 실시간 키프레임 디버깅 패널 생성 로직
-    // ==========================================================================
-    const debugPanel = document.createElement('div');
-    debugPanel.id = 'debug-keyframe-panel';
-    debugPanel.style.position = 'fixed';
-    debugPanel.style.bottom = '20px';
-    debugPanel.style.right = '20px';
-    debugPanel.style.width = '420px';
-    debugPanel.style.maxHeight = '280px';
-    debugPanel.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
-    debugPanel.style.backdropFilter = 'blur(8px)';
-    debugPanel.style.border = '1px solid var(--theme-color, #3b82f6)';
-    debugPanel.style.borderRadius = '8px';
-    debugPanel.style.color = '#f1f5f9';
-    debugPanel.style.fontFamily = 'monospace';
-    debugPanel.style.fontSize = '11px';
-    debugPanel.style.padding = '12px';
-    debugPanel.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.5)';
-    debugPanel.style.zIndex = '9999';
-    debugPanel.style.overflowY = 'auto';
-    debugPanel.style.display = 'none'; // 기본 숨김
-    document.body.appendChild(debugPanel);
-
-    if (btnDebug) {
-        btnDebug.addEventListener('click', () => {
-            if (debugPanel.style.display === 'none') {
-                debugPanel.style.display = 'block';
-                if (scrollSync) {
-                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
-                }
-            } else {
-                debugPanel.style.display = 'none';
-            }
-        });
-    }
-
-    function updateDebugPanel() {
-        if (debugPanel.style.display === 'none') return;
-        
-        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
-            <span>🔑 Keyframes Debug List (${keyframes.length})</span>
-            <span style="color: var(--theme-color);">Active: ${activeScrollSource || 'None'}</span>
-        </div>`;
-        
-        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
-                    <th style="padding: 2px;">Line</th>
-                    <th style="padding: 2px;">ID (Text)</th>
-                    <th style="padding: 2px; text-align: right;">Ed%</th>
-                    <th style="padding: 2px; text-align: right;">Pr%</th>
-                    <th style="padding: 2px; text-align: right;">Y(px)</th>
-                </tr>
-            </thead>
-            <tbody>`;
-            
-        keyframes.forEach((kf) => {
-            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
-            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
-            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
-            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
-            
-            html += `<tr style="color: ${rowColor}; border-bottom: 1px dashed #1e293b;">
-                <td style="padding: 3px 2px;">${kf.line.toFixed(1)}</td>
-                <td style="padding: 3px 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
-                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
-            </tr>`;
-        });
-        
-        html += `</tbody></table>`;
-        debugPanel.innerHTML = html;
     }
 
     // ==========================================================================
@@ -2207,10 +1863,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {
             enableScrollSync = scrollSyncCheckbox.checked;
-            if (enableScrollSync) {
-                // 동기화 활성화 시 현재 커서 위치로 즉시 프리뷰 정렬
-                syncPreviewToCursor();
+            if (scrollSync) {
+                scrollSync.setEnable(enableScrollSync);
+                if (enableScrollSync && typeof scrollSync.syncPreviewToCursor === 'function') {
+                    scrollSync.syncPreviewToCursor();
+                }
             }
+            saveDocumentSession();
         });
     }
 
@@ -2332,33 +1991,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     // Heading Modal & Toast Control System
-    const btnEditHeadingStyle = document.getElementById('btn-edit-heading-style');
-    const headingModal = document.getElementById('heading-modal');
-    const closeHeadingModal = document.getElementById('close-heading-modal');
-    const modalHeadingSelect = document.getElementById('modal-heading-preset-select');
-    const headingStyleControls = document.getElementById('heading-style-controls');
-    const btnSaveHeadingPreset = document.getElementById('btn-save-heading-preset');
-    const btnAddHeadingPreset = document.getElementById('btn-add-heading-preset');
-    const btnDeleteHeadingPreset = document.getElementById('btn-delete-heading-preset');
-    const btnResetHeadingPresets = document.getElementById('btn-reset-heading-presets');
-    const btnSaveOnlyHeadingPreset = document.getElementById('btn-save-only-heading-preset');
-    const btnCloseHeadingModal = document.getElementById('btn-close-heading-modal');
-    const headingPresetSelect = document.getElementById('heading-preset-select');
+    // Style 편집 Dialog 전용 DOM 요소 묶음 구조체 (styleDialogElements)
+    const styleDialogElements = {
+        btnEditHeadingStyle: document.getElementById('btn-edit-heading-style'),
+        modalHeadingSelect: document.getElementById('modal-heading-preset-select'),
+        headingStyleControls: document.getElementById('heading-style-controls'),
+        headingPresetSelect: document.getElementById('heading-preset-select')
+    };
 
     function showToast(message, duration = 3000) {
-        let toast = document.getElementById('markvi-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'markvi-toast';
-            document.body.appendChild(toast);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
+            FrameManager.showToast(message, duration);
         }
-        toast.textContent = message;
-        toast.classList.add('show');
-
-        if (toast.timeoutId) clearTimeout(toast.timeoutId);
-        toast.timeoutId = setTimeout(() => {
-            toast.classList.remove('show');
-        }, duration);
     }
 
     function renderHeadingModalControls(presetId) {
@@ -2367,8 +2011,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (btnEditHeadingStyle && headingModal) {
-        btnEditHeadingStyle.addEventListener('click', (e) => {
+    if (styleDialogElements.btnEditHeadingStyle) {
+        styleDialogElements.btnEditHeadingStyle.addEventListener('click', (e) => {
             if (e) e.stopPropagation();
             if (viewMenu) viewMenu.classList.remove('show');
             if (exportMenu) exportMenu.classList.remove('show');
@@ -2380,38 +2024,36 @@ document.addEventListener('DOMContentLoaded', () => {
             
             updatePresetSelectOptions();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
-            renderHeadingModalControls(currentActive);
-            headingModal.style.display = 'block';
+            if (styleDialogElements.modalHeadingSelect) styleDialogElements.modalHeadingSelect.value = currentActive;
+            if (window.StyleEditor && typeof window.StyleEditor.openModal === 'function') {
+                window.StyleEditor.openModal(currentActive);
+            }
         });
     }
 
     function closeHeadingStyleModal() {
-        if (headingModal) {
-            headingModal.style.display = 'none';
-            // 모달 닫기 시 드래그 누적 위치 및 인라인 transform 원복 리셋
-            if (window.StyleEditor && typeof window.StyleEditor.resetModalPosition === 'function') {
-                window.StyleEditor.resetModalPosition();
-            }
+        if (window.StyleEditor && typeof window.StyleEditor.closeModal === 'function') {
+            window.StyleEditor.closeModal();
+        } else {
+            const headingModal = document.getElementById('heading-modal');
+            if (headingModal) headingModal.style.display = 'none';
         }
     }
 
-    if (headingPresetSelect) {
-        headingPresetSelect.addEventListener('change', (e) => {
+    if (styleDialogElements.headingPresetSelect) {
+        styleDialogElements.headingPresetSelect.addEventListener('change', (e) => {
             applyHeadingPreset(e.target.value);
             renderMarkdown();
         });
     }
 
-    if (modalHeadingSelect) {
-        modalHeadingSelect.addEventListener('change', (e) => {
+    if (styleDialogElements.modalHeadingSelect) {
+        styleDialogElements.modalHeadingSelect.addEventListener('change', (e) => {
             renderHeadingModalControls(e.target.value);
             applyHeadingPreset(e.target.value);
             renderMarkdown();
         });
     }
-    if (closeHeadingModal) closeHeadingModal.addEventListener('click', closeHeadingStyleModal);
-    if (btnCloseHeadingModal) btnCloseHeadingModal.addEventListener('click', closeHeadingStyleModal);
 
     // ==========================================================================
     // 🎨 [x] / [v] 버튼 탑재 Canvas 기반 전문 커스텀 컬러피커 팝오버 모듈
@@ -2427,7 +2069,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleLivePreview() {
-        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
         const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
         applyHeadingPreset(currentId, tempStyles);
     }
@@ -2452,14 +2094,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePresetSave(presetName) {
-        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
         showToast(`'${presetName}' 스타일이 저장되었습니다.`);
     }
 
     function handlePresetSaveAndClose(presetName) {
         closeHeadingStyleModal();
-        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
+        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
@@ -2495,8 +2137,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.StyleEditor) {
         window.StyleEditor.init({
-            controlsContainer: headingStyleControls,
-            presetSelect: modalHeadingSelect,
+            elements: styleDialogElements,
+            controlsContainer: styleDialogElements.headingStyleControls,
+            presetSelect: styleDialogElements.modalHeadingSelect,
             getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
             savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
             onPresetChange: handlePresetChange,
