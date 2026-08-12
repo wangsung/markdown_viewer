@@ -4,8 +4,9 @@
 - 분석 결과 보고서, 구현 명세서, 연구 노트 등 향후 작성되는 모든 개발 리포트 마크다운(.md) 파일은 항상 다음 경로에 생성하거나 저장해야 합니다:
   `C:\_My2026\_md_antigravity`
 
-## 깃 원격 제어 및 읽기 전용 작업 규칙 (Git Operation Policy)
-- **원격 전송 승인 필수**: `git push` 및 모든 GitHub 원격 전송 명령은 절대로 자동 실행하지 않으며, 반드시 실행 전 사용자에게 명령 줄을 노출하고 명시적인 동의/승인을 득한 뒤에만 수동으로 수행해야 합니다.
+## 깃 원격 제어, 커밋 및 읽기 전용 작업 규칙 (Git Operation Policy)
+- **명시적 지시 없는 git commit 금지 (Explicit Command Only for Git Commit Policy)**: `git commit` 작업은 사용자의 명시적인 지시나 승인이 있는 경우에만 실행해야 합니다. 버그 수정이나 기능 수정 작업 완료 후 임의로 자동 `git commit`을 수행하지 않으며, 커밋할 변경 내역을 먼저 보고하고 사용자의 명시적인 명령이 입력된 후에만 커밋을 수행합니다.
+- **원격 전송 승인 필수**: `git push` 및 모든 GitHub 원격 전송 명령은 절대로 자동 실행하지 않으며, 반드시 실행 전 사용자에게 명령 줄을 노출하고 명시적인 동의/승인을 득한 뒤에만 수행해야 합니다.
 - **읽기 전용 조회 무승인 자동 실행 (Read-Only Git Commands)**: `git log`, `git worktree list`, `git status`, `git diff`, `git branch` 등 저장소의 상태나 이력을 단순히 조회(Read Only)하는 작업은 언제나 사용자 사전 승인 없이 즉시 자동으로 실행합니다.
 
 ## 깃 브랜치 및 워크트리 병합 및 삭제 지침 (Git Branch & Worktree Merge & Removal Rules)
