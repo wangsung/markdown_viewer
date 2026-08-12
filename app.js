@@ -543,6 +543,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        function isFreshWindow() {
+            return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+        }
+
+        // 새 창 막 열린 상태/깨끗한 상태라면 현재 창에 불러오기
+        if (isFreshWindow()) {
+            if (hasValidHandle && handle) {
+                try {
+                    const file = await handle.getFile();
+                    currentFileHandle = handle;
+                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                    loadSingleFile(file);
+                    isNewSessionSkippedRestore = false;
+                    return;
+                } catch (err) {
+                    console.warn('현재 창에 최근 파일 불러오기 실패:', err);
+                }
+            }
+        }
+
         // 원본 경로로 깔끔한 새 URL 계산 (openRecent 파라미터 중첩 방지)
         const originUrl = new URL(window.location.origin + window.location.pathname);
         originUrl.searchParams.set('openRecent', fileEntry.name);
@@ -656,7 +676,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
     // ==========================================================================
-    const SESSION_STORAGE_KEY = 'markvi_document_session';
+    let SESSION_STORAGE_KEY = 'markvi_document_session';
+    let isNewSessionSkippedRestore = false;
+
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('new') === '1') {
+            const sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+            SESSION_STORAGE_KEY = 'markvi_document_session_' + sessionId;
+            urlParams.delete('new');
+            urlParams.set('session', sessionId);
+            window.history.replaceState(null, '', '?' + urlParams.toString());
+            isNewSessionSkippedRestore = true;
+        } else if (urlParams.has('session')) {
+            SESSION_STORAGE_KEY = 'markvi_document_session_' + urlParams.get('session');
+        }
+    } catch (e) {
+        console.warn('Failed to parse URL session params:', e);
+    }
 
     function saveDocumentSession() {
         if (!cm) return;
@@ -684,13 +721,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!rawData) return;
             const session = JSON.parse(rawData);
 
-            // 1. Content Restore
-            if (typeof session.content === 'string' && session.content.length > 0) {
+            // 1. Content Restore (Skip if new tab)
+            if (!isNewSessionSkippedRestore && typeof session.content === 'string' && session.content.length > 0) {
                 cm.setValue(session.content);
             }
 
-            // 2. Filename & Status Restore
-            if (session.filename) {
+            // 2. Filename & Status Restore (Skip if new tab)
+            if (!isNewSessionSkippedRestore && session.filename) {
                 updateFilenameDisplay(session.filename, !!session.isDirty);
             }
 
@@ -1874,10 +1911,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 최근 파일 목록 및 IndexedDB에 저장
                 add_recent_file_entry(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
 
-                // 마우스 드롭 User Gesture 문맥 내에서 즉시 새 창 구동
-                const originUrl = new URL(window.location.origin + window.location.pathname);
-                originUrl.searchParams.set('openRecent', targetFile.name);
-                window.open(originUrl.toString(), '_blank');
+                const isFresh = isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                if (isFresh) {
+                    currentFileHandle = targetHandle || null;
+                    loadSingleFile(targetFile);
+                    isNewSessionSkippedRestore = false;
+                } else {
+                    // 마우스 드롭 User Gesture 문맥 내에서 즉시 새 창 구동
+                    const originUrl = new URL(window.location.origin + window.location.pathname);
+                    originUrl.searchParams.set('openRecent', targetFile.name);
+                    window.open(originUrl.toString(), '_blank');
+                }
             } else {
                 alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.');
             }
@@ -1909,18 +1953,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 새 마크다운 파일 초기화 비즈니스 로직
     function handleNewFile() {
-        let shouldCreate = true;
-        if (isDirty) {
-            shouldCreate = confirm("작성 중인 내용이 변경되었습니다. 저장하지 않은 변경 사항을 모두 취소하고 새 마크다운을 만드시겠습니까?");
-        }
-        if (shouldCreate) {
-            cm.setValue('');
-            currentFileHandle = null; // 새 파일 작성 시 핸들 초기화
-            updateFilenameDisplay('제목 없음.md', false);
-            renderMarkdown();
-            cm.scrollTo(0, 0);
-            saveDocumentSession();
-        }
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.search = ''; // query parameter 초기화
+        url.searchParams.set('new', '1');
+        window.open(url.toString(), '_blank');
     }
 
     // ==========================================================================
@@ -2085,7 +2121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 초기 렌더링 및 이벤트 등록 (Scroll Sync 초기화 지연 방지를 위해 가장 하단에 배치)
     // ==========================================================================
     // 탐색기 더블클릭 연동으로 로드되었는지 확인 및 적용
-    if (window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
+    if (!isNewSessionSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
         cm.setValue(window.loadedFileContent.content);
         updateFilenameDisplay(window.loadedFileContent.name, false);
     }
