@@ -243,64 +243,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const preview = document.getElementById('preview');
-    const dragDivider = document.getElementById('drag-divider');
-    const editorPanel = document.getElementById('editor-panel');
-    const container = document.querySelector('.container');
-    
+    // 1. 프레임/레이아웃/뷰어 옵션 전용 구조체 (frameElements)
+    const frameElements = {
+        container: document.querySelector('.container'),
+        editorPanel: document.getElementById('editor-panel'),
+        dragDivider: document.getElementById('drag-divider'),
+        preview: document.getElementById('preview'),
+        previewViewport: document.querySelector('.preview-viewport'),
+
+        fileBadge: document.getElementById('file-badge'),
+        filenameSpan: document.getElementById('current-filename'),
+
+        btnThemeToggle: document.getElementById('btn-theme-toggle'),
+        themeIconSun: document.querySelector('.theme-icon-sun'),
+        themeIconMoon: document.querySelector('.theme-icon-moon'),
+        themeToggleText: document.getElementById('theme-toggle-text'),
+
+        fontSelect: document.getElementById('font-select'),
+        fontSizeSelect: document.getElementById('font-size-select'),
+        lineColorPicker: document.getElementById('line-color-picker'),
+        scrollSyncCheckbox: document.getElementById('scroll-sync'),
+        colorSwatchCheckbox: document.getElementById('color-swatch-toggle'),
+        togglePreviewMaxWidthCheckbox: document.getElementById('toggle-preview-max-width'),
+        previewMaxWidthWrapper: document.getElementById('preview-max-width-wrapper'),
+        codeblockScrollCheckbox: document.getElementById('codeblock-scroll'),
+        codeblockScrollWrapper: document.getElementById('codeblock-scroll-wrapper'),
+        mathRenderCheckbox: document.getElementById('math-render'),
+        mathRenderWrapper: document.getElementById('math-render-wrapper'),
+        diagramRenderCheckbox: document.getElementById('diagram-render'),
+        diagramRenderWrapper: document.getElementById('diagram-render-wrapper'),
+        colorSwatchWrapper: document.getElementById('color-swatch-wrapper')
+    };
+
+    // 2. 상단 헤더 메뉴 & 액션 버튼 전용 구조체 (menuElements)
+    const menuElements = {
+        menuDropdown: document.getElementById('menu-dropdown'),
+        btnMenu: document.getElementById('btn-menu'),
+        mainMenu: document.getElementById('main-menu'),
+        btnNewFile: document.getElementById('btn-new-file'),
+        btnOpenFile: document.getElementById('btn-open-file'),
+        fileInput: document.getElementById('file-input'),
+
+        viewDropdown: document.getElementById('view-dropdown'),
+        btnView: document.getElementById('btn-view'),
+        viewMenu: document.getElementById('view-menu'),
+
+        headingDropdown: document.getElementById('heading-dropdown'),
+        btnHeadingStyle: document.getElementById('btn-heading-style'),
+        headingStyleMenu: document.getElementById('heading-style-menu'),
+
+        exportDropdown: document.getElementById('export-dropdown'),
+        btnExport: document.getElementById('btn-export'),
+        exportMenu: document.getElementById('export-menu'),
+        btnExportHtml: document.getElementById('btn-export-html'),
+        btnExportPdfPrint: document.getElementById('btn-export-pdf-print'),
+        btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf'),
+        btnOpenNewWindow: document.getElementById('btn-open-new-window'),
+        btnOpenNewWindowDefault: document.getElementById('btn-open-new-window-default'),
+
+        btnCopy: document.getElementById('btn-copy'),
+        btnSave: document.getElementById('btn-save'),
+        btnSaveAs: document.getElementById('btn-save-as'),
+        btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
+        btnDebug: document.getElementById('btn-debug')
+    };
+
+    // 편리한 접근을 위한 로컬 구조 분해 할당 (Destructuring)
+    const {
+        container, editorPanel, dragDivider, preview, previewViewport,
+        fileBadge, filenameSpan,
+        btnThemeToggle, themeIconSun, themeIconMoon, themeToggleText,
+        fontSelect, fontSizeSelect, lineColorPicker, scrollSyncCheckbox,
+        colorSwatchCheckbox, togglePreviewMaxWidthCheckbox, previewMaxWidthWrapper,
+        codeblockScrollCheckbox, codeblockScrollWrapper, mathRenderCheckbox,
+        mathRenderWrapper, diagramRenderCheckbox, diagramRenderWrapper, colorSwatchWrapper
+    } = frameElements;
+
+    const {
+        menuDropdown, btnMenu, mainMenu, btnNewFile, btnOpenFile, fileInput,
+        viewDropdown, btnView, viewMenu,
+        headingDropdown, btnHeadingStyle, headingStyleMenu,
+        exportDropdown, btnExport, exportMenu, btnExportHtml, btnExportPdfPrint,
+        btnExportPdfHtml2Pdf, btnOpenNewWindow, btnOpenNewWindowDefault,
+        btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
+    } = menuElements;
+
     // TOC 사이드바 DOM 요소
     const tocSidebar = document.getElementById('toc-sidebar');
     const btnTocToggleInner = document.getElementById('btn-toc-toggle-inner');
     const tocToggleBar = document.getElementById('toc-toggle-bar');
-    
-    const fontSelect = document.getElementById('font-select');
-    const fontSizeSelect = document.getElementById('font-size-select');
-    const lineColorPicker = document.getElementById('line-color-picker');
-    const scrollSyncCheckbox = document.getElementById('scroll-sync');
-    const togglePreviewMaxWidthCheckbox = document.getElementById('toggle-preview-max-width');
-    const previewMaxWidthWrapper = document.getElementById('preview-max-width-wrapper');
-    const codeblockScrollCheckbox = document.getElementById('codeblock-scroll');
-    const codeblockScrollWrapper = document.getElementById('codeblock-scroll-wrapper');
-    const mathRenderCheckbox = document.getElementById('math-render');
-    const mathRenderWrapper = document.getElementById('math-render-wrapper');
-    const diagramRenderCheckbox = document.getElementById('diagram-render');
-    const diagramRenderWrapper = document.getElementById('diagram-render-wrapper');
-    const colorSwatchCheckbox = document.getElementById('color-swatch-toggle');
-    const colorSwatchWrapper = document.getElementById('color-swatch-wrapper');
-    const btnCopy = document.getElementById('btn-copy');
-    const btnSave = document.getElementById('btn-save');
-    const btnSaveAs = document.getElementById('btn-save-as');
-    const btnDebug = document.getElementById('btn-debug');
-    const exportDropdown = document.getElementById('export-dropdown');
-    const btnExport = document.getElementById('btn-export');
-    const exportMenu = document.getElementById('export-menu');
-    const btnExportHtml = document.getElementById('btn-export-html');
-    const btnExportPdfPrint = document.getElementById('btn-export-pdf-print');
-    const btnExportPdfHtml2Pdf = document.getElementById('btn-export-pdf-html2pdf');
-    const btnOpenNewWindow = document.getElementById('btn-open-new-window');
-    const btnOpenNewWindowDefault = document.getElementById('btn-open-new-window-default');
-    const btnJoinParagraphs = document.getElementById('btn-join-paragraphs');
-    
-    const viewDropdown = document.getElementById('view-dropdown');
-    const btnView = document.getElementById('btn-view');
-    const viewMenu = document.getElementById('view-menu');
-
-    const headingDropdown = document.getElementById('heading-dropdown');
-    const btnHeadingStyle = document.getElementById('btn-heading-style');
-    const headingStyleMenu = document.getElementById('heading-style-menu');
-
-    const menuDropdown = document.getElementById('menu-dropdown');
-    const btnMenu = document.getElementById('btn-menu');
-    const mainMenu = document.getElementById('main-menu');
-    const btnNewFile = document.getElementById('btn-new-file');
-    const btnOpenFile = document.getElementById('btn-open-file');
-    const fileInput = document.getElementById('file-input');
-
-    // Theme Toggle Elements & Logic
-    const btnThemeToggle = document.getElementById('btn-theme-toggle');
-    const themeIconSun = document.querySelector('.theme-icon-sun');
-    const themeIconMoon = document.querySelector('.theme-icon-moon');
-    const themeToggleText = document.getElementById('theme-toggle-text');
 
     function applyTheme(theme) {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
@@ -1309,44 +1340,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof FrameManager !== 'undefined' && typeof FrameManager.init === 'function') {
         FrameManager.init({
             elements: {
-                container,
-                editorPanel,
-                dragDivider,
-                themeIconSun,
-                themeIconMoon,
-                themeToggleText,
-                btnThemeToggle,
-                exportDropdown,
-                btnExport,
-                exportMenu,
-                btnExportHtml,
-                btnExportPdfPrint,
-                btnExportPdfHtml2Pdf,
-                btnOpenNewWindow,
-                btnOpenNewWindowDefault,
-                btnJoinParagraphs,
-                viewDropdown,
-                btnView,
-                viewMenu,
-                headingDropdown,
-                btnHeadingStyle,
-                headingStyleMenu,
-                menuDropdown,
-                btnMenu,
-                mainMenu,
-                btnNewFile,
-                btnOpenFile,
-                btnCopy,
-                btnSave,
-                btnSaveAs,
-                btnDebug,
-                editorPanel,
-                fontSelect,
-                fontSizeSelect,
-                lineColorPicker,
-                colorSwatchCheckbox,
-                scrollSyncCheckbox,
-                preview
+                ...frameElements,
+                ...menuElements
             },
             actions: {
                 onThemeChange: (theme) => {
@@ -1381,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 onOpenFile: () => trigger_open_file_dialog(),
                 onCopy: () => {
                     if (typeof ExportManager !== 'undefined') {
-                        ExportManager.copyPreviewToClipboard(preview, exportMenu);
+                        ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
                     }
                 },
                 onSave: () => handleSaveFile(),
@@ -1391,14 +1386,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
                     }
                 },
-                onExportPdfPrint: () => {
+                onExportPdfPrint: async () => {
                     if (typeof ExportManager !== 'undefined') {
-                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                        showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
+                        const exportOptions = collectExportOptions({ theme: 'light' });
+                        try {
+                            await ExportManager.printToPdf(preview, currentFilename, exportOptions);
+                        } finally {
+                            hideGlobalBottomBanner();
+                        }
                     }
                 },
                 onExportPdfHtml2Pdf: () => {
                     if (typeof ExportManager !== 'undefined') {
-                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                        if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
+                        ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
                     }
                 },
                 onOpenNewWindow: () => {
@@ -1411,7 +1413,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
                     }
                 },
-                onJoinParagraphs: () => join_paragraphs(),
+                onJoinParagraphs: () => {
+                    if (typeof EditorManager !== 'undefined') {
+                        EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
+                    }
+                },
                 onToggleDebug: () => toggle_debug_panel()
             }
         });
@@ -1555,80 +1561,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    if (btnExportHtml) {
-        btnExportHtml.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.downloadPreviewHtml(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnExportPdfPrint) {
-        btnExportPdfPrint.addEventListener('click', async () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            
-            // 1. 인쇄 시작 전 전역 하단 배너 노출 (닫기 버튼 제외)
-            showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
-
-            // PDF 인쇄 전용 라이트 모드 옵션 수집 (theme: 'light' 강제)
-            const exportOptions = collectExportOptions({ theme: 'light' });
-
-            try {
-                // 2. PDF 인쇄 대화 상자 실행
-                await ExportManager.printToPdf(preview, currentFilename, exportOptions);
-            } finally {
-                // 3. 인쇄 창 닫히는 즉시 전역 배너 자동 닫기
-                hideGlobalBottomBanner();
-            }
-        });
-    }
-
-    if (btnExportPdfHtml2Pdf) {
-        btnExportPdfHtml2Pdf.addEventListener('click', () => {
-            if (btnExportPdfHtml2Pdf.disabled) return;
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.saveToPdfFile(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnOpenNewWindow) {
-        btnOpenNewWindow.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            const exportOptions = collectExportOptions();
-            ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, exportOptions);
-        });
-    }
-
-    if (btnOpenNewWindowDefault) {
-        btnOpenNewWindowDefault.addEventListener('click', () => {
-            if (exportMenu) {
-                exportMenu.classList.remove('show');
-            }
-            ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
-        });
-    }
-
-    // ==========================================================================
-    // 문단 모으기 (Smart Paragraph Join) 기능 (EditorManager 위임)
-    // ==========================================================================
-
-    // 문단 모으기 버튼 클릭 이벤트 핸들러 바인딩
-    if (btnJoinParagraphs) {
-        btnJoinParagraphs.addEventListener('click', () => {
-            EditorManager.apply_paragraph_join(cm, () => {
-                renderMarkdown();
-            });
-        });
-    }
+        // 💡 주: 내보내기 및 문단 모으기/디버그 액션 버튼 클릭 이벤트는 
+        // FrameManager.init({ actions: { ... } })를 통해 캡슐화 및 단일 바인딩되어 처리됩니다.
 
     // ==========================================================================
     // Drag & Drop Markdown File Loading Logic
