@@ -88,6 +88,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * 순수 하위 서브 함수: 코드 블록 내의 Hex 컬러 코드 옆에 작은 네모 스와치를 주입합니다.
+     * @param {Document} doc - 전역 document 객체
+     * @param {HTMLElement} previewContainer - 스와치를 주입할 대상 컨테이너 엘리먼트
+     */
+    function inject_color_swatches(doc, previewContainer) {
+        if (!doc || !previewContainer) return;
+        
+        // 1. 코드 블록 내의 hljs 숫자 토큰
+        const hljsNumbers = Array.from(previewContainer.querySelectorAll('pre code span.hljs-number'));
+        
+        // 2. 인라인 코드 요소 (백틱) - pre 내부 제외
+        const inlineCodes = Array.from(previewContainer.querySelectorAll('code')).filter(code => {
+            return !code.closest('pre');
+        });
+        
+        const targets = [...hljsNumbers, ...inlineCodes];
+        const hexColorRegex = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+        
+        targets.forEach(el => {
+            const text = el.textContent.trim();
+            if (hexColorRegex.test(text)) {
+                const nextNode = el.nextElementSibling;
+                if (nextNode && nextNode.classList.contains('color-swatch')) return;
+                
+                const swatch = doc.createElement('span');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = text;
+                
+                if (el.parentNode) {
+                    el.parentNode.insertBefore(swatch, el.nextSibling);
+                }
+            }
+        });
+    }
+
+    /**
      * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
      * @param {string} message - 표시할 안내 문구
      * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
@@ -1030,6 +1066,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             preview.innerHTML = htmlSegments.join('\n');
+            
+            // 컬러 스와치 주입 (순수 서브 함수 호출)
+            inject_color_swatches(document, preview);
             
             // Render Mermaid diagrams asynchronously if enabled and available
             if (enableDiagramSupport && isMermaidAvailable) {

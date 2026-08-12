@@ -1056,6 +1056,16 @@ body {
     padding: 0 !important;
 }
 
+.color-swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-left: 1px;
+    vertical-align: middle;
+    border: 1px solid rgba(128, 128, 128, 0.4);
+}
+
 /* ==========================================================================
    Drag & Drop File Load Overlay Styling
    ========================================================================== */
