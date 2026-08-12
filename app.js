@@ -1805,7 +1805,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateDebugPanel() {
-        updateDebugPanelUI(keyframes, activeScrollSource);
+        if (scrollSync) {
+            updateDebugPanelUI(scrollSync.keyframes, scrollSync.activeScrollSource);
+        }
     }
 
     // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)

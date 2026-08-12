@@ -808,6 +808,7 @@ class ScrollSync {
     };
 
     const onCmMouseUp = () => {
+      if (!this.isEnabled) return;
       if (this.isMouseClicking) {
         this.syncPreviewToCursor();
         this.isMouseClicking = false;
@@ -815,6 +816,7 @@ class ScrollSync {
     };
 
     const onCmCursorActivity = () => {
+      if (!this.isEnabled) return;
       // 마우스 클릭으로 커서를 이동시켰을 때 즉시 프리뷰 스크롤 정렬
       if (this.isMouseClicking) {
         this.syncPreviewToCursor();
@@ -928,6 +930,13 @@ class ScrollSync {
    */
   setEnable(enable) {
     this.isEnabled = !!enable;
+    this.activeScrollSource = null;
+    this.lastEditorScrollTop = -1;
+    this.lastPreviewScrollTop = -1;
+    if (this.isEnabled) {
+      this.rebuildKeyframes('setEnable(true)');
+      this.syncPreviewToCursor();
+    }
   }
 }
 
