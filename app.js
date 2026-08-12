@@ -124,6 +124,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * 순수 하위 서브 함수: 코드 블록 내의 스와치(네모) 엘리먼트들을 DOM에서 물리적으로 완전히 삭제합니다.
+     * @param {HTMLElement} previewContainer - 스와치를 제거할 대상 컨테이너 엘리먼트
+     */
+    function remove_color_swatches(previewContainer) {
+        if (!previewContainer) return;
+        const swatches = previewContainer.querySelectorAll('.color-swatch');
+        swatches.forEach(swatch => {
+            swatch.remove();
+        });
+    }
+
+    /**
      * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
      * @param {string} message - 표시할 안내 문구
      * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
@@ -238,6 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const mathRenderWrapper = document.getElementById('math-render-wrapper');
     const diagramRenderCheckbox = document.getElementById('diagram-render');
     const diagramRenderWrapper = document.getElementById('diagram-render-wrapper');
+    const colorSwatchCheckbox = document.getElementById('color-swatch-toggle');
+    const colorSwatchWrapper = document.getElementById('color-swatch-wrapper');
     const btnCopy = document.getElementById('btn-copy');
     const btnSave = document.getElementById('btn-save');
     const btnSaveAs = document.getElementById('btn-save-as');
@@ -638,7 +652,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 fontFamily: fontSelect ? fontSelect.value : '',
                 fontSize: fontSizeSelect ? fontSizeSelect.value : '',
                 lineColor: lineColorPicker ? lineColorPicker.value : '',
-                previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true
+                previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true,
+                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true
             };
             localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
         } catch (e) {
@@ -705,6 +720,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 apply_preview_max_width_limit(session.previewMaxWidthLimited);
             } else {
                 apply_preview_max_width_limit(true);
+            }
+
+            // 8. Color Swatch Restore (Default: true)
+            if (colorSwatchCheckbox) {
+                colorSwatchCheckbox.checked = typeof session.colorSwatchEnabled === 'boolean' ? session.colorSwatchEnabled : true;
+                if (!colorSwatchCheckbox.checked) {
+                    remove_color_swatches(preview);
+                } else {
+                    inject_color_swatches(document, preview);
+                }
             }
         } catch (e) {
             console.warn('Failed to restore document session:', e);
@@ -1067,8 +1092,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             preview.innerHTML = htmlSegments.join('\n');
             
-            // 컬러 스와치 주입 (순수 서브 함수 호출)
-            inject_color_swatches(document, preview);
+            // 컬러 스와치 주입 (순수 서브 함수 호출) - 토글이 켜져 있을 때만
+            if (!colorSwatchCheckbox || colorSwatchCheckbox.checked) {
+                inject_color_swatches(document, preview);
+            }
             
             // Render Mermaid diagrams asynchronously if enabled and available
             if (enableDiagramSupport && isMermaidAvailable) {
@@ -1637,11 +1664,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const isLimited = togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true;
+        const isColorSwatchEnabled = colorSwatchCheckbox ? colorSwatchCheckbox.checked : true;
 
         return {
             theme: targetTheme,
             lineColor: activeLineColor,
             isMaxWidthLimited: isLimited,
+            isColorSwatchEnabled: isColorSwatchEnabled,
             styleVars: styleVars
         };
     }
@@ -2106,6 +2135,18 @@ document.addEventListener('DOMContentLoaded', () => {
         diagramRenderCheckbox.addEventListener('change', () => {
             enableDiagramSupport = diagramRenderCheckbox.checked;
             renderMarkdown();
+        });
+    }
+
+    // Color 스와치 토글 변경 시 이벤트 바인딩
+    if (colorSwatchCheckbox) {
+        colorSwatchCheckbox.addEventListener('change', () => {
+            if (colorSwatchCheckbox.checked) {
+                inject_color_swatches(document, preview);
+            } else {
+                remove_color_swatches(preview);
+            }
+            saveDocumentSession();
         });
     }
 
