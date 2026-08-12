@@ -19,6 +19,7 @@
       "resources": [
         "markdown_viewer.html",
         "style.css",
+        "frame-man.js",
         "app.js",
         "libs/*",
         "libs/codemirror/*",

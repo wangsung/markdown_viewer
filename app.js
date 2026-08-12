@@ -303,42 +303,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggleText = document.getElementById('theme-toggle-text');
 
     function applyTheme(theme) {
-        if (container) {
-            container.setAttribute('data-editor-theme', theme);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
+            FrameManager.applyTheme(theme);
         }
-        document.documentElement.setAttribute('data-editor-theme', theme);
-        localStorage.setItem('markvi_editor_theme', theme);
-
-        if (theme === 'dark') {
-            if (themeIconSun) themeIconSun.style.display = 'none';
-            if (themeIconMoon) themeIconMoon.style.display = 'inline-block';
-            if (themeToggleText) themeToggleText.textContent = 'Dark';
-        } else {
-            if (themeIconSun) themeIconSun.style.display = 'inline-block';
-            if (themeIconMoon) themeIconMoon.style.display = 'none';
-            if (themeToggleText) themeToggleText.textContent = 'Light';
-        }
-
-        apply_code_theme(theme);
-
-        const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-        applyHeadingPreset(activePresetId);
     }
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('markvi_editor_theme') || 'dark';
-        applyTheme(savedTheme);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.initTheme === 'function') {
+            FrameManager.initTheme();
+        }
     }
-
-    if (btnThemeToggle) {
-        btnThemeToggle.addEventListener('click', () => {
-            const currentTheme = (container && container.getAttribute('data-editor-theme')) || document.documentElement.getAttribute('data-editor-theme') || 'dark';
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
-        });
-    }
-
-    initTheme();
 
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     
@@ -1183,79 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Drag-to-Resize Panel Width Logic
     // ==========================================================================
-    let isDragging = false;
-
-    function startDrag(e) {
-        isDragging = true;
-        dragDivider.classList.add('dragging');
-        document.body.style.cursor = 'col-resize';
-        
-        // Disable text selection during drag
-        document.body.style.userSelect = 'none';
-        
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDrag);
-        
-        // Touch events compatibility
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-    }
-
-    function drag(e) {
-        if (!isDragging) return;
-        
-        // Get clientX from mouse or touch event
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const containerRect = container.getBoundingClientRect();
-        
-        // TOC 사이드바의 실제 점유 폭 계산
-        const tocSidebar = document.getElementById('toc-sidebar');
-        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
-        
-        // TOC 시작선 및 점유 폭을 차감한 순수 에디터 시작점 기준 마우스 상대 좌표
-        const relativeX = clientX - containerRect.left - tocWidth;
-        
-        // 전체 너비에서 TOC 폭을 제외한 가용 분할 폭
-        const availableWidth = containerRect.width - tocWidth;
-        
-        // 1. 가용 분할 영역 기준의 백분율 비율 산출
-        let percentageOfAvailable = availableWidth > 0 ? (relativeX / availableWidth) * 100 : 50;
-        
-        // 2. 가용 영역에 대한 좌우 경계 제약조건 (20% ~ 80%) 강제화
-        if (percentageOfAvailable < 20) percentageOfAvailable = 20;
-        if (percentageOfAvailable > 80) percentageOfAvailable = 80;
-        
-        // 3. 제약이 적용된 에디터 패널의 실제 목표 픽셀 폭 복원
-        const targetEditorWidth = (percentageOfAvailable / 100) * availableWidth;
-        
-        // 4. 스타일 대입을 위한 전체 부모 컨테이너 기준 비율로 최종 환산
-        let percentage = (targetEditorWidth / containerRect.width) * 100;
-        
-        editorPanel.style.width = `${percentage}%`;
-        cm.refresh();
-    }
-
-    function stopDrag() {
-        if (!isDragging) return;
-        isDragging = false;
-        dragDivider.classList.remove('dragging');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        
-        document.removeEventListener('mousemove', drag);
-        document.removeEventListener('mouseup', stopDrag);
-        document.removeEventListener('touchmove', drag);
-        document.removeEventListener('touchend', stopDrag);
-        cm.refresh();
-        saveDocumentSession();
-    }
-
-    dragDivider.addEventListener('mousedown', startDrag);
-    dragDivider.addEventListener('touchstart', (e) => {
-        // Prevent default only if drag divider is touched to prevent scrolling
-        e.preventDefault();
-        startDrag(e);
-    });
+    // Resizing logic handled by FrameManager
 
     // ==========================================================================
     // Customization Settings Sync (Font, Font-size, Line color)
@@ -1515,79 +1417,92 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
     // ==========================================================================
-    // ==========================================================================
-    // 내보내기 및 보기, 메인 메뉴 드롭다운 토글 및 닫기 처리
-    // ==========================================================================
-    if (btnExport && exportMenu) {
-        btnExport.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            exportMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnView && viewMenu) {
-        btnView.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            viewMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnMenu && mainMenu) {
-        btnMenu.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-            mainMenu.classList.toggle('show');
-        });
-    }
-
-    if (btnHeadingStyle && headingStyleMenu) {
-        btnHeadingStyle.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (exportMenu) exportMenu.classList.remove('show');
-            if (viewMenu) viewMenu.classList.remove('show');
-            if (mainMenu) mainMenu.classList.remove('show');
-            headingStyleMenu.classList.toggle('show');
-        });
-    }
-
-    // 드롭다운 내부 요소(셀렉트, 옵션 등) 클릭 시 드롭다운이 바로 닫히지 않도록 수용
-    [exportMenu, viewMenu, mainMenu, headingStyleMenu].forEach(menuEl => {
-        if (menuEl) {
-            menuEl.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-        }
-    });
-
-    // 문서의 다른 부분을 클릭하면 모든 드롭다운이 닫히도록 설정
-    document.addEventListener('click', (e) => {
-        if (exportDropdown && !exportDropdown.contains(e.target)) {
-            if (exportMenu) exportMenu.classList.remove('show');
-        }
-        if (viewDropdown && !viewDropdown.contains(e.target)) {
-            if (viewMenu) viewMenu.classList.remove('show');
-        }
-        if (menuDropdown && !menuDropdown.contains(e.target)) {
-            if (mainMenu) mainMenu.classList.remove('show');
-        }
-        if (headingDropdown && !headingDropdown.contains(e.target)) {
-            if (headingStyleMenu) headingStyleMenu.classList.remove('show');
-        }
-    });
-
-    // 메인 메뉴 하위 액션 연결
-    if (btnNewFile) {
-        btnNewFile.addEventListener('click', () => {
-            if (mainMenu) mainMenu.classList.remove('show');
-            handleNewFile();
+    // FrameManager UI Initialization & Action Delegation
+    if (typeof FrameManager !== 'undefined' && typeof FrameManager.init === 'function') {
+        FrameManager.init({
+            elements: {
+                container,
+                editorPanel,
+                dragDivider,
+                themeIconSun,
+                themeIconMoon,
+                themeToggleText,
+                btnThemeToggle,
+                exportDropdown,
+                btnExport,
+                exportMenu,
+                btnExportHtml,
+                btnExportPdfPrint,
+                btnExportPdfHtml2Pdf,
+                btnOpenNewWindow,
+                btnOpenNewWindowDefault,
+                btnJoinParagraphs,
+                viewDropdown,
+                btnView,
+                viewMenu,
+                headingDropdown,
+                btnHeadingStyle,
+                headingStyleMenu,
+                menuDropdown,
+                btnMenu,
+                mainMenu,
+                btnNewFile,
+                btnOpenFile,
+                btnCopy,
+                btnSave,
+                btnSaveAs,
+                btnDebug
+            },
+            actions: {
+                onThemeChange: (theme) => {
+                    apply_code_theme(theme);
+                    const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+                    applyHeadingPreset(activePresetId);
+                },
+                onPanelResize: () => {
+                    if (cm && typeof cm.refresh === 'function') cm.refresh();
+                },
+                onResizeComplete: () => {
+                    if (cm && typeof cm.refresh === 'function') cm.refresh();
+                    saveDocumentSession();
+                },
+                onNewFile: () => handleNewFile(),
+                onOpenFile: () => trigger_open_file_dialog(),
+                onCopy: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.copyPreviewToClipboard(preview, exportMenu);
+                    }
+                },
+                onSave: () => handleSaveFile(),
+                onSaveAs: () => handleSaveAsFile(),
+                onExportHtml: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onExportPdfPrint: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onExportPdfHtml2Pdf: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onOpenNewWindow: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                    }
+                },
+                onOpenNewWindowDefault: () => {
+                    if (typeof ExportManager !== 'undefined') {
+                        ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
+                    }
+                },
+                onJoinParagraphs: () => join_paragraphs(),
+                onToggleDebug: () => toggle_debug_panel()
+            }
         });
     }
 

@@ -21,7 +21,7 @@
     
     // JS 스크립트 치환 (싱글/더블 쿼테이션 및 쿼리 스트링 대응)
     htmlText = htmlText.replace(/src=(["'])libs\//g, `src=$1${extensionBaseUrl}libs/`);
-    htmlText = htmlText.replace(/src=(["'])app\.js(\?[^"'>]*)?\1/g, `src=$1${extensionBaseUrl}app.js$2$1`);
+    htmlText = htmlText.replace(/src=(["'])(frame-man\.js|app\.js)(\?[^"'>]*)?\1/g, `src=$1${extensionBaseUrl}$2$3$1`);
 
     // 5. 뷰어 로딩 전 데이터 주입용 인라인 스크립트 작성
     // </head> 태그 직전에 스크립트를 삽입하여 app.js 구동 전에 전역 변수 선언을 확실히 보장합니다.
