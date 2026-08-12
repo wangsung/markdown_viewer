@@ -136,6 +136,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * 순수 하위 서브 함수: 코드 블록 테마(라이트/다크)를 동적으로 전환합니다.
+     * @param {string} themeStr - 'dark' 또는 'light'
+     */
+    function apply_code_theme(themeStr) {
+        const linkEl = document.getElementById('code-theme-stylesheet');
+        if (linkEl) {
+            if (themeStr === 'dark') {
+                linkEl.href = 'libs/github-dark.min.css';
+            } else {
+                linkEl.href = 'libs/github.min.css';
+            }
+        }
+    }
+
+    /**
      * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
      * @param {string} message - 표시할 안내 문구
      * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
@@ -303,6 +318,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (themeIconMoon) themeIconMoon.style.display = 'none';
             if (themeToggleText) themeToggleText.textContent = 'Light';
         }
+
+        apply_code_theme(theme);
 
         const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
         applyHeadingPreset(activePresetId);

@@ -167,7 +167,7 @@ const ExportManager = (function() {
                     try {
                         const rules = Array.from(sheet.cssRules || sheet.rules || []);
                         const cssText = rules.map(r => r.cssText).join('\n');
-                        if (sheet.href && sheet.href.includes('github.min.css')) {
+                        if (sheet.href && (sheet.href.includes('github.min.css') || sheet.href.includes('github-dark.min.css'))) {
                             githubCss += cssText + '\n';
                         } else if (sheet.href && sheet.href.includes('katex.min.css')) {
                             katexCss += cssText + '\n';
@@ -179,7 +179,8 @@ const ExportManager = (function() {
 
         if (!githubCss) {
             try {
-                const res = await fetch(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL('libs/github.min.css') : 'libs/github.min.css');
+                const targetGithubCssFile = currentTheme === 'dark' ? 'libs/github-dark.min.css' : 'libs/github.min.css';
+                const res = await fetch(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL(targetGithubCssFile) : targetGithubCssFile);
                 githubCss = await res.text();
             } catch (e) {}
         }

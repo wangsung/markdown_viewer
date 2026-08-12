@@ -1051,7 +1051,6 @@ body {
 
 /* Code Syntax Styling adjustments to sync with line-color-picker theme */
 .hljs {
-    color: var(--custom-code-block-fg, #24292e);
     background: transparent !important;
     padding: 0 !important;
 }
