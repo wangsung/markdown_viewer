@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const stylePath = path.join(__dirname, 'style.css');
+const stylePath = path.join(__dirname, '..', '');
 let styleContent = '';
 try {
     styleContent = fs.readFileSync(stylePath, 'utf8');

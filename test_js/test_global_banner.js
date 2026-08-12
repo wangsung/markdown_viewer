@@ -10,7 +10,7 @@ const assert = require('assert');
 console.log('🚀 Running Global Bottom Banner Unit Test Suite...\n');
 
 // 1. Verify CSS definition in style.css
-const cssContent = fs.readFileSync(path.join(__dirname, 'style.css'), 'utf8');
+const cssContent = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
 assert(cssContent.includes('#global-bottom-banner'), 'PASS: #global-bottom-banner defined in style.css');
 assert(cssContent.includes('position: fixed'), 'PASS: Banner position is fixed at bottom');
 assert(cssContent.includes('bottom: 0'), 'PASS: Banner bottom is 0');
@@ -63,7 +63,7 @@ global.document = {
 };
 
 // 3. Load functions from app.js
-const appCode = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf8');
+const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
 
 // Extract function declarations and evaluate
 const showBannerMatch = appCode.match(/function showGlobalBottomBanner[\s\S]*?^    \}/m);

@@ -5,7 +5,7 @@ const assert = require('assert');
 (async () => {
     console.log('🚀 Running Codeblock Scroll Toggle Unit Test Suite...\n');
 
-    const htmlPath = path.join(__dirname, 'markdown_viewer.html');
+    const htmlPath = path.join(__dirname, '..', '');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // 1. Verify view-menu contains #codeblock-scroll checkbox as first toggle item
@@ -22,7 +22,7 @@ const assert = require('assert');
     assert(mathIndex < diagramIndex, 'PASS: #math-render is placed BEFORE #diagram-render');
 
     // 2. Extract collectExportOptions function from app.js and test styleVars collection
-    const appCode = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf8');
+    const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
     const collectOptMatch = appCode.match(/function collectExportOptions[\s\S]*?^    \}/m);
     assert(collectOptMatch, 'PASS: collectExportOptions function found in app.js');
 
@@ -80,7 +80,7 @@ const assert = require('assert');
     global.chrome = undefined;
     global.fetch = async () => ({ text: async () => '' });
 
-    const exportManCode = fs.readFileSync(path.join(__dirname, 'export-man.js'), 'utf8');
+    const exportManCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
     eval(exportManCode);
 
     const mockPreviewEl = {

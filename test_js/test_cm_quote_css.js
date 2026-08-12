@@ -9,7 +9,7 @@ const assert = require('assert');
 
 console.log('🚀 Running CodeMirror Quote CSS Unit Test...');
 
-const cssPath = path.join(__dirname, 'style.css');
+const cssPath = path.join(__dirname, '..', '');
 const cssContent = fs.readFileSync(cssPath, 'utf8');
 
 // 1. Verify .cm-quote does not contain border-left

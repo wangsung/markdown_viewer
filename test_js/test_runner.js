@@ -41,7 +41,7 @@ global.fetch = async (url) => ({ text: async () => '/* mock css */' });
 global.getComputedStyle = () => ({ getPropertyValue: () => 'sans-serif' });
 
 // Target Module Load
-const exportManCode = fs.readFileSync(__dirname + '/export-man.js', 'utf8');
+const exportManCode = fs.readFileSync(__dirname + '/../export-man.js', 'utf8');
 eval(exportManCode);
 
 let passCount = 0;

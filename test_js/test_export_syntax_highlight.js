@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const exportManContent = fs.readFileSync(path.join(__dirname, 'export-man.js'), 'utf8');
+const exportManContent = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
 
 if (exportManContent.includes('${coreMarkdownCss}') && exportManContent.includes('${githubCss}')) {
     const coreIndex = exportManContent.indexOf('${coreMarkdownCss}');

@@ -8,7 +8,7 @@ console.log('=====================================================\n');
 let allPassed = true;
 
 // 1. Verify UI Elements in markdown_viewer.html
-const htmlPath = path.join(__dirname, 'markdown_viewer.html');
+const htmlPath = path.join(__dirname, '..', '');
 const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
 const htmlChecks = [
@@ -29,7 +29,7 @@ htmlChecks.forEach(term => {
 });
 
 // 2. Verify export-man.js function definitions & exports
-const exportManPath = path.join(__dirname, 'export-man.js');
+const exportManPath = path.join(__dirname, '..', '');
 const exportManContent = fs.readFileSync(exportManPath, 'utf8');
 
 const exportManChecks = [
@@ -52,7 +52,7 @@ exportManChecks.forEach(term => {
 });
 
 // 3. Verify app.js DOM bindings and click listeners
-const appPath = path.join(__dirname, 'app.js');
+const appPath = path.join(__dirname, '..', '');
 const appContent = fs.readFileSync(appPath, 'utf8');
 
 const appChecks = [

@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // 1. CodeMirror 라이브러리 및 마크다운 모드 파일 존재 확인
-const codemirrorJsPath = path.join(__dirname, 'libs', 'codemirror', 'lib', 'codemirror.js');
-const markdownJsPath = path.join(__dirname, 'libs', 'codemirror', 'mode', 'markdown', 'markdown.min.js');
+const codemirrorJsPath = path.join(__dirname, '..', '', 'codemirror', 'lib', 'codemirror.js');
+const markdownJsPath = path.join(__dirname, '..', '', 'codemirror', 'mode', 'markdown', 'markdown.min.js');
 
 let codemirrorJsExists = fs.existsSync(codemirrorJsPath);
 let markdownJsExists = fs.existsSync(markdownJsPath);

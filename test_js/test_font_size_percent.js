@@ -10,7 +10,7 @@ const assert = require('assert');
 console.log('🚀 Running Percentage Font Scaling Unit Test Suite...\n');
 
 // 1. Read app.js code to test calc_scaled_font_size function
-const appCode = fs.readFileSync(path.join(__dirname, 'app.js'), 'utf8');
+const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
 
 // Extract calc_scaled_font_size function
 const calcFuncMatch = appCode.match(/function calc_scaled_font_size[\s\S]*?^    \}/m);
