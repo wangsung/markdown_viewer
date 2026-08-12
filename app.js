@@ -327,19 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateFilenameDisplay(name, isModified) {
         currentFilename = name;
         isDirty = isModified;
-        const filenameSpan = document.getElementById('current-filename');
-        const fileBadge = document.getElementById('file-badge');
         
-        if (filenameSpan && fileBadge) {
-            filenameSpan.textContent = isModified ? `${name} *` : name;
-            if (isModified) {
-                fileBadge.classList.add('modified');
-                fileBadge.title = "현재 파일 (수정됨)";
-            } else {
-                fileBadge.classList.remove('modified');
-                fileBadge.title = "현재 파일";
-            }
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateFilenameDisplay === 'function') {
+            FrameManager.updateFilenameDisplay(name, isModified);
         }
+        
         if (typeof add_recent_file_entry === 'function' && name && name !== '제목 없음.md') {
             add_recent_file_entry(name, name);
         }
@@ -398,24 +390,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 resolve(null);
             }
         });
-    }
-
-    function format_file_size(bytes) {
-        if (typeof bytes !== 'number' || isNaN(bytes) || bytes <= 0) return '0 KB';
-        if (bytes < 1024) return `${bytes} B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    }
-
-    function format_recent_time(timestamp) {
-        if (!timestamp) return '';
-        const d = new Date(timestamp);
-        if (isNaN(d.getTime())) return '';
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const hours = String(d.getHours()).padStart(2, '0');
-        const minutes = String(d.getMinutes()).padStart(2, '0');
-        return `${month}-${day} ${hours}:${minutes}`;
     }
 
     // 다른 창/탭에서 최근 파일 목록이 변경되었을 때 실시간 동기화를 위한 storage 이벤트 리스너
@@ -593,57 +567,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function render_recent_files_menu() {
-        const wrapperEl = document.getElementById('recent-files-wrapper');
-        const submenuEl = document.getElementById('recent-files-submenu');
-        if (!submenuEl) return;
-        if (wrapperEl) wrapperEl.style.display = 'block';
-
         const files = get_recent_files();
-
-        if (!files || files.length === 0) {
-            submenuEl.innerHTML = '<div class="dropdown-submenu-empty">최근 파일이 없습니다.</div>';
-            return;
-        }
-
-        submenuEl.innerHTML = '';
-        files.forEach((entry) => {
-            const itemBtn = document.createElement('button');
-            itemBtn.className = 'recent-file-item';
-            const timeStr = format_recent_time(entry.timestamp);
-            const sizeStr = format_file_size(entry.size);
-            const metaText = timeStr ? `${timeStr} · ${sizeStr}` : sizeStr;
-
-            itemBtn.title = `${entry.name}\n작업 일시: ${timeStr}\n크기: ${sizeStr}\n클릭 시 새 창에서 파일 열기`;
-            itemBtn.innerHTML = `
-                <div class="recent-file-name">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    <span>${entry.name}</span>
-                </div>
-                <div class="recent-file-path">${metaText}</div>
-            `;
-            itemBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (mainMenu) mainMenu.classList.remove('show');
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.renderRecentFilesMenu === 'function') {
+            FrameManager.renderRecentFilesMenu(files, (entry) => {
                 open_recent_file_in_new_window(entry);
             });
-            submenuEl.appendChild(itemBtn);
-        });
+        }
     }
 
     // ==========================================================================
     // Preview Max Width Limit Control (snake_case sub-function)
     // ==========================================================================
     function apply_preview_max_width_limit(isLimited = true) {
-        const previewViewport = document.querySelector('.preview-viewport');
-        if (previewViewport) {
-            if (isLimited) {
-                previewViewport.classList.remove('full-width');
-            } else {
-                previewViewport.classList.add('full-width');
-            }
-        }
-        if (togglePreviewMaxWidthCheckbox) {
-            togglePreviewMaxWidthCheckbox.checked = !!isLimited;
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyPreviewMaxWidthLimit === 'function') {
+            FrameManager.applyPreviewMaxWidthLimit(isLimited);
         }
     }
 
@@ -705,59 +642,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateFilenameDisplay(session.filename, !!session.isDirty);
             }
 
-            // 3. Panel Split Width Restore
-            if (session.editorWidthPercent && editorPanel) {
-                editorPanel.style.width = session.editorWidthPercent;
-                if (typeof cm.refresh === 'function') cm.refresh();
-            }
-
-            // 4. Font Family Restore
-            if (session.fontFamily && fontSelect) {
-                fontSelect.value = session.fontFamily;
-                if (preview) preview.style.setProperty('--preview-font-family', session.fontFamily);
-            }
-
-            // 5. Font Size Restore (Default: 120% / 12pt)
-            if (fontSizeSelect) {
-                let valToSet = session.fontSize || '120%';
-                if (valToSet.endsWith('px')) {
-                    if (valToSet === '12px') valToSet = '100%';
-                    else if (valToSet === '14px') valToSet = '110%';
-                    else if (valToSet === '16px') valToSet = '120%';
-                    else if (valToSet === '18px') valToSet = '130%';
-                    else if (valToSet === '20px') valToSet = '140%';
-                    else valToSet = '120%';
-                }
-                fontSizeSelect.value = valToSet;
-                const computedPt = calc_scaled_font_size(valToSet, 10);
-                if (preview) preview.style.setProperty('--preview-font-size', computedPt);
-                document.documentElement.style.setProperty('--preview-font-size', computedPt);
-                document.documentElement.style.setProperty('--editor-font-size', computedPt);
-            }
-
-            // 6. Line Color Restore
-            if (session.lineColor && lineColorPicker) {
-                lineColorPicker.value = session.lineColor;
-                if (typeof updateThemeColors === 'function') {
-                    updateThemeColors(session.lineColor);
-                }
-            }
-
-            // 7. Preview Max Width Limit Restore (Default: true)
-            if (typeof session.previewMaxWidthLimited === 'boolean') {
-                apply_preview_max_width_limit(session.previewMaxWidthLimited);
-            } else {
-                apply_preview_max_width_limit(true);
-            }
-
-            // 8. Color Swatch Restore (Default: true)
-            if (colorSwatchCheckbox) {
-                colorSwatchCheckbox.checked = typeof session.colorSwatchEnabled === 'boolean' ? session.colorSwatchEnabled : true;
-                if (!colorSwatchCheckbox.checked) {
-                    remove_color_swatches(preview);
-                } else {
-                    inject_color_swatches(document, preview);
-                }
+            // 3. Frame & Visual Layout Settings Restore (FrameManager 위임)
+            if (typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function') {
+                FrameManager.restoreFrameSettings(session);
             }
         } catch (e) {
             console.warn('Failed to restore document session:', e);
@@ -1451,7 +1338,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnCopy,
                 btnSave,
                 btnSaveAs,
-                btnDebug
+                btnDebug,
+                editorPanel,
+                fontSelect,
+                fontSizeSelect,
+                lineColorPicker,
+                colorSwatchCheckbox,
+                preview
             },
             actions: {
                 onThemeChange: (theme) => {
@@ -1465,6 +1358,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 onResizeComplete: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
                     saveDocumentSession();
+                },
+                onLineColorChange: (color) => {
+                    if (typeof updateThemeColors === 'function') updateThemeColors(color);
+                },
+                onColorSwatchToggle: (enabled) => {
+                    if (!enabled) {
+                        remove_color_swatches(preview);
+                    } else {
+                        inject_color_swatches(document, preview);
+                    }
                 },
                 onNewFile: () => handleNewFile(),
                 onOpenFile: () => trigger_open_file_dialog(),
@@ -1875,161 +1778,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // 실시간 키프레임 디버깅 패널 렌더링 함수 (ScrollSync 연동)
+    // 실시간 키프레임 디버깅 패널 렌더링 및 제어 함수 (FrameManager 위임)
     // ==========================================================================
     function updateDebugPanelUI(keyframesList, activeSource) {
-        if (!debugPanel || debugPanel.style.display === 'none') return;
-        
-        const list = keyframesList || [];
-        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
-            <span>🔑 Keyframes Debug List (${list.length})</span>
-            <span style="color: var(--theme-color);">Active: ${activeSource || 'None'}</span>
-        </div>`;
-        
-        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
-                    <th style="padding: 2px;">Line</th>
-                    <th style="padding: 2px;">ID (Text)</th>
-                    <th style="padding: 2px; text-align: right;">Ed%</th>
-                    <th style="padding: 2px; text-align: right;">Pr%</th>
-                    <th style="padding: 2px; text-align: right;">Y(px)</th>
-                    <th style="padding: 2px; text-align: right;">ScaleFactor</th>
-                </tr>
-            </thead>
-            <tbody>`;
-            
-        list.forEach((kf) => {
-            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
-            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
-            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
-            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
-            const sfVal = kf.scaleFactor !== null ? kf.scaleFactor : '-';
-            
-            const sfHighlight = kf.isActiveSegment 
-                ? `background: #0284c7; color: #ffffff; padding: 1px 5px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);` 
-                : `color: ${rowColor};`;
-
-            const rowBg = kf.isActiveSegment ? 'background: rgba(2, 132, 199, 0.15);' : '';
-            const pinnedPrefix = kf.isUserPinned ? '📌 ' : '';
-
-            html += `<tr style="color: ${rowColor}; ${rowBg} border-bottom: 1px dashed #1e293b;">
-                <td style="padding: 3px 2px;">${Math.round(kf.line)}</td>
-                <td style="padding: 3px 2px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${pinnedPrefix}${kf.id}</td>
-                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
-                <td style="padding: 3px 2px; text-align: right;"><span style="${sfHighlight}">${sfVal}</span></td>
-            </tr>`;
-        });
-        
-        html += `</tbody></table>`;
-        debugPanel.innerHTML = html;
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateDebugPanel === 'function') {
+            FrameManager.updateDebugPanel(keyframesList, activeSource);
+        }
     }
 
-    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
-    function buildTOC() {
-        const tocList = document.getElementById('toc-list');
-        if (!tocList || !cm) return;
-
-        const text = cm.getValue();
-        const headings = EditorManager.build_toc(text);
-
-        tocList.innerHTML = '';
-        headings.forEach(heading => {
-            const li = document.createElement('li');
-            li.className = `toc-item toc-h${heading.level}`;
-            li.setAttribute('data-line', heading.line + 1);
-
-            const a = document.createElement('a');
-            a.href = '#';
-            a.textContent = heading.text;
-            a.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (scrollSync) {
-                    scrollSync.scrollToLine(heading.line + 1);
-                }
-            });
-
-            li.appendChild(a);
-            tocList.appendChild(li);
-        });
-    }
-
-    // ==========================================================================
-    // 실시간 키프레임 디버깅 패널 생성 로직
-    // ==========================================================================
-    const debugPanel = document.createElement('div');
-    debugPanel.id = 'debug-keyframe-panel';
-    debugPanel.style.position = 'fixed';
-    debugPanel.style.bottom = '20px';
-    debugPanel.style.right = '20px';
-    debugPanel.style.width = '420px';
-    debugPanel.style.maxHeight = '280px';
-    debugPanel.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
-    debugPanel.style.backdropFilter = 'blur(8px)';
-    debugPanel.style.border = '1px solid var(--theme-color, #3b82f6)';
-    debugPanel.style.borderRadius = '8px';
-    debugPanel.style.color = '#f1f5f9';
-    debugPanel.style.fontFamily = 'monospace';
-    debugPanel.style.fontSize = '11px';
-    debugPanel.style.padding = '12px';
-    debugPanel.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.5)';
-    debugPanel.style.zIndex = '9999';
-    debugPanel.style.overflowY = 'auto';
-    debugPanel.style.display = 'none'; // 기본 숨김
-    document.body.appendChild(debugPanel);
-
-    if (btnDebug) {
-        btnDebug.addEventListener('click', () => {
-            if (debugPanel.style.display === 'none') {
-                debugPanel.style.display = 'block';
-                if (scrollSync) {
+    function toggle_debug_panel() {
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.toggleDebugPanel === 'function') {
+            FrameManager.toggleDebugPanel((isOpen) => {
+                if (isOpen && scrollSync) {
                     scrollSync.rebuildKeyframes('Keyframe Button Toggle');
                 }
-            } else {
-                debugPanel.style.display = 'none';
-            }
-        });
+            });
+        }
     }
 
     function updateDebugPanel() {
-        if (debugPanel.style.display === 'none') return;
-        
-        let html = `<div style="font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 6px; margin-bottom: 6px; display: flex; justify-content: space-between;">
-            <span>🔑 Keyframes Debug List (${keyframes.length})</span>
-            <span style="color: var(--theme-color);">Active: ${activeScrollSource || 'None'}</span>
-        </div>`;
-        
-        html += `<table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-                <tr style="color: #94a3b8; border-bottom: 1px solid #1e293b;">
-                    <th style="padding: 2px;">Line</th>
-                    <th style="padding: 2px;">ID (Text)</th>
-                    <th style="padding: 2px; text-align: right;">Ed%</th>
-                    <th style="padding: 2px; text-align: right;">Pr%</th>
-                    <th style="padding: 2px; text-align: right;">Y(px)</th>
-                </tr>
-            </thead>
-            <tbody>`;
-            
-        keyframes.forEach((kf) => {
-            const edPct = (kf.editorPercent * 100).toFixed(0) + '%';
-            const prPct = (kf.previewPercent * 100).toFixed(0) + '%';
-            const isBoundary = kf.id === '[START]' || kf.id === '[END]';
-            const rowColor = isBoundary ? '#64748b' : '#38bdf8';
-            
-            html += `<tr style="color: ${rowColor}; border-bottom: 1px dashed #1e293b;">
-                <td style="padding: 3px 2px;">${kf.line.toFixed(1)}</td>
-                <td style="padding: 3px 2px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${kf.id}">${kf.id}</td>
-                <td style="padding: 3px 2px; text-align: right;">${edPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${prPct}</td>
-                <td style="padding: 3px 2px; text-align: right;">${Math.round(kf.previewScrollY)}</td>
-            </tr>`;
-        });
-        
-        html += `</tbody></table>`;
-        debugPanel.innerHTML = html;
+        updateDebugPanelUI(keyframes, activeScrollSource);
     }
 
     // ==========================================================================
@@ -2261,19 +2029,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const headingPresetSelect = document.getElementById('heading-preset-select');
 
     function showToast(message, duration = 3000) {
-        let toast = document.getElementById('markvi-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'markvi-toast';
-            document.body.appendChild(toast);
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
+            FrameManager.showToast(message, duration);
         }
-        toast.textContent = message;
-        toast.classList.add('show');
-
-        if (toast.timeoutId) clearTimeout(toast.timeoutId);
-        toast.timeoutId = setTimeout(() => {
-            toast.classList.remove('show');
-        }, duration);
     }
 
     function renderHeadingModalControls(presetId) {
