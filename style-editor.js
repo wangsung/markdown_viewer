@@ -557,7 +557,15 @@
          * 모듈 초기 시동 바인딩
          */
         init: function(opt) {
-            options = opt;
+            options = opt || {};
+            if (options.elements) {
+                if (options.elements.headingStyleControls && !options.controlsContainer) {
+                    options.controlsContainer = options.elements.headingStyleControls;
+                }
+                if (options.elements.modalHeadingSelect && !options.presetSelect) {
+                    options.presetSelect = options.elements.modalHeadingSelect;
+                }
+            }
             const self = this;
 
             // 🎨 닫기 버튼 이벤트 바인딩
