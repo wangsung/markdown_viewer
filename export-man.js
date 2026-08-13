@@ -75,20 +75,26 @@ const ExportManager = (function() {
         try {
             const successful = document.execCommand('copy');
             if (successful) {
+                // 1. "내보내기" 버튼 딤(Dimming) 및 재클릭 차단 (텍스트/innerHTML 변경 없이 Dimming만 적용 후 원복)
                 if (feedbackBtnEl) {
-                    const originalHTML = feedbackBtnEl.innerHTML;
-                    feedbackBtnEl.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        복사 완료!
-                    `;
-                    feedbackBtnEl.style.borderColor = '#10b981';
-                    feedbackBtnEl.style.color = '#10b981';
-                    
-                    setTimeout(() => {
-                        feedbackBtnEl.innerHTML = originalHTML;
-                        feedbackBtnEl.style.borderColor = '';
-                        feedbackBtnEl.style.color = '';
-                    }, 2000);
+                    feedbackBtnEl.style.opacity = '0.5';
+                    feedbackBtnEl.style.pointerEvents = 'none';
+                    if ('disabled' in feedbackBtnEl) feedbackBtnEl.disabled = true;
+
+                    if (feedbackBtnEl._dimTimer) clearTimeout(feedbackBtnEl._dimTimer);
+                    feedbackBtnEl._dimTimer = setTimeout(() => {
+                        feedbackBtnEl.style.opacity = '';
+                        feedbackBtnEl.style.pointerEvents = '';
+                        if ('disabled' in feedbackBtnEl) feedbackBtnEl.disabled = false;
+                        delete feedbackBtnEl._dimTimer;
+                    }, 1500);
+                }
+
+                // 2. 하단 토스트(Toast) 메시지로 복사 완료 안내 노출 (1.5초)
+                if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
+                    FrameManager.showToast('📋 프리뷰 내용이 클립보드에 복사되었습니다.', 1500);
+                } else if (typeof window.showToast === 'function') {
+                    window.showToast('📋 프리뷰 내용이 클립보드에 복사되었습니다.', 1500);
                 }
             } else {
                 alert('클립보드 복사 명령을 실행할 수 없습니다.');

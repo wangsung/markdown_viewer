@@ -1327,11 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (btnCopy) {
-        btnCopy.addEventListener('click', () => {
-            ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
-        });
-    }
+    // 💡 주: 복사 및 내보내기 버튼 이벤트는 FrameManager.init({ actions: { onCopy: ... } })를 통해 통합 처리됩니다.
 
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
