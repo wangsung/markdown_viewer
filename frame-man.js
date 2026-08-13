@@ -22,15 +22,85 @@
     // 순수 서브 함수 (Pure Sub-functions in snake_case)
     // ==========================================================================
 
-    function apply_theme_ui(theme, elements, onThemeChange) {
-        const targetTheme = theme || 'dark';
-        
-        if (elements.container) {
-            elements.container.setAttribute('data-editor-theme', targetTheme);
+    /**
+     * 매개변수(Argument) 및 상태 검증 전용 단증 서브 함수 (assert_arg)
+     * 단증 실패 시 최상단 System Warning 디버깅 배너를 노출하고 에러 로그를 누적 기록합니다.
+     * 
+     * @param {boolean} condition - 검증 조건식 (true이어야 정상)
+     * @param {string} message - 단증 실패 시 표시할 시스템 경고 문구
+     * @param {Object} [context={}] - 트러블슈팅용 부가 정보
+     * @returns {boolean}
+     */
+    function assert_arg(condition, message, context = {}) {
+        if (!condition) {
+            const fullMessage = `[System Assertion Failed] ${message}`;
+            console.error(fullMessage, context);
+
+            // 1. 최상단 System Warning 디버깅 배너 출력
+            report_system_theme_error(fullMessage);
+
+            // 2. Error Log 스토리지 및 누적 기록 (로그 파일 연동용)
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    const rawLogs = localStorage.getItem('markvi_error_logs');
+                    const logs = rawLogs ? JSON.parse(rawLogs) : [];
+                    const newLog = {
+                        timestamp: new Date().toISOString(),
+                        type: 'ASSERTION_FAILURE',
+                        message: fullMessage,
+                        context: context,
+                        stack: new Error(fullMessage).stack
+                    };
+                    logs.unshift(newLog);
+                    if (logs.length > 50) logs.length = 50;
+                    localStorage.setItem('markvi_error_logs', JSON.stringify(logs));
+                }
+            } catch (e) {
+                console.warn('Failed to record assertion log to localStorage:', e);
+            }
+
+            // 3. 디버그 환경 시 Fail-Fast를 위한 Error throw
+            if (typeof window !== 'undefined' && window.ENABLE_DEBUG_HANDLER !== false) {
+                throw new Error(fullMessage);
+            }
+            return false;
         }
+        return true;
+    }
+
+    if (typeof window !== 'undefined') {
+        window.assert_arg = assert_arg;
+    }
+
+    function report_system_theme_error(message) {
+        console.error('[FrameManager System Error]', message);
+        if (typeof document === 'undefined') return;
+        let banner = document.getElementById('system-theme-warning-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'system-theme-warning-banner';
+            banner.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; background: #dc2626; color: #ffffff; z-index: 999999; padding: 10px 16px; font-size: 13px; font-weight: 700; font-family: monospace; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between;';
+            document.body.appendChild(banner);
+        }
+        banner.innerHTML = `<span>🚨 ${message}</span><button style="background:transparent;border:none;color:#fff;font-weight:bold;cursor:pointer;padding:0 8px;" onclick="this.parentElement.remove()">✕</button>`;
+    }
+
+    function apply_theme_ui(theme, elements, onThemeChange) {
+        const targetTheme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
+        
+        if (elements && elements.container) {
+            elements.container.setAttribute('data-editor-theme', targetTheme);
+        } else if (typeof document !== 'undefined') {
+            const containerEl = document.querySelector('.container');
+            if (containerEl) {
+                containerEl.setAttribute('data-editor-theme', targetTheme);
+            }
+        }
+
         if (typeof document !== 'undefined' && document.documentElement) {
             document.documentElement.setAttribute('data-editor-theme', targetTheme);
         }
+
         try {
             if (typeof localStorage !== 'undefined') {
                 localStorage.setItem('markvi_editor_theme', targetTheme);
@@ -40,13 +110,13 @@
         }
 
         if (targetTheme === 'dark') {
-            if (elements.themeIconSun) elements.themeIconSun.style.display = 'none';
-            if (elements.themeIconMoon) elements.themeIconMoon.style.display = 'inline-block';
-            if (elements.themeToggleText) elements.themeToggleText.textContent = 'Dark';
+            if (elements && elements.themeIconSun) elements.themeIconSun.style.display = 'none';
+            if (elements && elements.themeIconMoon) elements.themeIconMoon.style.display = 'inline-block';
+            if (elements && elements.themeToggleText) elements.themeToggleText.textContent = 'Dark';
         } else {
-            if (elements.themeIconSun) elements.themeIconSun.style.display = 'inline-block';
-            if (elements.themeIconMoon) elements.themeIconMoon.style.display = 'none';
-            if (elements.themeToggleText) elements.themeToggleText.textContent = 'Light';
+            if (elements && elements.themeIconSun) elements.themeIconSun.style.display = 'inline-block';
+            if (elements && elements.themeIconMoon) elements.themeIconMoon.style.display = 'none';
+            if (elements && elements.themeToggleText) elements.themeToggleText.textContent = 'Light';
         }
 
         if (typeof onThemeChange === 'function') {
@@ -55,15 +125,29 @@
     }
 
     function init_theme_ui(elements, onThemeChange) {
-        let savedTheme = 'dark';
+        let savedTheme = null;
         try {
             if (typeof localStorage !== 'undefined') {
-                savedTheme = localStorage.getItem('markvi_editor_theme') || 'dark';
+                savedTheme = localStorage.getItem('markvi_editor_theme');
             }
         } catch (e) {
             console.warn('Failed to read theme from localStorage:', e);
         }
-        apply_theme_ui(savedTheme, elements, onThemeChange);
+
+        // 테마 확정 (Pre-determination before Frame/Editor/Preview rendering)
+        // 저장된 테마가 없으면 초기 기본값 'dark'로 명시적 확정
+        const deterministicTheme = (savedTheme === 'light' || savedTheme === 'dark') ? savedTheme : 'dark';
+
+        // DOM 컨테이너 단증 검증
+        const container = (elements && elements.container) || (typeof document !== 'undefined' ? document.querySelector('.container') : null);
+        assert_arg(container || typeof document === 'undefined', 'Frame Container element (.container) missing during pre-rendering theme initialization!', { elements });
+
+        // 테마 확정 적용
+        apply_theme_ui(deterministicTheme, elements, onThemeChange);
+
+        // 검증: DOM 속성 확정 여부 단증 확인
+        const currentAttr = (typeof document !== 'undefined' && document.documentElement) ? document.documentElement.getAttribute('data-editor-theme') : null;
+        assert_arg(currentAttr, 'Structural Theme Error! data-editor-theme attribute was not established prior to rendering!', { deterministicTheme });
     }
 
     function close_all_dropdowns(elements) {
@@ -218,11 +302,17 @@
         // Theme Toggle Button
         if (elements.btnThemeToggle) {
             elements.btnThemeToggle.addEventListener('click', () => {
-                let currentTheme = 'dark';
-                if (elements.container) {
-                    currentTheme = elements.container.getAttribute('data-editor-theme') || 'dark';
+                let currentTheme = (typeof document !== 'undefined' && document.documentElement) ? document.documentElement.getAttribute('data-editor-theme') : null;
+                if (!currentTheme && elements.container) {
+                    currentTheme = elements.container.getAttribute('data-editor-theme');
                 }
-                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                // 구조적 문제 감지: 테마 속성이 DOM에 확정되어 있지 않은 경우 System Warning 및 에러 로그 기록
+                if (!assert_arg(currentTheme, 'Theme state missing on DOM! data-editor-theme attribute was uninitialized prior to toggle click.', { elements })) {
+                    currentTheme = 'dark';
+                }
+
+                const newTheme = (currentTheme === 'dark') ? 'light' : 'dark';
                 apply_theme_ui(newTheme, elements, actions.onThemeChange);
             });
         }
@@ -560,9 +650,13 @@
 
     const FrameManager = {
         init: function(userOptions) {
+            assert_arg(userOptions && typeof userOptions === 'object', 'FrameManager.init: userOptions must be a valid object!', { userOptions });
             options = Object.assign({ elements: {}, actions: {} }, userOptions);
             const els = options.elements;
             const acts = options.actions;
+
+            assert_arg(els && typeof els === 'object', 'FrameManager.init: elements struct is missing or invalid!', { els });
+            assert_arg(acts && typeof acts === 'object', 'FrameManager.init: actions struct is missing or invalid!', { acts });
 
             init_theme_ui(els, acts.onThemeChange);
             setup_splitter_events(els, acts);
