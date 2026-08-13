@@ -1327,11 +1327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (btnCopy) {
-        btnCopy.addEventListener('click', () => {
-            ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
-        });
-    }
+    // 💡 주: 복사 및 내보내기 버튼 이벤트는 FrameManager.init({ actions: { onCopy: ... } })를 통해 통합 처리됩니다.
 
     // ==========================================================================
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
@@ -1379,8 +1375,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
                     }
                 },
-                onSave: () => handleSaveFile(),
-                onSaveAs: () => handleSaveAsFile(),
+                onSave: () => handleSaveDirect(),
+                onSaveAs: () => handleSaveCurrentDocument(),
                 onExportHtml: () => {
                     if (typeof ExportManager !== 'undefined') {
                         ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
@@ -1450,9 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    if (btnOpenFile) {
-        btnOpenFile.addEventListener('click', trigger_open_file_dialog);
-    }
+    // 💡 주: btnOpenFile 클릭 이벤트는 FrameManager.init({ actions: { onOpenFile: ... } })를 통해 통합 처리됩니다.
 
     // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
     function collectExportOptions(overrideOptions = {}) {
@@ -1886,19 +1880,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 새이름저장 (Save As 다이얼로그) 헬퍼 함수
-    function handleSaveCurrentDocument() {
+    async function handleSaveCurrentDocument() {
         if (!cm) return;
         triggerSaveSecurityNotice();
         const textContent = cm.getValue();
-        ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName, handle) => {
-            if (handle) {
-                currentFileHandle = handle; // 새로 지정된 저장 파일 핸들 갱신
-            }
-            updateFilenameDisplay(savedName, false);
-            saveDocumentSession();
-            showToast(`"${savedName}" 파일이 저장되었습니다.`);
-            dismissSaveSecurityNoticeDelayed(1000); // 저장 완료 1초 후 배너 숨김
-        });
+        try {
+            await ExportManager.downloadCurrentContent(textContent, currentFilename, (savedName, handle) => {
+                if (handle) {
+                    currentFileHandle = handle; // 새로 지정된 저장 파일 핸들 갱신
+                }
+                updateFilenameDisplay(savedName, false);
+                saveDocumentSession();
+                showToast(`"${savedName}" 파일이 저장되었습니다.`, 1500);
+            });
+        } finally {
+            hideGlobalBottomBanner(); // 저장 기능 종료 즉시 배너 닫기
+        }
     }
 
     // [저장] 버튼: 직접 덮어쓰기 저장 (Direct Overwrite) 헬퍼 함수
@@ -1907,51 +1904,43 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerSaveSecurityNotice();
         const textContent = cm.getValue();
 
-        // 1. 파일 핸들이 존재하는 경우 탐색기 팝업 없이 원본 파일에 직접 덮어쓰기
-        if (currentFileHandle) {
-            try {
-                // 쓰기 권한 점검 및 요청
-                if (typeof currentFileHandle.queryPermission === 'function') {
-                    let perm = await currentFileHandle.queryPermission({ mode: 'readwrite' });
-                    if (perm !== 'granted') {
-                        perm = await currentFileHandle.requestPermission({ mode: 'readwrite' });
+        try {
+            // 1. 파일 핸들이 존재하는 경우 탐색기 팝업 없이 원본 파일에 직접 덮어쓰기
+            if (currentFileHandle) {
+                try {
+                    // 쓰기 권한 점검 및 요청
+                    if (typeof currentFileHandle.queryPermission === 'function') {
+                        let perm = await currentFileHandle.queryPermission({ mode: 'readwrite' });
+                        if (perm !== 'granted') {
+                            perm = await currentFileHandle.requestPermission({ mode: 'readwrite' });
+                        }
+                        if (perm !== 'granted') {
+                            showToast('파일 쓰기 권한이 거부되었습니다.', 1500);
+                            return;
+                        }
                     }
-                    if (perm !== 'granted') {
-                        showToast('파일 쓰기 권한이 거부되었습니다.');
-                        dismissSaveSecurityNoticeDelayed(1000);
-                        return;
-                    }
+
+                    const writable = await currentFileHandle.createWritable();
+                    await writable.write(textContent);
+                    await writable.close();
+
+                    updateFilenameDisplay(currentFileHandle.name, false);
+                    saveDocumentSession();
+                    showToast(`"${currentFileHandle.name}" 파일에 직접 저장되었습니다.`, 1500);
+                    return;
+                } catch (err) {
+                    console.warn('직접 덮어쓰기 저장 실패, SaveAs 다이얼로그로 fallback 진행:', err);
                 }
-
-                const writable = await currentFileHandle.createWritable();
-                await writable.write(textContent);
-                await writable.close();
-
-                updateFilenameDisplay(currentFileHandle.name, false);
-                saveDocumentSession();
-                showToast(`"${currentFileHandle.name}" 파일에 직접 저장되었습니다.`);
-                dismissSaveSecurityNoticeDelayed(1000); // 저장 완료 1초 후 배너 숨김
-                return;
-            } catch (err) {
-                console.warn('직접 덮어쓰기 저장 실패, SaveAs 다이얼로그로 fallback 진행:', err);
-                dismissSaveSecurityNoticeDelayed(1000);
             }
+
+            // 2. 파일 핸들이 없거나(새 파일 등) 덮어쓰기 실패 시 SaveAs 다이얼로그로 fallback
+            await handleSaveCurrentDocument();
+        } finally {
+            hideGlobalBottomBanner(); // 저장 기능 종료 즉시 배너 닫기
         }
-
-        // 2. 파일 핸들이 없거나(새 파일 등) 덮어쓰기 실패 시 SaveAs 다이얼로그로 fallback
-        handleSaveCurrentDocument();
     }
 
-    // 저장([저장]: 직접 덮어쓰기) 및 새이름저장([새이름저장]: SaveAs 다이얼로그) 버튼 클릭 이벤트 바인딩
-    if (btnSave) {
-        btnSave.addEventListener('click', handleSaveDirect);
-    }
-    if (btnSaveAs) {
-        btnSaveAs.addEventListener('click', () => {
-            if (mainMenu) mainMenu.classList.remove('show');
-            handleSaveCurrentDocument();
-        });
-    }
+    // 💡 주: btnSave 및 btnSaveAs 클릭 이벤트는 FrameManager.init({ actions: { onSave: ..., onSaveAs: ... } })를 통해 통합 처리됩니다.
 
     // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)
     if (typeof SettingsManager !== 'undefined') {
