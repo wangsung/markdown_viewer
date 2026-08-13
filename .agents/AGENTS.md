@@ -72,3 +72,14 @@
     1. **`app.js` (`collectExportOptions`)**: 신규 생성된 모든 CSS 커스텀 변수 수집 목록(`cssVarList`) 100% 동기화
     2. **`export-man.js` (`coreMarkdownCss`)**: 독립 HTML 템플릿 내 CSS 바인딩 클래스 및 셀렉터 룰 100% 이식
     3. **Export 연동 검수**: "Preview HTML 저장", "HTML 새창 띄우기 (스타일)", "HTML 새창 띄우기 (기본)" 실행 시 1차 작업 결과물(스타일 및 레이아웃) 100% 보존 검증
+
+## 시스템 설계 원칙 및 오류 처리 지침 (System Design & Error Handling Policy)
+- **Fallback 자동 보정 대상 vs 구조적 오류의 엄격한 구분**:
+  - 사용자 입력의 소소한 가변성이나 단순 데이터 누락 등은 사용자 경험을 해치지 않도록 Fallback으로 보정할 수 있습니다.
+  - 그러나 **테마(`data-editor-theme`), 레이아웃 구조, 필수 DOM 상태와 같이 에디터/프리뷰/프레임 렌더링 전 반드시 확정(Deterministic Decision)되어야 하는 프레임 필수 매개변수 및 상태값의 결함**은 조용히 Fallback으로 은폐(swallow)해서는 안 되며, 반드시 구조적 결함(Structural Bug)으로 명확히 표출 및 교정해야 합니다.
+- **`assert_arg()` 매개변수 단증 및 System Warning 연동 지침**:
+  - 모든 서브 모듈 및 주요 API 진입 시 필수 매개변수(Argument) 및 DOM 상태 유효성을 `assert_arg(condition, message, context)` 단증문으로 검증합니다.
+  - 단증 실패 시:
+    1. 최상단 붉은색 **System Warning 디버깅 배너**를 시각적으로 즉시 노출합니다.
+    2. 에러 트러블슈팅을 위한 상세 스택 및 컨텍스트 정보를 **`localStorage` (`markvi_error_logs`) 및 에러 로그 기록 체계에 누적 저장**합니다.
+    3. 디버그 환경 시 **Fail-Fast** 원칙에 따라 Error를 throw하여 오염된 상태가 시스템 하부로 전파되는 것을 즉시 차단합니다.
