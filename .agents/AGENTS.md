@@ -83,3 +83,11 @@
     1. 최상단 붉은색 **System Warning 디버깅 배너**를 시각적으로 즉시 노출합니다.
     2. 에러 트러블슈팅을 위한 상세 스택 및 컨텍스트 정보를 **`localStorage` (`markvi_error_logs`) 및 에러 로그 기록 체계에 누적 저장**합니다.
     3. 디버그 환경 시 **Fail-Fast** 원칙에 따라 Error를 throw하여 오염된 상태가 시스템 하부로 전파되는 것을 즉시 차단합니다.
+
+## UI 레이아웃 및 렌더링 세부 지침 (UI Layout & Rendering Detailed Policy)
+- **서브픽셀 떨림 방지를 위한 정수 픽셀(Integer Pixel) 배치 원칙**:
+  - Flex 및 Grid 컨테이너의 `gap`, `margin`, `padding`, `border-width` 속성 지정 시 `2.5px`, `1.5px`와 같은 소수점(Fractional) 픽셀 단위를 절대 사용하지 않으며, 모든 레이아웃 갭과 마진은 반드시 정수 픽셀(`1px`, `2px`, `3px`...) 단위로만 정의해야 합니다.
+- **탭/버튼 Active 상태의 외곽 규격 동일성 보장 원칙 (Dimension Invariance)**:
+  - 탭 버튼, 선택 토글 등 `.active` / `.selected` 상태 전환 시 `border-width`, `margin`, `padding` 등 외부 박스 모델 규격(Outer Box Dimensions)을 동적으로 변동시켜서는 안 되며, 상태 전환 시에는 `border-color`, `background-color`, `color`, `box-shadow` 등 시각적 필터/색상 요소만 변경해야 합니다.
+- **DOM 동적 렌더링 후 레이아웃 트래싱(Reflow Thrashing) 금지 원칙**:
+  - 자바스크립트로 DOM 요소를 갱신(`innerHTML`, `appendChild`)한 직후 `scrollHeight`, `offsetHeight`를 즉시 조회하여 인라인 `style.minHeight`를 덧쓰는 코드를 작성해서는 안 되며, 모달 및 탭 컨테이너의 세로 높이는 CSS 순수 고정 레이아웃(`box-sizing: border-box`, 정수 `height`)을 통해 선언적으로 제어해야 합니다.
