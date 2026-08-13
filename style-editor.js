@@ -131,9 +131,10 @@
     let originalColorValue = null;
     let currentH = 0, currentS = 100, currentV = 100;
 
-    // 모달 드래그 상태 변수
+    // 모달 드래그 및 높이 동기화 상태 변수
     let dragX = 0;
     let dragY = 0;
+    let maxControlsHeight = 365;
 
     // HSV ↔ RGB ↔ HEX 변환 헬퍼 함수
     function hexToHsv(hex) {
