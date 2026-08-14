@@ -977,23 +977,23 @@
             container.innerHTML = '';
 
             const presets = typeof options.getPresetsData === 'function' ? options.getPresetsData() : [];
-            const found = presets.find(p => p.id === presetId) || presets[0];
-            if (!found || !found.styles) return;
+            const activePreset = presets.find(p => p.id === presetId) || presets[0];
+            if (!activePreset || !activePreset.styles) return;
 
             if (activeTab === 'table') {
-                this.renderTableControls(found);
+                this.renderTableControls(activePreset);
             } else {
-                this.renderTextControls(found);
+                this.renderTextControls(activePreset);
             }
         },
 
-        renderTextControls: function(found) {
+        renderTextControls: function(activePreset) {
             const container = options.controlsContainer;
             if (!container) return;
 
             // H1 ~ H6 폼 빌드
             ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(tag => {
-                const styleObj = found.styles[tag] || {};
+                const styleObj = activePreset.styles[tag] || {};
                 const colorLight = styleObj.colorLight || styleObj.color || '#1d4ed8';
                 const colorDark = styleObj.colorDark || styleObj.color || '#3b82f6';
                 const size = styleObj.size || '1em';
@@ -1012,7 +1012,7 @@
             });
 
             // 🔗 Link 행
-            const linkObj = found.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
+            const linkObj = activePreset.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
             const linkRow = create_form_row();
             linkRow.innerHTML = `
                 ${TEXT_TAG_LABELS.bracketLink}
@@ -1026,7 +1026,7 @@
             container.appendChild(linkRow);
 
             // 💪 Strong 행
-            const strongObj = found.styles.strong || { colorLight: '#0f172a', colorDark: '#f8fafc' };
+            const strongObj = activePreset.styles.strong || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const strongRow = create_form_row();
             strongRow.innerHTML = `
                 ${TEXT_TAG_LABELS.boldStrong}
@@ -1035,7 +1035,7 @@
             container.appendChild(strongRow);
 
             // ✍️ Em (이탤릭) 행
-            const emObj = found.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
+            const emObj = activePreset.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const emRow = create_form_row();
             emRow.innerHTML = `
                 ${TEXT_TAG_LABELS.italicEm}
@@ -1044,7 +1044,7 @@
             container.appendChild(emRow);
 
             // 📦 Code block 행
-            const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
+            const cbObj = activePreset.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
             const cbRow = create_form_row();
             cbRow.innerHTML = `
                 ${TEXT_TAG_LABELS.codeBlock}
@@ -1054,7 +1054,7 @@
             container.appendChild(cbRow);
 
             // 💬 Blockquote (인용문) 행
-            const bqObj = found.styles.blockquote || { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
+            const bqObj = activePreset.styles.blockquote || { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
             const bqRow = create_form_row();
             bqRow.innerHTML = `
                 ${TEXT_TAG_LABELS.blockquote}
@@ -1064,7 +1064,7 @@
             container.appendChild(bqRow);
 
             // ➖ Line (선 색상/구분선) 행
-            const lineObj = found.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
+            const lineObj = activePreset.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
             const lineRow = create_form_row();
             lineRow.innerHTML = `
                 ${TEXT_TAG_LABELS.horizontalLine}
@@ -1075,14 +1075,14 @@
             container.appendChild(lineRow);
         },
 
-        renderTableControls: function(found) {
+        renderTableControls: function(activePreset) {
             const container = options.controlsContainer;
             if (!container) return;
 
-            const tableObj = (found.styles && found.styles.table) ? found.styles.table : DEFAULT_TABLE_STYLE;
+            const activeTableStyle = (activePreset.styles && activePreset.styles.table) ? activePreset.styles.table : DEFAULT_TABLE_STYLE;
 
             // [1] 표 테두리 행 (맨 위)
-            const isTableBorder = tableObj.borderEnabled !== false;
+            const isTableBorder = activeTableStyle.borderEnabled !== false;
             const borderRow = create_form_row();
             borderRow.innerHTML = `
                 ${build_table_section_header('표 테두리', TABLE_ICONS.border)}
@@ -1090,14 +1090,14 @@
                     <input type="checkbox" id="modal-table-border-enabled" ${isTableBorder ? 'checked' : ''}> 테두리
                 </label>
                 <div id="modal-table-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isTableBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-border-color', tableObj.borderColorLight || '#cbd5e1', tableObj.borderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 테두리 색상', darkTitle: '다크 모드 테두리 색상' })}
-                    ${build_border_style_select_html('modal-table-border-style', tableObj.borderStyle, '1px solid')}
+                    ${build_color_pair_html('modal-table-border-color', activeTableStyle.borderColorLight || '#cbd5e1', activeTableStyle.borderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 테두리 색상', darkTitle: '다크 모드 테두리 색상' })}
+                    ${build_border_style_select_html('modal-table-border-style', activeTableStyle.borderStyle, '1px solid')}
                 </div>
             `;
             container.appendChild(borderRow);
 
             // [2] TH 표 머리 구분선 행 (2번째)
-            const isHeaderBorder = tableObj.headerBorderEnabled !== false;
+            const isHeaderBorder = activeTableStyle.headerBorderEnabled !== false;
             const thBorderRow = create_form_row();
             thBorderRow.innerHTML = `
                 ${build_table_section_header('표 머리 구분선', TABLE_ICONS.headerBorder)}
@@ -1105,14 +1105,14 @@
                     <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
                 </label>
                 <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-header-border-color', tableObj.headerBorderColorLight || '#f43f5e', tableObj.headerBorderColorDark || '#f43f5e', { labelText: '선 색:', lightTitle: '라이트 모드 표 머리 구분선 색상', darkTitle: '다크 모드 표 머리 구분선 색상' })}
-                    ${build_border_style_select_html('modal-table-header-border-style', tableObj.headerBorderStyle, '2px solid')}
+                    ${build_color_pair_html('modal-table-header-border-color', activeTableStyle.headerBorderColorLight || '#f43f5e', activeTableStyle.headerBorderColorDark || '#f43f5e', { labelText: '선 색:', lightTitle: '라이트 모드 표 머리 구분선 색상', darkTitle: '다크 모드 표 머리 구분선 색상' })}
+                    ${build_border_style_select_html('modal-table-header-border-style', activeTableStyle.headerBorderStyle, '2px solid')}
                 </div>
             `;
             container.appendChild(thBorderRow);
 
             // [3] 행 구분선 행 (3번째)
-            const isRowBorder = tableObj.rowBorderEnabled !== false;
+            const isRowBorder = activeTableStyle.rowBorderEnabled !== false;
             const rowBorderRow = create_form_row();
             rowBorderRow.innerHTML = `
                 ${build_table_section_header('행 구분선', TABLE_ICONS.rowBorder)}
@@ -1120,8 +1120,8 @@
                     <input type="checkbox" id="modal-table-row-border-enabled" ${isRowBorder ? 'checked' : ''}> 구분선
                 </label>
                 <div id="modal-table-row-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isRowBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-row-border-color', tableObj.rowBorderColorLight || '#cbd5e1', tableObj.rowBorderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 행 구분선 색상', darkTitle: '다크 모드 행 구분선 색상' })}
-                    ${build_border_style_select_html('modal-table-row-border-style', tableObj.rowBorderStyle, '1px solid')}
+                    ${build_color_pair_html('modal-table-row-border-color', activeTableStyle.rowBorderColorLight || '#cbd5e1', activeTableStyle.rowBorderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 행 구분선 색상', darkTitle: '다크 모드 행 구분선 색상' })}
+                    ${build_border_style_select_html('modal-table-row-border-style', activeTableStyle.rowBorderStyle, '1px solid')}
                 </div>
             `;
             container.appendChild(rowBorderRow);
@@ -1130,13 +1130,13 @@
             const thRow = create_form_row();
             thRow.innerHTML = `
                 ${build_table_section_header('표 머리글', TABLE_ICONS.thBadge)}
-                ${build_color_pair_html('modal-table-header-color', tableObj.headerColorLight || '#0f172a', tableObj.headerColorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 TH 글자색', darkTitle: '다크 모드 TH 글자색' })}
-                ${build_color_pair_html('modal-table-header-bg', tableObj.headerBgLight || '#f1f5f9', tableObj.headerBgDark || '#1e293b', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 TH 배경색', darkTitle: '다크 모드 TH 배경색' })}
+                ${build_color_pair_html('modal-table-header-color', activeTableStyle.headerColorLight || '#0f172a', activeTableStyle.headerColorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 TH 글자색', darkTitle: '다크 모드 TH 글자색' })}
+                ${build_color_pair_html('modal-table-header-bg', activeTableStyle.headerBgLight || '#f1f5f9', activeTableStyle.headerBgDark || '#1e293b', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 TH 배경색', darkTitle: '다크 모드 TH 배경색' })}
             `;
             container.appendChild(thRow);
 
             // [5] 행 배경 행 (TR 역상)
-            const isRowTrans = tableObj.rowBgTransparent !== false;
+            const isRowTrans = activeTableStyle.rowBgTransparent !== false;
             const rowBgRow = create_form_row();
             rowBgRow.innerHTML = `
                 ${build_table_section_header('행 배경', TABLE_ICONS.trBadge)}
@@ -1147,13 +1147,13 @@
                     <input type="radio" name="modal-table-row-bg-mode" value="custom" ${!isRowTrans ? 'checked' : ''}> 배경:
                 </label>
                 <div id="modal-table-row-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${isRowTrans ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-row-bg', tableObj.rowBgLight || '#ffffff', tableObj.rowBgDark || '#0f172a', { labelText: '', lightTitle: '라이트 모드 행 배경색', darkTitle: '다크 모드 행 배경색' })}
+                    ${build_color_pair_html('modal-table-row-bg', activeTableStyle.rowBgLight || '#ffffff', activeTableStyle.rowBgDark || '#0f172a', { labelText: '', lightTitle: '라이트 모드 행 배경색', darkTitle: '다크 모드 행 배경색' })}
                 </div>
             `;
             container.appendChild(rowBgRow);
 
             // [6] 짝수 행 배경 행 (TR2)
-            const isStripe = tableObj.stripeEnabled !== false;
+            const isStripe = activeTableStyle.stripeEnabled !== false;
             const stripeRow = create_form_row();
             stripeRow.innerHTML = `
                 ${build_table_section_header('짝수 행 배경', TABLE_ICONS.tr2Badge)}
@@ -1164,13 +1164,13 @@
                     <input type="radio" name="modal-table-stripe-mode" value="custom" ${isStripe ? 'checked' : ''}> 배경:
                 </label>
                 <div id="modal-table-stripe-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isStripe ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-stripe-bg', tableObj.stripeBgLight || '#f8fafc', tableObj.stripeBgDark || '#1e293b', { labelText: '', lightTitle: '라이트 모드 짝수 행 배경색', darkTitle: '다크 모드 짝수 행 배경색' })}
+                    ${build_color_pair_html('modal-table-stripe-bg', activeTableStyle.stripeBgLight || '#f8fafc', activeTableStyle.stripeBgDark || '#1e293b', { labelText: '', lightTitle: '라이트 모드 짝수 행 배경색', darkTitle: '다크 모드 짝수 행 배경색' })}
                 </div>
             `;
             container.appendChild(stripeRow);
 
             // [7] 행 호버 강조 행 (마우스 아이콘)
-            const isHover = tableObj.hoverEnabled !== false;
+            const isHover = activeTableStyle.hoverEnabled !== false;
             const hoverRow = create_form_row();
             hoverRow.innerHTML = `
                 ${build_table_section_header('행 호버 강조', TABLE_ICONS.hover)}
@@ -1178,7 +1178,7 @@
                     <input type="checkbox" id="modal-table-hover-enabled" ${isHover ? 'checked' : ''}> 마우스 호버 사용
                 </label>
                 <div id="modal-table-hover-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHover ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${build_color_pair_html('modal-table-hover-bg', tableObj.hoverBgLight || '#e2e8f0', tableObj.hoverBgDark || '#334155', { labelText: '', lightTitle: '라이트 모드 마우스 호버 배경색', darkTitle: '다크 모드 마우스 호버 배경색' })}
+                    ${build_color_pair_html('modal-table-hover-bg', activeTableStyle.hoverBgLight || '#e2e8f0', activeTableStyle.hoverBgDark || '#334155', { labelText: '', lightTitle: '라이트 모드 마우스 호버 배경색', darkTitle: '다크 모드 마우스 호버 배경색' })}
                 </div>
             `;
             container.appendChild(hoverRow);
@@ -1189,11 +1189,11 @@
                 ${build_table_section_header('셀 여백 (Pad)', TABLE_ICONS.tdBadge)}
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">여백:</span>
                 <select id="modal-table-padding" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                    <option value="none" ${tableObj.padding === 'none' ? 'selected' : ''}>없음 (0px)</option>
-                    <option value="micro" ${tableObj.padding === 'micro' ? 'selected' : ''}>아주 좁게 (2px 4px)</option>
-                    <option value="compact" ${tableObj.padding === 'compact' ? 'selected' : ''}>좁게 (4px 8px)</option>
-                    <option value="normal" ${tableObj.padding === 'normal' || !tableObj.padding ? 'selected' : ''}>보통 (8px 12px)</option>
-                    <option value="spacious" ${tableObj.padding === 'spacious' ? 'selected' : ''}>넓게 (12px 16px)</option>
+                    <option value="none" ${activeTableStyle.padding === 'none' ? 'selected' : ''}>없음 (0px)</option>
+                    <option value="micro" ${activeTableStyle.padding === 'micro' ? 'selected' : ''}>아주 좁게 (2px 4px)</option>
+                    <option value="compact" ${activeTableStyle.padding === 'compact' ? 'selected' : ''}>좁게 (4px 8px)</option>
+                    <option value="normal" ${activeTableStyle.padding === 'normal' || !activeTableStyle.padding ? 'selected' : ''}>보통 (8px 12px)</option>
+                    <option value="spacious" ${activeTableStyle.padding === 'spacious' ? 'selected' : ''}>넓게 (12px 16px)</option>
                 </select>
             `;
             container.appendChild(padRow);
@@ -1204,9 +1204,9 @@
                 ${build_table_section_header('셀 정렬', TABLE_ICONS.align)}
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">세로 정렬:</span>
                 <select id="modal-table-vertical-align" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                    <option value="top" ${tableObj.verticalAlign === 'top' ? 'selected' : ''}>상단 (Top)</option>
-                    <option value="middle" ${tableObj.verticalAlign === 'middle' || !tableObj.verticalAlign ? 'selected' : ''}>중앙 (Middle)</option>
-                    <option value="bottom" ${tableObj.verticalAlign === 'bottom' ? 'selected' : ''}>하단 (Bottom)</option>
+                    <option value="top" ${activeTableStyle.verticalAlign === 'top' ? 'selected' : ''}>상단 (Top)</option>
+                    <option value="middle" ${activeTableStyle.verticalAlign === 'middle' || !activeTableStyle.verticalAlign ? 'selected' : ''}>중앙 (Middle)</option>
+                    <option value="bottom" ${activeTableStyle.verticalAlign === 'bottom' ? 'selected' : ''}>하단 (Bottom)</option>
                 </select>
             `;
             container.appendChild(alignRow);
