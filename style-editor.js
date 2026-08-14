@@ -145,6 +145,17 @@
         return `<label style="${styleStr}"${titleAttr}>${icon}<input type="color" id="${id}" value="${value}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;"></label>`;
     }
 
+    function build_color_pair_html(baseId, valLight, valDark, opts = {}) {
+        const labelText = opts.labelText !== undefined ? opts.labelText : '색:';
+        const lightTitle = opts.lightTitle || '';
+        const darkTitle = opts.darkTitle || '';
+        const labelStyle = 'font-size:0.75rem; color:var(--text-frame-muted);' + (opts.labelMargin ? ` margin-left:${opts.labelMargin};` : '');
+        const labelHtml = labelText ? `<span style="${labelStyle}">${labelText}</span>` : '';
+        const lightPicker = build_color_picker_html(`${baseId}-light`, 'light', valLight, lightTitle);
+        const darkPicker = build_color_picker_html(`${baseId}-dark`, 'dark', valDark, darkTitle);
+        return `${labelHtml}${lightPicker}${darkPicker}`;
+    }
+
     function bind_toggle_picker(triggerSelector, targetId, isRadio = false) {
         const targetEl = document.getElementById(targetId);
         if (!targetEl) return;
@@ -925,16 +936,11 @@
                 const border = styleObj.border || 'none';
 
                 const row = create_form_row();
-                const lightPicker = build_color_picker_html(`modal-${tag}-color-light`, 'light', colorLight, '라이트 모드 (White 배경) Heading 색상');
-                const darkPicker = build_color_picker_html(`modal-${tag}-color-dark`, 'dark', colorDark, '다크 모드 (Dark 배경) Heading 색상');
-
                 row.innerHTML = `
                     <span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># ${tag.toUpperCase()}</span>
                     <label style="font-size: 0.75rem; color: var(--text-frame-muted);">크기:</label>
                     <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                    <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">색:</span>
-                    ${lightPicker}
-                    ${darkPicker}
+                    ${build_color_pair_html(`modal-${tag}-color`, colorLight, colorDark, { lightTitle: '라이트 모드 (White 배경) Heading 색상', darkTitle: '다크 모드 (Dark 배경) Heading 색상', labelMargin: '2px' })}
                     <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">하단선:</label>
                     <input type="text" id="modal-${tag}-border" value="${border}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                 `;
@@ -944,14 +950,9 @@
             // 🔗 Link 행
             const linkObj = found.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
             const linkRow = create_form_row();
-            const linkLightPicker = build_color_picker_html('modal-link-color-light', 'light', linkObj.colorLight || '#0969da', '라이트 모드 (White 배경) 대괄호 링크 색상');
-            const linkDarkPicker = build_color_picker_html('modal-link-color-dark', 'dark', linkObj.colorDark || '#38bdf8', '다크 모드 (Dark 배경) 대괄호 링크 색상');
-
             linkRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ 대괄호 링크 ]</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                ${linkLightPicker}
-                ${linkDarkPicker}
+                ${build_color_pair_html('modal-link-color', linkObj.colorLight || '#0969da', linkObj.colorDark || '#38bdf8', { lightTitle: '라이트 모드 (White 배경) 대괄호 링크 색상', darkTitle: '다크 모드 (Dark 배경) 대괄호 링크 색상' })}
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">밑줄:</label>
                 <select id="modal-link-decoration" style="padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem; flex:1;">
                     <option value="underline" ${linkObj.decoration === 'underline' ? 'selected' : ''}>underline (밑줄 있음)</option>
@@ -963,80 +964,47 @@
             // 💪 Strong 행
             const strongObj = found.styles.strong || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const strongRow = create_form_row();
-            const strongLightPicker = build_color_picker_html('modal-strong-color-light', 'light', strongObj.colorLight || '#0f172a', '라이트 모드 굵게 글자 색상');
-            const strongDarkPicker = build_color_picker_html('modal-strong-color-dark', 'dark', strongObj.colorDark || '#f8fafc', '다크 모드 굵게 글자 색상');
-
             strongRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;"><strong style="font-size:0.85rem; font-weight:800; font-family:serif; margin-right:6px;">B</strong> ** 굵게 **</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                ${strongLightPicker}
-                ${strongDarkPicker}
+                ${build_color_pair_html('modal-strong-color', strongObj.colorLight || '#0f172a', strongObj.colorDark || '#f8fafc', { lightTitle: '라이트 모드 굵게 글자 색상', darkTitle: '다크 모드 굵게 글자 색상' })}
             `;
             container.appendChild(strongRow);
 
             // ✍️ Em (이탤릭) 행
             const emObj = found.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const emRow = create_form_row();
-            const emLightPicker = build_color_picker_html('modal-em-color-light', 'light', emObj.colorLight || '#0f172a', '라이트 모드 기울임 글자 색상');
-            const emDarkPicker = build_color_picker_html('modal-em-color-dark', 'dark', emObj.colorDark || '#f8fafc', '다크 모드 기울임 글자 색상');
-
             emRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;"><em style="font-size:0.85rem; font-style:italic; font-family:serif; margin-right:6px;">I</em> * 기울임 *</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                ${emLightPicker}
-                ${emDarkPicker}
+                ${build_color_pair_html('modal-em-color', emObj.colorLight || '#0f172a', emObj.colorDark || '#f8fafc', { lightTitle: '라이트 모드 기울임 글자 색상', darkTitle: '다크 모드 기울임 글자 색상' })}
             `;
             container.appendChild(emRow);
 
             // 📦 Code block 행
             const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
             const cbRow = create_form_row();
-            const cbColorLightPicker = build_color_picker_html('modal-codeblock-color-light', 'light', cbObj.colorLight || '#24292e', '라이트 모드 Code Block 글자 색상');
-            const cbColorDarkPicker = build_color_picker_html('modal-codeblock-color-dark', 'dark', cbObj.colorDark || '#f8fafc', '다크 모드 Code Block 글자 색상');
-            const cbBgLightPicker = build_color_picker_html('modal-codeblock-bg-light', 'light', cbObj.bgLight || '#f6f8fa', '라이트 모드 Code Block 배경 색상');
-            const cbBgDarkPicker = build_color_picker_html('modal-codeblock-bg-dark', 'dark', cbObj.bgDark || '#0f172a', '다크 모드 Code Block 배경 색상');
-
             cbRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \`\`\` Code block \`\`\`</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
-                ${cbColorLightPicker}
-                ${cbColorDarkPicker}
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 4px;">배경:</span>
-                ${cbBgLightPicker}
-                ${cbBgDarkPicker}
+                ${build_color_pair_html('modal-codeblock-color', cbObj.colorLight || '#24292e', cbObj.colorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 Code Block 글자 색상', darkTitle: '다크 모드 Code Block 글자 색상' })}
+                ${build_color_pair_html('modal-codeblock-bg', cbObj.bgLight || '#f6f8fa', cbObj.bgDark || '#0f172a', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 Code Block 배경 색상', darkTitle: '다크 모드 Code Block 배경 색상' })}
             `;
             container.appendChild(cbRow);
 
             // 💬 Blockquote (인용문) 행
             const bqObj = found.styles.blockquote || { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
             const bqRow = create_form_row();
-            const bqColorLightPicker = build_color_picker_html('modal-blockquote-color-light', 'light', bqObj.colorLight || '#4b5563', '라이트 모드 인용문 글자 색상');
-            const bqColorDarkPicker = build_color_picker_html('modal-blockquote-color-dark', 'dark', bqObj.colorDark || '#cbd5e1', '다크 모드 인용문 글자 색상');
-            const bqBorderLightPicker = build_color_picker_html('modal-blockquote-border-light', 'light', bqObj.borderLight || '#0969da', '라이트 모드 인용문 들여쓰기 막대 색상');
-            const bqBorderDarkPicker = build_color_picker_html('modal-blockquote-border-dark', 'dark', bqObj.borderDark || '#38bdf8', '다크 모드 인용문 들여쓰기 막대 색상');
-
             bqRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 > 인용문</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">글자:</span>
-                ${bqColorLightPicker}
-                ${bqColorDarkPicker}
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 4px;">들여쓰기 막대:</span>
-                ${bqBorderLightPicker}
-                ${bqBorderDarkPicker}
+                ${build_color_pair_html('modal-blockquote-color', bqObj.colorLight || '#4b5563', bqObj.colorDark || '#cbd5e1', { labelText: '글자:', lightTitle: '라이트 모드 인용문 글자 색상', darkTitle: '다크 모드 인용문 글자 색상' })}
+                ${build_color_pair_html('modal-blockquote-border', bqObj.borderLight || '#0969da', bqObj.borderDark || '#38bdf8', { labelText: '들여쓰기 막대:', labelMargin: '4px', lightTitle: '라이트 모드 인용문 들여쓰기 막대 색상', darkTitle: '다크 모드 인용문 들여쓰기 막대 색상' })}
             `;
             container.appendChild(bqRow);
 
             // ➖ Line (선 색상/구분선) 행
             const lineObj = found.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
             const lineRow = create_form_row();
-            const lineLightPicker = build_color_picker_html('modal-line-color-light', 'light', lineObj.colorLight || '#cbd5e1', '라이트 모드 (White 배경) 선 색상');
-            const lineDarkPicker = build_color_picker_html('modal-line-color-dark', 'dark', lineObj.colorDark || '#334155', '다크 모드 (Dark 배경) 선 색상');
-
             lineRow.innerHTML = `
                 <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ --- line 구분선</span>
-                <span style="font-size: 0.75rem; color: var(--text-frame-muted);">색:</span>
-                ${lineLightPicker}
-                ${lineDarkPicker}
+                ${build_color_pair_html('modal-line-color', lineObj.colorLight || '#cbd5e1', lineObj.colorDark || '#334155', { lightTitle: '라이트 모드 (White 배경) 선 색상', darkTitle: '다크 모드 (Dark 배경) 선 색상' })}
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">선 스타일:</label>
                 <input type="text" id="modal-line-border" value="${lineObj.border || '1px solid #334155'}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
             `;
@@ -1071,17 +1039,13 @@
             // [1] 표 테두리 행 (맨 위)
             const isTableBorder = tableObj.borderEnabled !== false;
             const borderRow = create_form_row();
-            const borderLightPicker = build_color_picker_html('modal-table-border-color-light', 'light', tableObj.borderColorLight || '#cbd5e1', '라이트 모드 테두리 색상');
-            const borderDarkPicker = build_color_picker_html('modal-table-border-color-dark', 'dark', tableObj.borderColorDark || '#334155', '다크 모드 테두리 색상');
             borderRow.innerHTML = `
                 ${build_table_section_header('표 테두리', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg></span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-border-enabled" ${isTableBorder ? 'checked' : ''}> 테두리
                 </label>
                 <div id="modal-table-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isTableBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
-                    ${borderLightPicker}
-                    ${borderDarkPicker}
+                    ${build_color_pair_html('modal-table-border-color', tableObj.borderColorLight || '#cbd5e1', tableObj.borderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 테두리 색상', darkTitle: '다크 모드 테두리 색상' })}
                     <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
                     <select id="modal-table-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                         <option value="none" ${tableObj.borderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
@@ -1097,17 +1061,13 @@
             // [2] TH 표 머리 구분선 행 (2번째)
             const isHeaderBorder = tableObj.headerBorderEnabled !== false;
             const thBorderRow = create_form_row();
-            const thBorderLightPicker = build_color_picker_html('modal-table-header-border-color-light', 'light', tableObj.headerBorderColorLight || '#f43f5e', '라이트 모드 표 머리 구분선 색상');
-            const thBorderDarkPicker = build_color_picker_html('modal-table-header-border-color-dark', 'dark', tableObj.headerBorderColorDark || '#f43f5e', '다크 모드 표 머리 구분선 색상');
             thBorderRow.innerHTML = `
                 ${build_table_section_header('표 머리 구분선', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg></span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
                 </label>
                 <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
-                    ${thBorderLightPicker}
-                    ${thBorderDarkPicker}
+                    ${build_color_pair_html('modal-table-header-border-color', tableObj.headerBorderColorLight || '#f43f5e', tableObj.headerBorderColorDark || '#f43f5e', { labelText: '선 색:', lightTitle: '라이트 모드 표 머리 구분선 색상', darkTitle: '다크 모드 표 머리 구분선 색상' })}
                     <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
                     <select id="modal-table-header-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                         <option value="none" ${tableObj.headerBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
@@ -1123,17 +1083,13 @@
             // [3] 행 구분선 행 (3번째)
             const isRowBorder = tableObj.rowBorderEnabled !== false;
             const rowBorderRow = create_form_row();
-            const rowBorderLightPicker = build_color_picker_html('modal-table-row-border-color-light', 'light', tableObj.rowBorderColorLight || '#cbd5e1', '라이트 모드 행 구분선 색상');
-            const rowBorderDarkPicker = build_color_picker_html('modal-table-row-border-color-dark', 'dark', tableObj.rowBorderColorDark || '#334155', '다크 모드 행 구분선 색상');
             rowBorderRow.innerHTML = `
                 ${build_table_section_header('행 구분선', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="20" x2="21" y2="20"></line><rect x="3" y="4" width="18" height="12" rx="1"></rect></svg></span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-row-border-enabled" ${isRowBorder ? 'checked' : ''}> 구분선
                 </label>
                 <div id="modal-table-row-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isRowBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted);">선 색:</span>
-                    ${rowBorderLightPicker}
-                    ${rowBorderDarkPicker}
+                    ${build_color_pair_html('modal-table-row-border-color', tableObj.rowBorderColorLight || '#cbd5e1', tableObj.rowBorderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 행 구분선 색상', darkTitle: '다크 모드 행 구분선 색상' })}
                     <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
                     <select id="modal-table-row-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                         <option value="none" ${tableObj.rowBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
@@ -1148,26 +1104,16 @@
 
             // [4] TH 표 머리글 행 (4번째)
             const thRow = create_form_row();
-            const thColorLightPicker = build_color_picker_html('modal-table-header-color-light', 'light', tableObj.headerColorLight || '#0f172a', '라이트 모드 TH 글자색');
-            const thColorDarkPicker = build_color_picker_html('modal-table-header-color-dark', 'dark', tableObj.headerColorDark || '#f8fafc', '다크 모드 TH 글자색');
-            const thBgLightPicker = build_color_picker_html('modal-table-header-bg-light', 'light', tableObj.headerBgLight || '#f1f5f9', '라이트 모드 TH 배경색');
-            const thBgDarkPicker = build_color_picker_html('modal-table-header-bg-dark', 'dark', tableObj.headerBgDark || '#1e293b', '다크 모드 TH 배경색');
             thRow.innerHTML = `
                 ${build_table_section_header('표 머리글', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#0284c7; color:#ffffff; border-radius:3px; font-family:monospace; line-height:1.1;">TH</span>')}
-                <span style="font-size:0.75rem; color:var(--text-frame-muted);">글자:</span>
-                ${thColorLightPicker}
-                ${thColorDarkPicker}
-                <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">배경:</span>
-                ${thBgLightPicker}
-                ${thBgDarkPicker}
+                ${build_color_pair_html('modal-table-header-color', tableObj.headerColorLight || '#0f172a', tableObj.headerColorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 TH 글자색', darkTitle: '다크 모드 TH 글자색' })}
+                ${build_color_pair_html('modal-table-header-bg', tableObj.headerBgLight || '#f1f5f9', tableObj.headerBgDark || '#1e293b', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 TH 배경색', darkTitle: '다크 모드 TH 배경색' })}
             `;
             container.appendChild(thRow);
 
             // [5] 행 배경 행 (TR 역상)
             const isRowTrans = tableObj.rowBgTransparent !== false;
             const rowBgRow = create_form_row();
-            const rowBgLightPicker = build_color_picker_html('modal-table-row-bg-light', 'light', tableObj.rowBgLight || '#ffffff', '라이트 모드 행 배경색');
-            const rowBgDarkPicker = build_color_picker_html('modal-table-row-bg-dark', 'dark', tableObj.rowBgDark || '#0f172a', '다크 모드 행 배경색');
             rowBgRow.innerHTML = `
                 ${build_table_section_header('행 배경', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f8fafc; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR</span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
@@ -1177,8 +1123,7 @@
                     <input type="radio" name="modal-table-row-bg-mode" value="custom" ${!isRowTrans ? 'checked' : ''}> 배경:
                 </label>
                 <div id="modal-table-row-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${isRowTrans ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${rowBgLightPicker}
-                    ${rowBgDarkPicker}
+                    ${build_color_pair_html('modal-table-row-bg', tableObj.rowBgLight || '#ffffff', tableObj.rowBgDark || '#0f172a', { labelText: '', lightTitle: '라이트 모드 행 배경색', darkTitle: '다크 모드 행 배경색' })}
                 </div>
             `;
             container.appendChild(rowBgRow);
@@ -1186,8 +1131,6 @@
             // [6] 짝수 행 배경 행 (TR2)
             const isStripe = tableObj.stripeEnabled !== false;
             const stripeRow = create_form_row();
-            const stripeBgLightPicker = build_color_picker_html('modal-table-stripe-bg-light', 'light', tableObj.stripeBgLight || '#f8fafc', '라이트 모드 짝수 행 배경색');
-            const stripeBgDarkPicker = build_color_picker_html('modal-table-stripe-bg-dark', 'dark', tableObj.stripeBgDark || '#1e293b', '다크 모드 짝수 행 배경색');
             stripeRow.innerHTML = `
                 ${build_table_section_header('짝수 행 배경', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#38bdf8; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR2</span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
@@ -1197,8 +1140,7 @@
                     <input type="radio" name="modal-table-stripe-mode" value="custom" ${isStripe ? 'checked' : ''}> 배경:
                 </label>
                 <div id="modal-table-stripe-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isStripe ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${stripeBgLightPicker}
-                    ${stripeBgDarkPicker}
+                    ${build_color_pair_html('modal-table-stripe-bg', tableObj.stripeBgLight || '#f8fafc', tableObj.stripeBgDark || '#1e293b', { labelText: '', lightTitle: '라이트 모드 짝수 행 배경색', darkTitle: '다크 모드 짝수 행 배경색' })}
                 </div>
             `;
             container.appendChild(stripeRow);
@@ -1206,16 +1148,13 @@
             // [7] 행 호버 강조 행 (마우스 아이콘)
             const isHover = tableObj.hoverEnabled !== false;
             const hoverRow = create_form_row();
-            const hoverBgLightPicker = build_color_picker_html('modal-table-hover-bg-light', 'light', tableObj.hoverBgLight || '#e2e8f0', '라이트 모드 마우스 호버 배경색');
-            const hoverBgDarkPicker = build_color_picker_html('modal-table-hover-bg-dark', 'dark', tableObj.hoverBgDark || '#334155', '다크 모드 마우스 호버 배경색');
             hoverRow.innerHTML = `
                 ${build_table_section_header('행 호버 강조', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg></span>')}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-hover-enabled" ${isHover ? 'checked' : ''}> 마우스 호버 사용
                 </label>
                 <div id="modal-table-hover-bg-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHover ? 'opacity:0.35; pointer-events:none;' : ''}">
-                    ${hoverBgLightPicker}
-                    ${hoverBgDarkPicker}
+                    ${build_color_pair_html('modal-table-hover-bg', tableObj.hoverBgLight || '#e2e8f0', tableObj.hoverBgDark || '#334155', { labelText: '', lightTitle: '라이트 모드 마우스 호버 배경색', darkTitle: '다크 모드 마우스 호버 배경색' })}
                 </div>
             `;
             container.appendChild(hoverRow);
