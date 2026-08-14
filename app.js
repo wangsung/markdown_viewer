@@ -151,6 +151,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 pure 서브 함수
+     */
+    function detect_browser_type() {
+        if (typeof navigator === 'undefined') return 'other';
+
+        const ua = navigator.userAgent || '';
+        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
+            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
+            if (isEdge) return 'edge';
+
+            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
+            if (isChrome) return 'chrome';
+        }
+
+        if (/Edg\//i.test(ua)) return 'edge';
+        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
+
+        return 'other';
+    }
+
+    /**
      * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
      * @param {string} message - 표시할 안내 문구
      * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
@@ -162,6 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
             banner.id = 'global-bottom-banner';
             document.body.appendChild(banner);
         }
+
+        const bType = detect_browser_type();
+        banner.setAttribute('data-browser-type', bType);
 
         let contentHtml = `<div class="banner-content">${message || ''}</div>`;
         if (showCloseBtn) {
@@ -193,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (typeof window !== 'undefined') {
+        window.detect_browser_type = detect_browser_type;
         window.showGlobalBottomBanner = showGlobalBottomBanner;
         window.hideGlobalBottomBanner = hideGlobalBottomBanner;
     }
@@ -1384,7 +1409,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 onExportPdfPrint: async () => {
                     if (typeof ExportManager !== 'undefined') {
-                        showGlobalBottomBanner('[인쇄창 설정 안내] 프린터:"PDF로 저장"선택, [기타 설정 더보기]/여백: "사용자 지정" 권장', false);
+                        window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
+                        const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
+                        showGlobalBottomBanner(pdfBannerMsg, false);
                         const exportOptions = collectExportOptions({ theme: 'light' });
                         try {
                             await ExportManager.printToPdf(preview, currentFilename, exportOptions);

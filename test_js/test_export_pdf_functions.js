@@ -35,6 +35,8 @@ const exportManContent = fs.readFileSync(exportManPath, 'utf8');
 const exportManChecks = [
     'async function print_to_pdf',
     'async function save_to_pdf_file',
+    'function get_pdf_print_notice_message',
+    'getPdfPrintNoticeMessage: get_pdf_print_notice_message',
     'printToPdf: print_to_pdf',
     'saveToPdfFile: save_to_pdf_file',
     'print_to_pdf,',
@@ -76,7 +78,9 @@ appChecks.forEach(term => {
 console.log('\n[4/4] Executing runtime mock verification of ExportManager PDF functions...');
 try {
     // Mock global browser environment for export-man.js
-    global.window = {};
+    global.window = {
+        assert_arg: () => true
+    };
     global.document = {
         styleSheets: [],
         createElement: (tag) => {

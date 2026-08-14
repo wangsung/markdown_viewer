@@ -2118,23 +2118,33 @@ div.katex-error {
     left: 0;
     width: 100%;
     z-index: 99999;
-    padding: 6px 16px;
+    padding: 8px 18px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     font-size: 14px;
-    font-weight: 500;
-    line-height: 1.0;
-    background-color: #1e3a5f;
-    border-top: 1px solid #2b5288;
-    color: #93c5fd;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
+    font-weight: 600;
+    line-height: 1.2;
+    background-color: #0f172a;
+    border-top: 2px solid #38bdf8;
+    color: #f8fafc;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
     /* 닫힐 때 즉시 반응하는 빠른 애니메이션 (0.1s) */
     transition: transform 0.1s ease-in, opacity 0.1s ease-in;
     transform: translateY(100%);
     opacity: 0;
     pointer-events: none;
+}
+
+/* Chrome 브라우저 환경 시 하단 배너 중앙 정렬 (Center Align) */
+#global-bottom-banner[data-browser-type="chrome"] {
+    justify-content: center !important;
+}
+
+#global-bottom-banner[data-browser-type="chrome"] .banner-content {
+    justify-content: center !important;
+    text-align: center !important;
 }
 
 #global-bottom-banner.show {
@@ -2147,9 +2157,9 @@ div.katex-error {
 
 [data-editor-theme="light"] #global-bottom-banner {
     background-color: #eff6ff;
-    border-top: 1px solid #bfdbfe;
-    color: #1e40af;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08);
+    border-top: 2px solid #2563eb;
+    color: #1e3a8a;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
 }
 
 #global-bottom-banner .banner-content {
@@ -2158,6 +2168,27 @@ div.katex-error {
     gap: 8px;
     text-align: left;
     justify-content: flex-start;
+}
+
+#global-bottom-banner .banner-badge {
+    display: inline-flex;
+    align-items: center;
+    background: #fbbf24;
+    color: #0f172a;
+    font-size: 0.76rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    line-height: 1.1;
+}
+
+#global-bottom-banner .banner-highlight {
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+[data-editor-theme="light"] #global-bottom-banner .banner-highlight {
+    color: #1d4ed8;
 }
 
 #global-bottom-banner .banner-content strong {
