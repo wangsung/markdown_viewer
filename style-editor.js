@@ -134,6 +134,22 @@
         align: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"></line><polyline points="8 7 12 3 16 7"></polyline><polyline points="8 17 12 21 16 17"></polyline></svg></span>'
     };
 
+    // 3. Text 컨트롤 태그 라벨 상수 객체
+    const TEXT_TAG_LABELS = {
+        h1: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H1</span>',
+        h2: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H2</span>',
+        h3: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H3</span>',
+        h4: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H4</span>',
+        h5: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H5</span>',
+        h6: '<span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># H6</span>',
+        bracketLink: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ 대괄호 링크 ]</span>',
+        boldStrong: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;"><strong style="font-size:0.85rem; font-weight:800; font-family:serif; margin-right:6px;">B</strong> ** 굵게 **</span>',
+        italicEm: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;"><em style="font-size:0.85rem; font-style:italic; font-family:serif; margin-right:6px;">I</em> * 기울임 *</span>',
+        codeBlock: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 ``` Code block ```</span>',
+        blockquote: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 > 인용문</span>',
+        horizontalLine: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ --- line 구분선</span>'
+    };
+
 
     // -------------------------------------------------------------------------
     // 🛠️ 순수 서브 함수 (snake_case)
@@ -950,7 +966,7 @@
 
                 const row = create_form_row();
                 row.innerHTML = `
-                    <span style="font-weight: 700; width: 42px; font-size: 0.8rem; color: var(--frame-accent-color);"># ${tag.toUpperCase()}</span>
+                    ${TEXT_TAG_LABELS[tag]}
                     <label style="font-size: 0.75rem; color: var(--text-frame-muted);">크기:</label>
                     <input type="text" id="modal-${tag}-size" value="${size}" style="width: 45px; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                     ${build_color_pair_html(`modal-${tag}-color`, colorLight, colorDark, { lightTitle: '라이트 모드 (White 배경) Heading 색상', darkTitle: '다크 모드 (Dark 배경) Heading 색상', labelMargin: '2px' })}
@@ -964,7 +980,7 @@
             const linkObj = found.styles.link || { colorLight: '#0969da', colorDark: '#38bdf8', decoration: 'underline' };
             const linkRow = create_form_row();
             linkRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #38bdf8; display:flex; align-items:center; gap:2px;">🔗 [ 대괄호 링크 ]</span>
+                ${TEXT_TAG_LABELS.bracketLink}
                 ${build_color_pair_html('modal-link-color', linkObj.colorLight || '#0969da', linkObj.colorDark || '#38bdf8', { lightTitle: '라이트 모드 (White 배경) 대괄호 링크 색상', darkTitle: '다크 모드 (Dark 배경) 대괄호 링크 색상' })}
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">밑줄:</label>
                 <select id="modal-link-decoration" style="padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem; flex:1;">
@@ -978,7 +994,7 @@
             const strongObj = found.styles.strong || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const strongRow = create_form_row();
             strongRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #f59e0b; display:flex; align-items:center; gap:2px;"><strong style="font-size:0.85rem; font-weight:800; font-family:serif; margin-right:6px;">B</strong> ** 굵게 **</span>
+                ${TEXT_TAG_LABELS.boldStrong}
                 ${build_color_pair_html('modal-strong-color', strongObj.colorLight || '#0f172a', strongObj.colorDark || '#f8fafc', { lightTitle: '라이트 모드 굵게 글자 색상', darkTitle: '다크 모드 굵게 글자 색상' })}
             `;
             container.appendChild(strongRow);
@@ -987,7 +1003,7 @@
             const emObj = found.styles.em || { colorLight: '#0f172a', colorDark: '#f8fafc' };
             const emRow = create_form_row();
             emRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #eab308; display:flex; align-items:center; gap:2px;"><em style="font-size:0.85rem; font-style:italic; font-family:serif; margin-right:6px;">I</em> * 기울임 *</span>
+                ${TEXT_TAG_LABELS.italicEm}
                 ${build_color_pair_html('modal-em-color', emObj.colorLight || '#0f172a', emObj.colorDark || '#f8fafc', { lightTitle: '라이트 모드 기울임 글자 색상', darkTitle: '다크 모드 기울임 글자 색상' })}
             `;
             container.appendChild(emRow);
@@ -996,7 +1012,7 @@
             const cbObj = found.styles.codeblock || { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
             const cbRow = create_form_row();
             cbRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #ec4899; display:flex; align-items:center; gap:2px;">💻 \`\`\` Code block \`\`\`</span>
+                ${TEXT_TAG_LABELS.codeBlock}
                 ${build_color_pair_html('modal-codeblock-color', cbObj.colorLight || '#24292e', cbObj.colorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 Code Block 글자 색상', darkTitle: '다크 모드 Code Block 글자 색상' })}
                 ${build_color_pair_html('modal-codeblock-bg', cbObj.bgLight || '#f6f8fa', cbObj.bgDark || '#0f172a', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 Code Block 배경 색상', darkTitle: '다크 모드 Code Block 배경 색상' })}
             `;
@@ -1006,7 +1022,7 @@
             const bqObj = found.styles.blockquote || { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
             const bqRow = create_form_row();
             bqRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #a855f7; display:flex; align-items:center; gap:2px;">💬 > 인용문</span>
+                ${TEXT_TAG_LABELS.blockquote}
                 ${build_color_pair_html('modal-blockquote-color', bqObj.colorLight || '#4b5563', bqObj.colorDark || '#cbd5e1', { labelText: '글자:', lightTitle: '라이트 모드 인용문 글자 색상', darkTitle: '다크 모드 인용문 글자 색상' })}
                 ${build_color_pair_html('modal-blockquote-border', bqObj.borderLight || '#0969da', bqObj.borderDark || '#38bdf8', { labelText: '들여쓰기 막대:', labelMargin: '4px', lightTitle: '라이트 모드 인용문 들여쓰기 막대 색상', darkTitle: '다크 모드 인용문 들여쓰기 막대 색상' })}
             `;
@@ -1016,7 +1032,7 @@
             const lineObj = found.styles.line || { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
             const lineRow = create_form_row();
             lineRow.innerHTML = `
-                <span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ --- line 구분선</span>
+                ${TEXT_TAG_LABELS.horizontalLine}
                 ${build_color_pair_html('modal-line-color', lineObj.colorLight || '#cbd5e1', lineObj.colorDark || '#334155', { lightTitle: '라이트 모드 (White 배경) 선 색상', darkTitle: '다크 모드 (Dark 배경) 선 색상' })}
                 <label style="font-size: 0.75rem; color: var(--text-frame-muted); margin-left: 2px;">선 스타일:</label>
                 <input type="text" id="modal-line-border" value="${lineObj.border || '1px solid #334155'}" placeholder="1px solid #334155" style="flex:1; padding: 2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
