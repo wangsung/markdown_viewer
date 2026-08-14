@@ -626,7 +626,7 @@
         }
 
         // 6. Color Swatch Restore
-        const colorSwatchCheckbox = els.colorSwatchCheckbox || (typeof document !== 'undefined' ? document.getElementById('color-swatch-checkbox') : null);
+        const colorSwatchCheckbox = els.colorSwatchCheckbox || (typeof document !== 'undefined' ? document.getElementById('color-swatch-toggle') : null);
         if (colorSwatchCheckbox) {
             colorSwatchCheckbox.checked = typeof sessionData.colorSwatchEnabled === 'boolean' ? sessionData.colorSwatchEnabled : true;
             if (typeof cb.onColorSwatchToggle === 'function') {

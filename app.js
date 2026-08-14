@@ -87,53 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${cleanPt}pt`;
     }
 
-    /**
-     * 순수 하위 서브 함수: 코드 블록 내의 Hex 컬러 코드 옆에 작은 네모 스와치를 주입합니다.
-     * @param {Document} doc - 전역 document 객체
-     * @param {HTMLElement} previewContainer - 스와치를 주입할 대상 컨테이너 엘리먼트
-     */
-    function inject_color_swatches(doc, previewContainer) {
-        if (!doc || !previewContainer) return;
-        
-        // 1. 코드 블록 내의 hljs 숫자 토큰
-        const hljsNumbers = Array.from(previewContainer.querySelectorAll('pre code span.hljs-number'));
-        
-        // 2. 인라인 코드 요소 (백틱) - pre 내부 제외
-        const inlineCodes = Array.from(previewContainer.querySelectorAll('code')).filter(code => {
-            return !code.closest('pre');
-        });
-        
-        const targets = [...hljsNumbers, ...inlineCodes];
-        const hexColorRegex = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-        
-        targets.forEach(el => {
-            const text = el.textContent.trim();
-            if (hexColorRegex.test(text)) {
-                const nextNode = el.nextElementSibling;
-                if (nextNode && nextNode.classList.contains('color-swatch')) return;
-                
-                const swatch = doc.createElement('span');
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = text;
-                
-                if (el.parentNode) {
-                    el.parentNode.insertBefore(swatch, el.nextSibling);
-                }
-            }
-        });
-    }
-
-    /**
-     * 순수 하위 서브 함수: 코드 블록 내의 스와치(네모) 엘리먼트들을 DOM에서 물리적으로 완전히 삭제합니다.
-     * @param {HTMLElement} previewContainer - 스와치를 제거할 대상 컨테이너 엘리먼트
-     */
-    function remove_color_swatches(previewContainer) {
-        if (!previewContainer) return;
-        const swatches = previewContainer.querySelectorAll('.color-swatch');
-        swatches.forEach(swatch => {
-            swatch.remove();
-        });
-    }
 
     /**
      * 순수 하위 서브 함수: 코드 블록 테마(라이트/다크)를 동적으로 전환합니다.
@@ -635,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Preview Max Width Limit Control (snake_case sub-function)
     // ==========================================================================
     function apply_preview_max_width_limit(isLimited = true) {
+        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewMaxWidthLimit === 'function') {
+            PreviewManager.applyPreviewMaxWidthLimit(previewViewport, isLimited);
+        }
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyPreviewMaxWidthLimit === 'function') {
             FrameManager.applyPreviewMaxWidthLimit(isLimited);
         }
@@ -834,6 +790,11 @@ document.addEventListener('DOMContentLoaded', () => {
             mathRenderCheckbox.checked = enableMathSupport;
         }
     }
+    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function') {
+        PreviewManager.setMathSupport(enableMathSupport);
+    } else {
+        window._enableMathSupport = enableMathSupport;
+    }
 
     // Mermaid availability and state initialization
     const isMermaidAvailable = typeof mermaid !== 'undefined';
@@ -846,6 +807,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (diagramRenderCheckbox) {
             diagramRenderCheckbox.checked = enableDiagramSupport;
         }
+    }
+    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function') {
+        PreviewManager.setDiagramSupport(enableDiagramSupport);
+    } else {
+        window._enableDiagramSupport = enableDiagramSupport;
     }
 
     // Initialize mermaid if available
@@ -994,106 +960,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Main Render Function with Line Mapping
     function renderMarkdown() {
-        // Windows 개행문자(\r\n)를 Unix 개행문자(\n)로 통일하여 marked 토큰과 인덱스를 일치시킴
-        const markdownText = cm.getValue().replace(/\r\n/g, '\n');
-        if (typeof marked === 'undefined') {
-            preview.innerHTML = `<div style="color: red; padding: 20px;">marked.js 라이브러리가 로드되지 않았습니다.</div>`;
-            return;
-        }
-
-        try {
-            // 1. 문자열 오프셋 기반 줄 번호 조회를 위한 줄 경계선 배열 생성
-            const linePositions = [0];
-            let pos = 0;
-            while ((pos = markdownText.indexOf('\n', pos)) !== -1) {
-                linePositions.push(pos + 1);
-                pos++;
-            }
-
-            function getLineNumber(charIndex) {
-                let low = 0;
-                let high = linePositions.length - 1;
-                while (low <= high) {
-                    const mid = Math.floor((low + high) / 2);
-                    if (linePositions[mid] === charIndex) {
-                        return mid + 1;
-                    } else if (linePositions[mid] < charIndex) {
-                        low = mid + 1;
-                    } else {
-                        high = mid - 1;
-                    }
-                }
-                return low; // 가장 가까운 줄 번호 반환
-            }
-
-            // 2. 마크다운을 블록 토큰(AST)으로 컴파일
-            const tokens = marked.lexer(markdownText);
-            let lastSearchIndex = 0;
-
-            // 3. 첫 태그에 data-line을 삽입하는 헬퍼 함수
-            function injectDataLine(html, line) {
-                const trimmed = html.trim();
-                if (trimmed.startsWith('<')) {
-                    // 첫 HTML 여는 태그명 뒤에 data-line 속성 삽입 (예: <p> -> <p data-line="10">)
-                    return trimmed.replace(/^<([a-zA-Z0-9\-]+)/, `<$1 data-line="${line}"`);
-                }
-                return html;
-            }
-
-            // 4. 개별 토큰 렌더링 후 data-line 주입 및 병합
-            const htmlSegments = tokens.map(token => {
-                // 토큰 텍스트의 시작 오프셋 찾기
-                const index = markdownText.indexOf(token.raw, lastSearchIndex);
-                let lineNum = 1;
-                if (index !== -1) {
-                    lineNum = getLineNumber(index);
-                    lastSearchIndex = index + token.raw.length; // 검색 범위 갱신
-                }
-                
-                // 단일 토큰 렌더링
-                let rawHtml = '';
-                try {
-                    rawHtml = marked.parser([token]);
-                } catch (err) {
-                    console.error("Token parsing error:", err);
-                    rawHtml = token.raw;
-                }
-                
-                return injectDataLine(rawHtml, lineNum);
-            });
-
-            preview.innerHTML = htmlSegments.join('\n');
-            
-            // 컬러 스와치 주입 (순수 서브 함수 호출) - 토글이 켜져 있을 때만
-            if (!colorSwatchCheckbox || colorSwatchCheckbox.checked) {
-                inject_color_swatches(document, preview);
-            }
-            
-            // Render Mermaid diagrams asynchronously if enabled and available
-            if (enableDiagramSupport && isMermaidAvailable) {
-                try {
-                    mermaid.run({
-                        querySelector: '.mermaid'
-                    }).catch(err => {
-                        console.error("Mermaid asynchronous render error:", err);
-                    });
-                } catch (e) {
-                    console.error("Mermaid run invocation error:", e);
-                }
-            }
-            
-            // 렌더링 완료 후 스크롤 싱크 키프레임 목록 재구축 (Stage 1)
-            if (scrollSync) {
-                scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
-            }
-
-            // 에디터 텍스트 파싱을 통한 TOC 목록 동적 빌드
-            buildTOC();
-            
-        } catch (e) {
-            console.error("Rendering error:", e);
-            preview.innerHTML = `<div style="color: red; padding: 20px;">마크다운 렌더링 에러: ${e.message}</div>`;
-        }
+        window.assert_arg(typeof window.PreviewManager !== 'undefined', 'PreviewManager module is required!');
+        PreviewManager.renderMarkdown(cm, preview, colorSwatchCheckbox, scrollSync, typeof buildTOC === 'function' ? buildTOC : null);
     }
 
     // (초기 렌더링 및 입력 이벤트 리스너는 변수 TDZ 참조 오류를 방지하기 위해 스크롤 싱크 로직이 완료된 파일 최하단으로 이동 배치되었습니다)
@@ -1110,7 +978,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Font Family Selector
     fontSelect.addEventListener('change', () => {
         const selectedFont = fontSelect.value;
-        if (preview) preview.style.setProperty('--preview-font-family', selectedFont);
+        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewFontFamily === 'function') {
+            PreviewManager.applyPreviewFontFamily(preview, selectedFont);
+        } else if (preview) {
+            preview.style.setProperty('--preview-font-family', selectedFont);
+        }
         document.documentElement.style.setProperty('--preview-font-family', selectedFont);
         saveDocumentSession();
     });
@@ -1119,7 +991,11 @@ document.addEventListener('DOMContentLoaded', () => {
     fontSizeSelect.addEventListener('change', () => {
         const selectedVal = fontSizeSelect.value;
         const computedPt = calc_scaled_font_size(selectedVal, 10);
-        if (preview) preview.style.setProperty('--preview-font-size', computedPt);
+        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewFontSize === 'function') {
+            PreviewManager.applyPreviewFontSize(preview, computedPt);
+        } else if (preview) {
+            preview.style.setProperty('--preview-font-size', computedPt);
+        }
         document.documentElement.style.setProperty('--preview-font-size', computedPt);
         document.documentElement.style.setProperty('--editor-font-size', computedPt);
         if (cm && typeof cm.refresh === 'function') cm.refresh();
@@ -1381,10 +1257,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof updateThemeColors === 'function') updateThemeColors(color);
                 },
                 onColorSwatchToggle: (enabled) => {
-                    if (!enabled) {
-                        remove_color_swatches(preview);
-                    } else {
-                        inject_color_swatches(document, preview);
+                    if (typeof PreviewManager !== 'undefined') {
+                        if (!enabled) {
+                            PreviewManager.removeColorSwatches(preview);
+                        } else {
+                            PreviewManager.injectColorSwatches(document, preview);
+                        }
                     }
                 },
                 onScrollSyncToggle: (enabled) => {
@@ -1856,6 +1734,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
             enableMathSupport = mathRenderCheckbox.checked;
+            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function', 'PreviewManager.setMathSupport is required!', { PreviewManager });
+            PreviewManager.setMathSupport(enableMathSupport);
             renderMarkdown();
         });
     }
@@ -1864,6 +1744,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (diagramRenderCheckbox) {
         diagramRenderCheckbox.addEventListener('change', () => {
             enableDiagramSupport = diagramRenderCheckbox.checked;
+            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function', 'PreviewManager.setDiagramSupport is required!', { PreviewManager });
+            PreviewManager.setDiagramSupport(enableDiagramSupport);
             renderMarkdown();
         });
     }
@@ -1871,10 +1753,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Color 스와치 토글 변경 시 이벤트 바인딩
     if (colorSwatchCheckbox) {
         colorSwatchCheckbox.addEventListener('change', () => {
+            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.injectColorSwatches === 'function', 'PreviewManager.injectColorSwatches is required!', { PreviewManager });
             if (colorSwatchCheckbox.checked) {
-                inject_color_swatches(document, preview);
+                PreviewManager.injectColorSwatches(document, preview);
             } else {
-                remove_color_swatches(preview);
+                PreviewManager.removeColorSwatches(preview);
             }
             saveDocumentSession();
         });
