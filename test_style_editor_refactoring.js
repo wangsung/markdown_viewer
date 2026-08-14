@@ -291,15 +291,19 @@ function test_theme_toggle_switch() {
     const btnLight = document.getElementById('btn-style-editor-theme-light');
     const btnDark = document.getElementById('btn-style-editor-theme-dark');
 
+    const headingModal = document.getElementById('heading-modal');
+
     // 라이트 모드 동기화 검증
     window.StyleEditor.updateThemeToggleUI('light');
     run_assert(btnLight.classList.contains('active'), 'updateThemeToggleUI("light") 시 btnLight가 active 상태임');
     run_assert(!btnDark.classList.contains('active'), 'updateThemeToggleUI("light") 시 btnDark가 active 해제됨');
+    run_assert(headingModal.getAttribute('data-dialog-theme') === 'light', 'updateThemeToggleUI("light") 시 data-dialog-theme="light" 속성이 부여됨');
 
     // 다크 모드 동기화 검증
     window.StyleEditor.updateThemeToggleUI('dark');
     run_assert(btnDark.classList.contains('active'), 'updateThemeToggleUI("dark") 시 btnDark가 active 상태임');
     run_assert(!btnLight.classList.contains('active'), 'updateThemeToggleUI("dark") 시 btnLight가 active 해제됨');
+    run_assert(headingModal.getAttribute('data-dialog-theme') === 'dark', 'updateThemeToggleUI("dark") 시 data-dialog-theme="dark" 속성이 부여됨');
 
     // 이벤트 리스너 콜백 동작 검증
     let lastThemeChanged = null;

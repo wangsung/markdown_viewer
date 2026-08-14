@@ -2034,6 +2034,17 @@ div.katex-error {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* Dialog 헤더 테마 토글 스위치 상태에 따른 단일 Color Picker 선택 노출 */
+#heading-modal[data-dialog-theme="light"] .color-picker-dark,
+[data-dialog-theme="light"] .color-picker-dark {
+    display: none !important;
+}
+
+#heading-modal[data-dialog-theme="dark"] .color-picker-light,
+[data-dialog-theme="dark"] .color-picker-light {
+    display: none !important;
+}
+
 /* 스타일 편집 모달 폴더형 탭 바 및 탭 버튼 전용 스타일 */
 .style-editor-tab-bar {
     display: flex;

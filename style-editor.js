@@ -193,7 +193,8 @@
             ? 'font-size: 0.72rem; color: #0f172a; background: #ffffff; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1; display:inline-flex; align-items:center; gap:3px; cursor:pointer;'
             : 'font-size: 0.72rem; color: #f8fafc; background: #0f172a; padding: 1px 5px; border-radius: 4px; border: 1px solid #334155; display:inline-flex; align-items:center; gap:3px; cursor:pointer;';
         const titleAttr = title ? ` title="${title}"` : '';
-        return `<label style="${styleStr}"${titleAttr}>${icon}<input type="color" id="${id}" value="${value}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;"></label>`;
+        const pickerClass = isLight ? 'color-picker-light' : 'color-picker-dark';
+        return `<label class="${pickerClass}" style="${styleStr}"${titleAttr}>${icon}<input type="color" id="${id}" value="${value}" style="width:18px; height:18px; border:none; background:none; cursor:pointer; padding:0;"></label>`;
     }
 
     function build_color_pair_html(baseId, valLight, valDark, opts = {}) {
@@ -663,9 +664,18 @@
     function update_theme_toggle_ui(theme) {
         const btnLight = document.getElementById('btn-style-editor-theme-light');
         const btnDark = document.getElementById('btn-style-editor-theme-dark');
+        const headingModal = document.getElementById('heading-modal');
+        const targetTheme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
+
+        if (headingModal) {
+            headingModal.setAttribute('data-dialog-theme', targetTheme);
+        }
+        if (options && options.controlsContainer) {
+            options.controlsContainer.setAttribute('data-dialog-theme', targetTheme);
+        }
+
         if (!btnLight || !btnDark) return;
 
-        const targetTheme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
         if (targetTheme === 'light') {
             btnLight.classList.add('active');
             btnDark.classList.remove('active');
