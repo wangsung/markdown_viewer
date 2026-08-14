@@ -769,6 +769,43 @@ const ExportManager = (function() {
         }
     }
 
+    /**
+     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 순수 서브 함수
+     */
+    function detect_browser_type() {
+        if (typeof navigator === 'undefined') return 'other';
+
+        const ua = navigator.userAgent || '';
+        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
+            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
+            if (isEdge) return 'edge';
+
+            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
+            if (isChrome) return 'chrome';
+        }
+
+        if (/Edg\//i.test(ua)) return 'edge';
+        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
+
+        return 'other';
+    }
+
+    /**
+     * 브라우저 종류에 맞는 PDF 인쇄 안내 HTML 메시지를 반환하는 순수 서브 함수
+     * @param {string} [browserType] - 전달받은 브라우저 종류 (미지정 시 자동 감지)
+     * @returns {string} 하단 배너용 HTML 메시지 문자열
+     */
+    function get_pdf_print_notice_message(browserType) {
+        const bType = browserType || detect_browser_type();
+        if (bType === 'edge') {
+            return '💡 <span class="banner-badge">인쇄 안내</span> - [프린터]: <strong class="banner-highlight">"PDF로 저장"</strong> | [기타 설정] ➔ [여백]: <strong class="banner-highlight">"최소" 또는 "사용자 지정"</strong>';
+        }
+        if (bType === 'chrome') {
+            return '💡 <span class="banner-badge">인쇄 안내</span> - (프린터) [대상]: <strong class="banner-highlight">"PDF로 저장"</strong>  |  [여백]: <strong class="banner-highlight">"맞춤"</strong> 권장';
+        }
+        return '💡 <span class="banner-badge">인쇄 안내</span> - [프린터]: <strong class="banner-highlight">"PDF로 저장"</strong> | [여백]: <strong class="banner-highlight">"맞춤"</strong> 권장';
+    }
+
     // 외부로 공개하는 모듈 API
     return {
         copyPreviewToClipboard,
@@ -778,6 +815,8 @@ const ExportManager = (function() {
         openPreviewHtmlInNewWindow,
         openDefaultPreviewHtmlInNewWindow,
         downloadCurrentContent,
+        getPdfPrintNoticeMessage: get_pdf_print_notice_message,
+        get_pdf_print_notice_message,
         printToPdf: print_to_pdf,
         saveToPdfFile: save_to_pdf_file,
         print_to_pdf,

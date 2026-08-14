@@ -8,7 +8,7 @@ console.log('=====================================================\n');
 let allPassed = true;
 
 // 1. Verify UI Elements in markdown_viewer.html
-const htmlPath = path.join(__dirname, '..', '');
+const htmlPath = path.join(__dirname, '..', 'markdown_viewer.html');
 const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
 const htmlChecks = [
@@ -29,12 +29,14 @@ htmlChecks.forEach(term => {
 });
 
 // 2. Verify export-man.js function definitions & exports
-const exportManPath = path.join(__dirname, '..', '');
+const exportManPath = path.join(__dirname, '..', 'export-man.js');
 const exportManContent = fs.readFileSync(exportManPath, 'utf8');
 
 const exportManChecks = [
     'async function print_to_pdf',
     'async function save_to_pdf_file',
+    'function get_pdf_print_notice_message',
+    'getPdfPrintNoticeMessage: get_pdf_print_notice_message',
     'printToPdf: print_to_pdf',
     'saveToPdfFile: save_to_pdf_file',
     'print_to_pdf,',
@@ -52,14 +54,14 @@ exportManChecks.forEach(term => {
 });
 
 // 3. Verify app.js DOM bindings and click listeners
-const appPath = path.join(__dirname, '..', '');
+const appPath = path.join(__dirname, '..', 'app.js');
 const appContent = fs.readFileSync(appPath, 'utf8');
 
 const appChecks = [
-    "btnExportPdfPrint = document.getElementById('btn-export-pdf-print')",
-    "btnExportPdfHtml2Pdf = document.getElementById('btn-export-pdf-html2pdf')",
+    "btnExportPdfPrint: document.getElementById('btn-export-pdf-print')",
+    "btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf')",
     "ExportManager.printToPdf(preview, currentFilename, exportOptions)",
-    "ExportManager.saveToPdfFile(preview, currentFilename, exportOptions)"
+    "ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions())"
 ];
 
 console.log('\n[3/4] Checking app.js bindings and event listeners...');
@@ -76,7 +78,9 @@ appChecks.forEach(term => {
 console.log('\n[4/4] Executing runtime mock verification of ExportManager PDF functions...');
 try {
     // Mock global browser environment for export-man.js
-    global.window = {};
+    global.window = {
+        assert_arg: () => true
+    };
     global.document = {
         styleSheets: [],
         createElement: (tag) => {
