@@ -150,6 +150,28 @@
         horizontalLine: '<span style="font-weight: 700; width: 140px; font-size: 0.76rem; color: #10b981; display:flex; align-items:center; gap:2px;">➖ --- line 구분선</span>'
     };
 
+    // 4. Table 기본 스타일 상수 객체
+    const DEFAULT_TABLE_STYLE = {
+        headerColorLight: '#0f172a',
+        headerColorDark: '#f8fafc',
+        headerBgLight: '#f1f5f9',
+        headerBgDark: '#1e293b',
+        rowBgTransparent: true,
+        rowBgLight: '#ffffff',
+        rowBgDark: '#0f172a',
+        stripeEnabled: true,
+        stripeBgLight: '#f8fafc',
+        stripeBgDark: '#1e293b',
+        hoverEnabled: true,
+        hoverBgLight: '#e2e8f0',
+        hoverBgDark: '#334155',
+        borderColorLight: '#cbd5e1',
+        borderColorDark: '#334155',
+        borderStyle: '1px solid',
+        padding: 'normal',
+        verticalAlign: 'middle'
+    };
+
 
     // -------------------------------------------------------------------------
     // 🛠️ 순수 서브 함수 (snake_case)
@@ -183,6 +205,19 @@
         const lightPicker = build_color_picker_html(`${baseId}-light`, 'light', valLight, lightTitle);
         const darkPicker = build_color_picker_html(`${baseId}-dark`, 'dark', valDark, darkTitle);
         return `${labelHtml}${lightPicker}${darkPicker}`;
+    }
+
+    function build_border_style_select_html(id, currentValue, defaultVal = '1px solid') {
+        const val = currentValue || defaultVal;
+        const opt = (v, label) => `<option value="${v}" ${val === v ? 'selected' : ''}>${label}</option>`;
+        return `<span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>` +
+               `<select id="${id}" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">` +
+               opt('none', '없음 ( none )') +
+               opt('1px solid', '가는 선 ( 1px solid )') +
+               opt('1px dashed', '점선 ( 1px dashed )') +
+               opt('2px solid', '굵은 선 ( 2px solid )') +
+               opt('2px dashed', '굵은 점선 ( 2px dashed )') +
+               `</select>`;
     }
 
     function bind_toggle_picker(triggerSelector, targetId, isRadio = false) {
@@ -1044,26 +1079,7 @@
             const container = options.controlsContainer;
             if (!container) return;
 
-            const tableObj = found.styles && found.styles.table ? found.styles.table : {
-                headerColorLight: '#0f172a',
-                headerColorDark: '#f8fafc',
-                headerBgLight: '#f1f5f9',
-                headerBgDark: '#1e293b',
-                rowBgTransparent: true,
-                rowBgLight: '#ffffff',
-                rowBgDark: '#0f172a',
-                stripeEnabled: true,
-                stripeBgLight: '#f8fafc',
-                stripeBgDark: '#1e293b',
-                hoverEnabled: true,
-                hoverBgLight: '#e2e8f0',
-                hoverBgDark: '#334155',
-                borderColorLight: '#cbd5e1',
-                borderColorDark: '#334155',
-                borderStyle: '1px solid',
-                padding: 'normal',
-                verticalAlign: 'middle'
-            };
+            const tableObj = (found.styles && found.styles.table) ? found.styles.table : DEFAULT_TABLE_STYLE;
 
             // [1] 표 테두리 행 (맨 위)
             const isTableBorder = tableObj.borderEnabled !== false;
@@ -1075,14 +1091,7 @@
                 </label>
                 <div id="modal-table-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isTableBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
                     ${build_color_pair_html('modal-table-border-color', tableObj.borderColorLight || '#cbd5e1', tableObj.borderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 테두리 색상', darkTitle: '다크 모드 테두리 색상' })}
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
-                    <select id="modal-table-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                        <option value="none" ${tableObj.borderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
-                        <option value="1px solid" ${tableObj.borderStyle === '1px solid' || !tableObj.borderStyle ? 'selected' : ''}>가는 선 ( 1px solid )</option>
-                        <option value="1px dashed" ${tableObj.borderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
-                        <option value="2px solid" ${tableObj.borderStyle === '2px solid' ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
-                        <option value="2px dashed" ${tableObj.borderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
-                    </select>
+                    ${build_border_style_select_html('modal-table-border-style', tableObj.borderStyle, '1px solid')}
                 </div>
             `;
             container.appendChild(borderRow);
@@ -1097,14 +1106,7 @@
                 </label>
                 <div id="modal-table-header-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isHeaderBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
                     ${build_color_pair_html('modal-table-header-border-color', tableObj.headerBorderColorLight || '#f43f5e', tableObj.headerBorderColorDark || '#f43f5e', { labelText: '선 색:', lightTitle: '라이트 모드 표 머리 구분선 색상', darkTitle: '다크 모드 표 머리 구분선 색상' })}
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
-                    <select id="modal-table-header-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                        <option value="none" ${tableObj.headerBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
-                        <option value="1px solid" ${tableObj.headerBorderStyle === '1px solid' ? 'selected' : ''}>가는 선 ( 1px solid )</option>
-                        <option value="1px dashed" ${tableObj.headerBorderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
-                        <option value="2px solid" ${tableObj.headerBorderStyle === '2px solid' || !tableObj.headerBorderStyle ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
-                        <option value="2px dashed" ${tableObj.headerBorderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
-                    </select>
+                    ${build_border_style_select_html('modal-table-header-border-style', tableObj.headerBorderStyle, '2px solid')}
                 </div>
             `;
             container.appendChild(thBorderRow);
@@ -1119,14 +1121,7 @@
                 </label>
                 <div id="modal-table-row-border-pickers" style="display:flex; align-items:center; gap:4px; margin-left:4px; ${!isRowBorder ? 'opacity:0.35; pointer-events:none;' : ''}">
                     ${build_color_pair_html('modal-table-row-border-color', tableObj.rowBorderColorLight || '#cbd5e1', tableObj.rowBorderColorDark || '#334155', { labelText: '선 색:', lightTitle: '라이트 모드 행 구분선 색상', darkTitle: '다크 모드 행 구분선 색상' })}
-                    <span style="font-size:0.75rem; color:var(--text-frame-muted); margin-left:4px;">선 스타일:</span>
-                    <select id="modal-table-row-border-style" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
-                        <option value="none" ${tableObj.rowBorderStyle === 'none' ? 'selected' : ''}>없음 ( none )</option>
-                        <option value="1px solid" ${tableObj.rowBorderStyle === '1px solid' || !tableObj.rowBorderStyle ? 'selected' : ''}>가는 선 ( 1px solid )</option>
-                        <option value="1px dashed" ${tableObj.rowBorderStyle === '1px dashed' ? 'selected' : ''}>점선 ( 1px dashed )</option>
-                        <option value="2px solid" ${tableObj.rowBorderStyle === '2px solid' ? 'selected' : ''}>굵은 선 ( 2px solid )</option>
-                        <option value="2px dashed" ${tableObj.rowBorderStyle === '2px dashed' ? 'selected' : ''}>굵은 점선 ( 2px dashed )</option>
-                    </select>
+                    ${build_border_style_select_html('modal-table-row-border-style', tableObj.rowBorderStyle, '1px solid')}
                 </div>
             `;
             container.appendChild(rowBorderRow);

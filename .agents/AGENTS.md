@@ -91,3 +91,12 @@
   - 탭 버튼, 선택 토글 등 `.active` / `.selected` 상태 전환 시 `border-width`, `margin`, `padding` 등 외부 박스 모델 규격(Outer Box Dimensions)을 동적으로 변동시켜서는 안 되며, 상태 전환 시에는 `border-color`, `background-color`, `color`, `box-shadow` 등 시각적 필터/색상 요소만 변경해야 합니다.
 - **DOM 동적 렌더링 후 레이아웃 트래싱(Reflow Thrashing) 금지 원칙**:
   - 자바스크립트로 DOM 요소를 갱신(`innerHTML`, `appendChild`)한 직후 `scrollHeight`, `offsetHeight`를 즉시 조회하여 인라인 `style.minHeight`를 덧쓰는 코드를 작성해서는 안 되며, 모달 및 탭 컨테이너의 세로 높이는 CSS 순수 고정 레이아웃(`box-sizing: border-box`, 정수 `height`)을 통해 선언적으로 제어해야 합니다.
+
+## UI 컴포넌트 캡슐화 및 폼 헬퍼 설계 지침 (UI Component Encapsulation & Form Helper Policy)
+- **UI 마크업 및 아이콘 상수화 규칙 (UI Markup & Icon Centralization Rule)**:
+  - SVG 아이콘, CSS 뱃지, 태그 라벨 등 시각적 HTML 마크업은 렌더링 함수 내에 하드코딩하지 않고, 모듈 상단 대문자 상수 객체(`TABLE_ICONS`, `TEXT_TAG_LABELS`)로 추출하여 일원화 참조한다.
+- **UI 폼 헬퍼 옵션 객체 규칙 (Form Helper Options Object Rule)**:
+  - 피커 쌍 및 복합 폼 생성 서브 함수는 옵션 객체(`opts = {}`) 패턴을 적용하여(`build_color_pair_html`), 라벨·여백·툴팁 오버라이드를 유연하게 지원하고 호출 코드를 1줄로 단축한다.
+- **단위 테스트 동기 검증 규칙 (Unit Test Synchronization Rule)**:
+  - 순수 서브 함수 추가 및 코드 리팩토링 진행 시 독립 테스트 파일(`test_*.js`)을 즉시 동기화하고, 전체 자동화 테스트 100% 통과(PASS)를 검증한다.
+
