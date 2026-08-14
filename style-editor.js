@@ -121,6 +121,19 @@
         }
     ];
 
+    // 2. Table 컨트롤 헤더 아이콘 상수 객체
+    const TABLE_ICONS = {
+        border: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg></span>',
+        headerBorder: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg></span>',
+        rowBorder: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="20" x2="21" y2="20"></line><rect x="3" y="4" width="18" height="12" rx="1"></rect></svg></span>',
+        thBadge: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#0284c7; color:#ffffff; border-radius:3px; font-family:monospace; line-height:1.1;">TH</span>',
+        trBadge: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f8fafc; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR</span>',
+        tr2Badge: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#38bdf8; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR2</span>',
+        hover: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg></span>',
+        tdBadge: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f59e0b; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TD</span>',
+        align: '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"></line><polyline points="8 7 12 3 16 7"></polyline><polyline points="8 17 12 21 16 17"></polyline></svg></span>'
+    };
+
 
     // -------------------------------------------------------------------------
     // 🛠️ 순수 서브 함수 (snake_case)
@@ -1040,7 +1053,7 @@
             const isTableBorder = tableObj.borderEnabled !== false;
             const borderRow = create_form_row();
             borderRow.innerHTML = `
-                ${build_table_section_header('표 테두리', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg></span>')}
+                ${build_table_section_header('표 테두리', TABLE_ICONS.border)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-border-enabled" ${isTableBorder ? 'checked' : ''}> 테두리
                 </label>
@@ -1062,7 +1075,7 @@
             const isHeaderBorder = tableObj.headerBorderEnabled !== false;
             const thBorderRow = create_form_row();
             thBorderRow.innerHTML = `
-                ${build_table_section_header('표 머리 구분선', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="18" x2="21" y2="18"></line><rect x="3" y="4" width="18" height="10" rx="1"></rect></svg></span>')}
+                ${build_table_section_header('표 머리 구분선', TABLE_ICONS.headerBorder)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-header-border-enabled" ${isHeaderBorder ? 'checked' : ''}> 구분선
                 </label>
@@ -1084,7 +1097,7 @@
             const isRowBorder = tableObj.rowBorderEnabled !== false;
             const rowBorderRow = create_form_row();
             rowBorderRow.innerHTML = `
-                ${build_table_section_header('행 구분선', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="20" x2="21" y2="20"></line><rect x="3" y="4" width="18" height="12" rx="1"></rect></svg></span>')}
+                ${build_table_section_header('행 구분선', TABLE_ICONS.rowBorder)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-row-border-enabled" ${isRowBorder ? 'checked' : ''}> 구분선
                 </label>
@@ -1105,7 +1118,7 @@
             // [4] TH 표 머리글 행 (4번째)
             const thRow = create_form_row();
             thRow.innerHTML = `
-                ${build_table_section_header('표 머리글', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#0284c7; color:#ffffff; border-radius:3px; font-family:monospace; line-height:1.1;">TH</span>')}
+                ${build_table_section_header('표 머리글', TABLE_ICONS.thBadge)}
                 ${build_color_pair_html('modal-table-header-color', tableObj.headerColorLight || '#0f172a', tableObj.headerColorDark || '#f8fafc', { labelText: '글자:', lightTitle: '라이트 모드 TH 글자색', darkTitle: '다크 모드 TH 글자색' })}
                 ${build_color_pair_html('modal-table-header-bg', tableObj.headerBgLight || '#f1f5f9', tableObj.headerBgDark || '#1e293b', { labelText: '배경:', labelMargin: '4px', lightTitle: '라이트 모드 TH 배경색', darkTitle: '다크 모드 TH 배경색' })}
             `;
@@ -1115,7 +1128,7 @@
             const isRowTrans = tableObj.rowBgTransparent !== false;
             const rowBgRow = create_form_row();
             rowBgRow.innerHTML = `
-                ${build_table_section_header('행 배경', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f8fafc; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR</span>')}
+                ${build_table_section_header('행 배경', TABLE_ICONS.trBadge)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="radio" name="modal-table-row-bg-mode" value="transparent" ${isRowTrans ? 'checked' : ''}> 투명 (문서 배경색)
                 </label>
@@ -1132,7 +1145,7 @@
             const isStripe = tableObj.stripeEnabled !== false;
             const stripeRow = create_form_row();
             stripeRow.innerHTML = `
-                ${build_table_section_header('짝수 행 배경', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#38bdf8; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TR2</span>')}
+                ${build_table_section_header('짝수 행 배경', TABLE_ICONS.tr2Badge)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:inline-flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="radio" name="modal-table-stripe-mode" value="standard" ${!isStripe ? 'checked' : ''}> 반투명 교차 (표준)
                 </label>
@@ -1149,7 +1162,7 @@
             const isHover = tableObj.hoverEnabled !== false;
             const hoverRow = create_form_row();
             hoverRow.innerHTML = `
-                ${build_table_section_header('행 호버 강조', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="6"></rect><line x1="12" y1="7" x2="12" y2="11"></line></svg></span>')}
+                ${build_table_section_header('행 호버 강조', TABLE_ICONS.hover)}
                 <label style="font-size:0.75rem; color:#f8fafc; display:flex; align-items:center; gap:4px; cursor:pointer; white-space:nowrap;">
                     <input type="checkbox" id="modal-table-hover-enabled" ${isHover ? 'checked' : ''}> 마우스 호버 사용
                 </label>
@@ -1162,7 +1175,7 @@
             // [8] 셀 여백 (TD 패딩) 행
             const padRow = create_form_row();
             padRow.innerHTML = `
-                ${build_table_section_header('셀 여백 (Pad)', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center; font-size:0.65rem; font-weight:800; padding:1px 0; background:#f59e0b; color:#0f172a; border-radius:3px; font-family:monospace; line-height:1.1;">TD</span>')}
+                ${build_table_section_header('셀 여백 (Pad)', TABLE_ICONS.tdBadge)}
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">여백:</span>
                 <select id="modal-table-padding" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                     <option value="none" ${tableObj.padding === 'none' ? 'selected' : ''}>없음 (0px)</option>
@@ -1177,7 +1190,7 @@
             // [9] 셀 정렬 행 (상하 정렬 아이콘)
             const alignRow = create_form_row();
             alignRow.innerHTML = `
-                ${build_table_section_header('셀 정렬', '<span style="display:inline-flex; width:28px; justify-content:center; align-items:center;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"></line><polyline points="8 7 12 3 16 7"></polyline><polyline points="8 17 12 21 16 17"></polyline></svg></span>')}
+                ${build_table_section_header('셀 정렬', TABLE_ICONS.align)}
                 <span style="font-size:0.75rem; color:var(--text-frame-muted);">세로 정렬:</span>
                 <select id="modal-table-vertical-align" style="flex:1; padding:2px 4px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:3px; font-size:0.75rem;">
                     <option value="top" ${tableObj.verticalAlign === 'top' ? 'selected' : ''}>상단 (Top)</option>
