@@ -412,6 +412,11 @@ greet('사용자');
         <div class="modal-content" style="padding: 10px 14px;"> <!-- 모달 본체 패딩 축소 -->
             <div class="modal-header" style="display: flex; align-items: center; gap: 8px; padding-bottom: 6px; margin-bottom: 6px; user-select: none; -webkit-user-select: none;">
                 <h2 style="font-size: 1.05rem; display: flex; align-items: center; gap: 6px; margin: 0; white-space: nowrap;">🎨 스타일 편집</h2>
+                <!-- 스타일 편집 다이얼로그 테마 토글 스위치 (Light --- Dark) -->
+                <div id="style-editor-theme-toggle" class="style-editor-theme-toggle">
+                    <button id="btn-style-editor-theme-light" class="style-editor-theme-btn active" data-theme="light" title="라이트 테마 프리뷰 전환">☀️ Light</button>
+                    <button id="btn-style-editor-theme-dark" class="style-editor-theme-btn" data-theme="dark" title="다크 테마 프리뷰 전환">🌙 Dark</button>
+                </div>
                 <select id="modal-heading-preset-select" style="flex: 1; padding: 4px 8px; background: var(--input-frame-bg); color: var(--text-frame-main); border: 1px solid var(--border-frame); border-radius: 4px; font-size: 0.8rem;">
                 </select>
                 <!-- 더보기 옵션 드롭다운 (새 스타일 생성 / 현재 스타일 삭제) -->

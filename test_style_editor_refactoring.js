@@ -281,7 +281,43 @@ function test_collect_current_inputs() {
 }
 
 // -----------------------------------------------------------------------------
-// 5. 메인 실행 함수
+// 5. Light --- Dark 테마 토글 스위치 검증
+// -----------------------------------------------------------------------------
+function test_theme_toggle_switch() {
+    console.log('\n--- [Test Suite 5] Light --- Dark 테마 토글 스위치 검증 ---');
+
+    run_assert(typeof window.StyleEditor.updateThemeToggleUI === 'function', 'updateThemeToggleUI 메서드가 존재함');
+
+    const btnLight = document.getElementById('btn-style-editor-theme-light');
+    const btnDark = document.getElementById('btn-style-editor-theme-dark');
+
+    // 라이트 모드 동기화 검증
+    window.StyleEditor.updateThemeToggleUI('light');
+    run_assert(btnLight.classList.contains('active'), 'updateThemeToggleUI("light") 시 btnLight가 active 상태임');
+    run_assert(!btnDark.classList.contains('active'), 'updateThemeToggleUI("light") 시 btnDark가 active 해제됨');
+
+    // 다크 모드 동기화 검증
+    window.StyleEditor.updateThemeToggleUI('dark');
+    run_assert(btnDark.classList.contains('active'), 'updateThemeToggleUI("dark") 시 btnDark가 active 상태임');
+    run_assert(!btnLight.classList.contains('active'), 'updateThemeToggleUI("dark") 시 btnLight가 active 해제됨');
+
+    // 이벤트 리스너 콜백 동작 검증
+    let lastThemeChanged = null;
+    window.StyleEditor.init({
+        onThemeChange: (theme) => {
+            lastThemeChanged = theme;
+        }
+    });
+
+    btnLight.trigger('click');
+    run_assert(lastThemeChanged === 'light', 'btnLight 클릭 시 onThemeChange("light") 콜백이 정상 수신됨');
+
+    btnDark.trigger('click');
+    run_assert(lastThemeChanged === 'dark', 'btnDark 클릭 시 onThemeChange("dark") 콜백이 정상 수신됨');
+}
+
+// -----------------------------------------------------------------------------
+// 6. 메인 실행 함수
 // -----------------------------------------------------------------------------
 function run_all_tests() {
     console.log('============== 🧪 style-editor.js 사전 검증 테스트 시작 ==============');
@@ -290,6 +326,7 @@ function run_all_tests() {
     test_default_presets_schema();
     test_style_editor_init();
     test_collect_current_inputs();
+    test_theme_toggle_switch();
 
     console.log('\n======================================================================');
     console.log(`📊 테스트 결과 요약: 총 ${passCount + failCount}개 항목 중 PASS: ${passCount}, FAIL: ${failCount}`);

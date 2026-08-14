@@ -1993,6 +1993,47 @@ div.katex-error {
     background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
+/* 스타일 편집 모달 헤더 라이트/다크 테마 토글 스위치 */
+.style-editor-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: var(--input-frame-bg, #0f172a);
+    border: 1px solid var(--border-frame, #334155);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.style-editor-theme-btn {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-frame-muted, #94a3b8);
+    font-size: 0.72rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    line-height: 1;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.style-editor-theme-btn:hover {
+    color: var(--text-frame-main, #f8fafc);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.style-editor-theme-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #38bdf8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 /* 스타일 편집 모달 폴더형 탭 바 및 탭 버튼 전용 스타일 */
 .style-editor-tab-bar {
     display: flex;

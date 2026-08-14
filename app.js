@@ -2138,7 +2138,8 @@ document.addEventListener('DOMContentLoaded', () => {
             onSaveAndClose: handlePresetSaveAndClose,
             onAddPreset: handlePresetAdd,
             onDeletePreset: handlePresetDelete,
-            onResetPreset: handlePresetReset
+            onResetPreset: handlePresetReset,
+            onThemeChange: applyTheme
         });
     }
 

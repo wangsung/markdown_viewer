@@ -657,6 +657,24 @@
         }
     }
 
+    /**
+     * 모달 타이틀 테마 토글 스위치(Light --- Dark) UI 활성화 상태 동기화 pure 서브 함수
+     */
+    function update_theme_toggle_ui(theme) {
+        const btnLight = document.getElementById('btn-style-editor-theme-light');
+        const btnDark = document.getElementById('btn-style-editor-theme-dark');
+        if (!btnLight || !btnDark) return;
+
+        const targetTheme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
+        if (targetTheme === 'light') {
+            btnLight.classList.add('active');
+            btnDark.classList.remove('active');
+        } else {
+            btnDark.classList.add('active');
+            btnLight.classList.remove('active');
+        }
+    }
+
     // =========================================================================
     // ⚙️ 공개 인터페이스 노출 객체
     // =========================================================================
@@ -667,6 +685,11 @@
         getDefaultPresets: function() {
             return JSON.parse(JSON.stringify(DEFAULT_HEADING_PRESETS));
         },
+
+        /**
+         * 모달 타이틀 테마 토글 스위치 UI 업데이트 메서드 노출
+         */
+        updateThemeToggleUI: update_theme_toggle_ui,
 
         /**
          * 모달 드래그 오프셋 누적값 및 인라인 스타일 원상 리셋
@@ -689,6 +712,10 @@
                 if (presetId) {
                     this.renderControls(presetId);
                 }
+                const currentTheme = (typeof document !== 'undefined' && document.documentElement)
+                    ? (document.documentElement.getAttribute('data-editor-theme') || 'dark')
+                    : 'dark';
+                update_theme_toggle_ui(currentTheme);
                 headingModal.style.display = 'block';
             }
         },
@@ -727,6 +754,24 @@
             }
             if (btnCloseHeadingModal) {
                 btnCloseHeadingModal.addEventListener('click', () => self.closeModal());
+            }
+
+            // 🎨 테마 토글 스위치 (Light --- Dark) 바인딩
+            const btnThemeLight = document.getElementById('btn-style-editor-theme-light');
+            const btnThemeDark = document.getElementById('btn-style-editor-theme-dark');
+            if (btnThemeLight && btnThemeDark) {
+                btnThemeLight.addEventListener('click', () => {
+                    update_theme_toggle_ui('light');
+                    if (typeof options.onThemeChange === 'function') {
+                        options.onThemeChange('light');
+                    }
+                });
+                btnThemeDark.addEventListener('click', () => {
+                    update_theme_toggle_ui('dark');
+                    if (typeof options.onThemeChange === 'function') {
+                        options.onThemeChange('dark');
+                    }
+                });
             }
 
             // 🎨 탭 스위처 바인딩
