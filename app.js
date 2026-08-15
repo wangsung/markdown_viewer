@@ -221,70 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 1. 프레임/레이아웃/뷰어 옵션 전용 구조체 (frameElements)
-    const frameElements = {
-        container: document.querySelector('.container'),
-        editorPanel: document.getElementById('editor-panel'),
-        dragDivider: document.getElementById('drag-divider'),
-        preview: document.getElementById('preview'),
-        previewViewport: document.querySelector('.preview-viewport'),
-
-        fileBadge: document.getElementById('file-badge'),
-        filenameSpan: document.getElementById('current-filename'),
-
-        btnThemeToggle: document.getElementById('btn-theme-toggle'),
-        themeIconSun: document.querySelector('.theme-icon-sun'),
-        themeIconMoon: document.querySelector('.theme-icon-moon'),
-        themeToggleText: document.getElementById('theme-toggle-text'),
-
-        fontSelect: document.getElementById('font-select'),
-        fontSizeSelect: document.getElementById('font-size-select'),
-        lineColorPicker: document.getElementById('line-color-picker'),
-        scrollSyncCheckbox: document.getElementById('scroll-sync'),
-        colorSwatchCheckbox: document.getElementById('color-swatch-toggle'),
-        togglePreviewMaxWidthCheckbox: document.getElementById('toggle-preview-max-width'),
-        previewMaxWidthWrapper: document.getElementById('preview-max-width-wrapper'),
-        codeblockScrollCheckbox: document.getElementById('codeblock-scroll'),
-        codeblockScrollWrapper: document.getElementById('codeblock-scroll-wrapper'),
-        mathRenderCheckbox: document.getElementById('math-render'),
-        mathRenderWrapper: document.getElementById('math-render-wrapper'),
-        diagramRenderCheckbox: document.getElementById('diagram-render'),
-        diagramRenderWrapper: document.getElementById('diagram-render-wrapper'),
-        colorSwatchWrapper: document.getElementById('color-swatch-wrapper')
-    };
-
-    // 2. 상단 헤더 메뉴 & 액션 버튼 전용 구조체 (menuElements)
-    const menuElements = {
-        menuDropdown: document.getElementById('menu-dropdown'),
-        btnMenu: document.getElementById('btn-menu'),
-        mainMenu: document.getElementById('main-menu'),
-        btnNewFile: document.getElementById('btn-new-file'),
-        btnOpenFile: document.getElementById('btn-open-file'),
-        fileInput: document.getElementById('file-input'),
-
-        viewDropdown: document.getElementById('view-dropdown'),
-        btnView: document.getElementById('btn-view'),
-        viewMenu: document.getElementById('view-menu'),
-
-        headingDropdown: document.getElementById('heading-dropdown'),
-        btnHeadingStyle: document.getElementById('btn-heading-style'),
-        headingStyleMenu: document.getElementById('heading-style-menu'),
-
-        exportDropdown: document.getElementById('export-dropdown'),
-        btnExport: document.getElementById('btn-export'),
-        exportMenu: document.getElementById('export-menu'),
-        btnExportHtml: document.getElementById('btn-export-html'),
-        btnExportPdfPrint: document.getElementById('btn-export-pdf-print'),
-        btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf'),
-        btnOpenNewWindow: document.getElementById('btn-open-new-window'),
-        btnOpenNewWindowDefault: document.getElementById('btn-open-new-window-default'),
-
-        btnCopy: document.getElementById('btn-copy'),
-        btnSave: document.getElementById('btn-save'),
-        btnSaveAs: document.getElementById('btn-save-as'),
-        btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
-        btnDebug: document.getElementById('btn-debug')
-    };
+    // 1. FrameManager UI 엘리먼트 자율 쿼리 및 바인딩 수신
+    const frameElements = (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function')
+        ? FrameManager.getElements()
+        : {};
 
     // 편리한 접근을 위한 로컬 구조 분해 할당 (Destructuring)
     const {
@@ -294,17 +234,14 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSelect, fontSizeSelect, lineColorPicker, scrollSyncCheckbox,
         colorSwatchCheckbox, togglePreviewMaxWidthCheckbox, previewMaxWidthWrapper,
         codeblockScrollCheckbox, codeblockScrollWrapper, mathRenderCheckbox,
-        mathRenderWrapper, diagramRenderCheckbox, diagramRenderWrapper, colorSwatchWrapper
-    } = frameElements;
-
-    const {
+        mathRenderWrapper, diagramRenderCheckbox, diagramRenderWrapper, colorSwatchWrapper,
         menuDropdown, btnMenu, mainMenu, btnNewFile, btnOpenFile, fileInput,
         viewDropdown, btnView, viewMenu,
         headingDropdown, btnHeadingStyle, headingStyleMenu,
         exportDropdown, btnExport, exportMenu, btnExportHtml, btnExportPdfPrint,
         btnExportPdfHtml2Pdf, btnOpenNewWindow, btnOpenNewWindowDefault,
         btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
-    } = menuElements;
+    } = frameElements;
 
     // TOC 사이드바 DOM 요소
     const tocSidebar = document.getElementById('toc-sidebar');
@@ -639,29 +576,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function restoreDocumentSession() {
+    /**
+     * 1단계 [Data Read Phase]: localStorage에서 세션 저장 데이터를 독립적으로 수집 및 파싱합니다.
+     */
+    function read_saved_document_session() {
         try {
             const rawData = localStorage.getItem(SESSION_STORAGE_KEY);
-            if (!rawData) return;
-            const session = JSON.parse(rawData);
-
-            // 1. Content Restore (Skip if new tab)
-            if (!isNewSessionSkippedRestore && typeof session.content === 'string' && session.content.length > 0) {
-                cm.setValue(session.content);
-            }
-
-            // 2. Filename & Status Restore (Skip if new tab)
-            if (!isNewSessionSkippedRestore && session.filename) {
-                updateFilenameDisplay(session.filename, !!session.isDirty);
-            }
-
-            // 3. Frame & Visual Layout Settings Restore (FrameManager 위임)
-            if (typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function') {
-                FrameManager.restoreFrameSettings(session);
-            }
+            if (!rawData) return null;
+            return JSON.parse(rawData);
         } catch (e) {
-            console.warn('Failed to restore document session:', e);
+            console.warn('Failed to read document session from localStorage:', e);
+            return null;
         }
+    }
+
+    /**
+     * 2단계 [Content Restore Phase]: 문서 본문 내용 및 파일명/상태를 에디터에 반영합니다.
+     */
+    function restore_document_content(sessionData) {
+        if (!sessionData) return;
+        window.assert_arg(typeof cm !== 'undefined' && cm, 'CodeMirror instance cm must be initialized before restore_document_content!', { cm, sessionData });
+        if (!isNewSessionSkippedRestore && typeof sessionData.content === 'string' && sessionData.content.length > 0) {
+            cm.setValue(sessionData.content);
+        }
+        if (!isNewSessionSkippedRestore && sessionData.filename) {
+            updateFilenameDisplay(sessionData.filename, !!sessionData.isDirty);
+        }
+    }
+
+    /**
+     * 3단계 [Frame UI Restore Phase]: FrameManager 액션 준비 완료 후 프레임 및 시각적 레이아웃 설정을 복원합니다.
+     */
+    function restore_frame_ui_settings(sessionData) {
+        if (!sessionData) return;
+        window.assert_arg(typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function', 'FrameManager.restoreFrameSettings is required for restore_frame_ui_settings!', { FrameManager, sessionData });
+        FrameManager.restoreFrameSettings(sessionData);
     }
 
     // ==========================================================================
@@ -1236,10 +1185,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // FrameManager UI Initialization & Action Delegation
     if (typeof FrameManager !== 'undefined' && typeof FrameManager.init === 'function') {
         FrameManager.init({
-            elements: {
-                ...frameElements,
-                ...menuElements
-            },
             actions: {
                 onThemeChange: (theme) => {
                     apply_code_theme(theme);
@@ -1701,13 +1646,17 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
-    // 복원할 저장 세션이 존재하는지 확인
-    const hasSavedSession = !!localStorage.getItem(SESSION_STORAGE_KEY);
+    // 1단계 [Data Read Phase]: localStorage 세션 데이터 독립 수집
+    const savedSessionData = read_saved_document_session();
+    const hasSavedSession = !!savedSessionData;
 
-    // 저장된 세션 (문서 내용, 파일명, 에디터/Preview 분할 폭, 글꼴 등) 복원
-    restoreDocumentSession();
+    // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원
+    restore_document_content(savedSessionData);
     render_recent_files_menu();
     check_and_load_recent_url_param();
+
+    // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원
+    restore_frame_ui_settings(savedSessionData);
 
     // Trigger Initial Render
     renderMarkdown();
