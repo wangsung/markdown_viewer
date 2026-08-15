@@ -58,8 +58,8 @@ const appPath = path.join(__dirname, '..', 'app.js');
 const appContent = fs.readFileSync(appPath, 'utf8');
 
 const appChecks = [
-    "btnExportPdfPrint: document.getElementById('btn-export-pdf-print')",
-    "btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf')",
+    "btnExportPdfPrint",
+    "btnExportPdfHtml2Pdf",
     "ExportManager.printToPdf(preview, currentFilename, exportOptions)",
     "ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions())"
 ];

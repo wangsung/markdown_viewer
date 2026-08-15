@@ -85,6 +85,77 @@
         banner.innerHTML = `<span>🚨 ${message}</span><button style="background:transparent;border:none;color:#fff;font-weight:bold;cursor:pointer;padding:0 8px;" onclick="this.parentElement.remove()">✕</button>`;
     }
 
+    /**
+     * 순수 하위 서브 함수: DOM 프레임 및 메뉴 UI 엘리먼트들을 자율 탐색 및 쿼리합니다.
+     */
+    function get_default_elements() {
+        if (typeof document === 'undefined') return {};
+        const els = {
+            container: document.getElementById('container') || document.querySelector('.container'),
+            editorPanel: document.getElementById('editor-panel'),
+            dragDivider: document.getElementById('drag-divider'),
+            preview: document.getElementById('preview'),
+            previewViewport: document.querySelector('.preview-viewport'),
+
+            fileBadge: document.getElementById('file-badge'),
+            filenameSpan: document.getElementById('current-filename'),
+
+            btnThemeToggle: document.getElementById('btn-theme-toggle'),
+            themeIconSun: document.querySelector('.theme-icon-sun'),
+            themeIconMoon: document.querySelector('.theme-icon-moon'),
+            themeToggleText: document.getElementById('theme-toggle-text'),
+
+            fontSelect: document.getElementById('font-select'),
+            fontSizeSelect: document.getElementById('font-size-select'),
+            lineColorPicker: document.getElementById('line-color-picker'),
+            scrollSyncCheckbox: document.getElementById('scroll-sync'),
+            colorSwatchCheckbox: document.getElementById('color-swatch-toggle'),
+            togglePreviewMaxWidthCheckbox: document.getElementById('toggle-preview-max-width'),
+            previewMaxWidthWrapper: document.getElementById('preview-max-width-wrapper'),
+            codeblockScrollCheckbox: document.getElementById('codeblock-scroll'),
+            codeblockScrollWrapper: document.getElementById('codeblock-scroll-wrapper'),
+            mathRenderCheckbox: document.getElementById('math-render'),
+            mathRenderWrapper: document.getElementById('math-render-wrapper'),
+            diagramRenderCheckbox: document.getElementById('diagram-render'),
+            diagramRenderWrapper: document.getElementById('diagram-render-wrapper'),
+            colorSwatchWrapper: document.getElementById('color-swatch-wrapper'),
+
+            menuDropdown: document.getElementById('menu-dropdown'),
+            btnMenu: document.getElementById('btn-menu'),
+            mainMenu: document.getElementById('main-menu'),
+            btnNewFile: document.getElementById('btn-new-file'),
+            btnOpenFile: document.getElementById('btn-open-file'),
+            fileInput: document.getElementById('file-input'),
+
+            viewDropdown: document.getElementById('view-dropdown'),
+            btnView: document.getElementById('btn-view'),
+            viewMenu: document.getElementById('view-menu'),
+
+            headingDropdown: document.getElementById('heading-dropdown'),
+            btnHeadingStyle: document.getElementById('btn-heading-style'),
+            headingStyleMenu: document.getElementById('heading-style-menu'),
+            btnEditHeadingStyle: document.getElementById('btn-edit-heading-style'),
+            headingPresetSelect: document.getElementById('heading-preset-select'),
+
+            exportDropdown: document.getElementById('export-dropdown'),
+            btnExport: document.getElementById('btn-export'),
+            exportMenu: document.getElementById('export-menu'),
+            btnExportHtml: document.getElementById('btn-export-html'),
+            btnExportPdfPrint: document.getElementById('btn-export-pdf-print'),
+            btnExportPdfHtml2Pdf: document.getElementById('btn-export-pdf-html2pdf'),
+            btnOpenNewWindow: document.getElementById('btn-open-new-window'),
+            btnOpenNewWindowDefault: document.getElementById('btn-open-new-window-default'),
+
+            btnCopy: document.getElementById('btn-copy'),
+            btnSave: document.getElementById('btn-save'),
+            btnSaveAs: document.getElementById('btn-save-as'),
+            btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
+            btnDebug: document.getElementById('btn-debug')
+        };
+        assert_arg(els.container && els.preview, 'Core DOM elements container and preview must exist in get_default_elements!', { container: els.container, preview: els.preview });
+        return els;
+    }
+
     function apply_theme_ui(theme, elements, onThemeChange) {
         const targetTheme = (theme === 'light' || theme === 'dark') ? theme : 'dark';
         
@@ -170,7 +241,9 @@
     }
 
     function setup_outside_click_dismissal(elements) {
-        if (typeof document === 'undefined') return;
+        if (!elements || elements._outsideDismissalBound || typeof document === 'undefined') return;
+        elements._outsideDismissalBound = true;
+
         document.addEventListener('click', (e) => {
             if (elements.exportDropdown && !elements.exportDropdown.contains(e.target)) {
                 if (elements.exportMenu) elements.exportMenu.classList.remove('show');
@@ -242,8 +315,10 @@
     }
 
     function setup_splitter_events(elements, actions) {
+        if (!elements || elements._splitterBound) return;
         const { dragDivider, container, editorPanel } = elements;
         if (!dragDivider || typeof document === 'undefined') return;
+        elements._splitterBound = true;
 
         const handleMove = (e) => drag_move(e, container, editorPanel, actions.onPanelResize);
         const handleStop = () => {
@@ -270,6 +345,9 @@
     }
 
     function setup_menu_toggles(elements) {
+        if (!elements || elements._menuTogglesBound) return;
+        elements._menuTogglesBound = true;
+
         if (elements.btnExport) {
             elements.btnExport.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -297,7 +375,8 @@
     }
 
     function setup_button_actions(elements, actions) {
-        if (!actions) return;
+        if (!elements || !actions || elements._buttonActionsBound) return;
+        elements._buttonActionsBound = true;
 
         // Theme Toggle Button
         if (elements.btnThemeToggle) {
@@ -650,10 +729,13 @@
 
     const FrameManager = {
         init: function(userOptions) {
-            assert_arg(userOptions && typeof userOptions === 'object', 'FrameManager.init: userOptions must be a valid object!', { userOptions });
-            options = Object.assign({ elements: {}, actions: {} }, userOptions);
-            const els = options.elements;
-            const acts = options.actions;
+            const userOpts = userOptions || {};
+            const defaultEls = get_default_elements();
+            const userEls = (userOpts.elements && typeof userOpts.elements === 'object') ? userOpts.elements : {};
+            const els = Object.assign({}, defaultEls, userEls);
+            const acts = (userOpts.actions && typeof userOpts.actions === 'object') ? userOpts.actions : {};
+
+            options = { elements: els, actions: acts };
 
             assert_arg(els && typeof els === 'object', 'FrameManager.init: elements struct is missing or invalid!', { els });
             assert_arg(acts && typeof acts === 'object', 'FrameManager.init: actions struct is missing or invalid!', { acts });
@@ -663,6 +745,15 @@
             setup_menu_toggles(els);
             setup_outside_click_dismissal(els);
             setup_button_actions(els, acts);
+
+            return els;
+        },
+
+        getElements: function() {
+            if (!options.elements || Object.keys(options.elements).length === 0) {
+                options.elements = get_default_elements();
+            }
+            return options.elements;
         },
 
         applyTheme: function(theme) {

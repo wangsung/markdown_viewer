@@ -141,6 +141,7 @@ function test_module_structure() {
     console.log('\n--- [Test Suite 1] StyleEditor 모듈 및 메서드 노출 검증 ---');
     run_assert(typeof window.StyleEditor === 'object', 'window.StyleEditor 객체가 존재함');
     run_assert(typeof window.StyleEditor.getDefaultPresets === 'function', 'getDefaultPresets 메서드가 존재함');
+    run_assert(typeof window.StyleEditor.getDialogElements === 'function', 'getDialogElements 메서드가 존재함');
     run_assert(typeof window.StyleEditor.init === 'function', 'init 메서드가 존재함');
     run_assert(typeof window.StyleEditor.collectCurrentInputs === 'function', 'collectCurrentInputs 메서드가 존재함');
     run_assert(typeof window.StyleEditor.openModal === 'function', 'openModal 메서드가 존재함');

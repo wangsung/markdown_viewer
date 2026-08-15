@@ -118,12 +118,15 @@ function runTestSuite() {
         'toggle_debug_panel_ui',
         'render_debug_panel_ui',
         'calc_scaled_font_size',
-        'restore_frame_settings_ui'
+        'restore_frame_settings_ui',
+        'get_default_elements'
     ];
 
     pureSubFuncNames.forEach(funcName => {
         runAssert(frameManCode.includes(`function ${funcName}`), `Pure sub-function '${funcName}' defined in snake_case`);
     });
+
+    runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
 
     // Test 3: Theme UI Initialization & Toggle
     const mockContainer = createMockElement('editor-container');
