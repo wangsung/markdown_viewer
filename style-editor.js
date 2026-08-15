@@ -685,10 +685,48 @@
         }
     }
 
+    /**
+     * Dialog 영역 전용 DOM 요소 묶음 구조체 쿼리 순수 서브 함수 (snake_case)
+     */
+    function get_default_dialog_elements() {
+        if (typeof document === 'undefined') return {};
+        const els = {
+            modal: document.getElementById('heading-modal'),
+            modalContent: document.querySelector('#heading-modal .modal-content'),
+            modalHeader: document.querySelector('#heading-modal .modal-header'),
+            presetSelect: document.getElementById('modal-heading-preset-select'),
+            controlsContainer: document.getElementById('heading-style-controls'),
+            closeModalBtn: document.getElementById('close-heading-modal'),
+            btnCloseModalBtn: document.getElementById('btn-close-heading-modal'),
+            btnThemeLight: document.getElementById('btn-style-editor-theme-light'),
+            btnThemeDark: document.getElementById('btn-style-editor-theme-dark'),
+            tabBtnText: document.getElementById('tab-btn-text'),
+            tabBtnTable: document.getElementById('tab-btn-table'),
+            btnSaveOnly: document.getElementById('btn-save-only-heading-preset'),
+            btnSaveAndApply: document.getElementById('btn-save-heading-preset'),
+            btnMore: document.getElementById('btn-preset-more'),
+            menuMore: document.getElementById('preset-more-menu'),
+            btnAdd: document.getElementById('btn-add-heading-preset'),
+            btnDelete: document.getElementById('btn-delete-heading-preset'),
+            btnReset: document.getElementById('btn-reset-heading-presets')
+        };
+        if (typeof window.assert_arg === 'function') {
+            window.assert_arg(els.modal && els.controlsContainer, 'Core Dialog elements (modal, controlsContainer) must exist in get_default_dialog_elements!', { modal: els.modal, controlsContainer: els.controlsContainer });
+        }
+        return els;
+    }
+
     // =========================================================================
     // ⚙️ 공개 인터페이스 노출 객체
     // =========================================================================
     window.StyleEditor = {
+        /**
+         * Dialog 영역 DOM 요소 구조체 리턴 API
+         */
+        getDialogElements: function() {
+            return get_default_dialog_elements();
+        },
+
         /**
          * 프리셋 초기화 상수 리턴
          */
@@ -718,6 +756,9 @@
          */
         openModal: function(presetId) {
             const headingModal = document.getElementById('heading-modal');
+            if (typeof window.assert_arg === 'function') {
+                window.assert_arg(headingModal, 'StyleEditor.openModal: #heading-modal element is missing!', { headingModal, presetId });
+            }
             if (headingModal) {
                 if (presetId) {
                     this.renderControls(presetId);
@@ -745,7 +786,9 @@
          * 모듈 초기 시동 바인딩
          */
         init: function(opt) {
-            options = opt || {};
+            const userOpts = opt || {};
+            const dialogEls = get_default_dialog_elements();
+            options = Object.assign({}, userOpts);
             if (options.elements) {
                 if (options.elements.headingStyleControls && !options.controlsContainer) {
                     options.controlsContainer = options.elements.headingStyleControls;
@@ -753,6 +796,15 @@
                 if (options.elements.modalHeadingSelect && !options.presetSelect) {
                     options.presetSelect = options.elements.modalHeadingSelect;
                 }
+            }
+            if (!options.controlsContainer && dialogEls.controlsContainer) {
+                options.controlsContainer = dialogEls.controlsContainer;
+            }
+            if (!options.presetSelect && dialogEls.presetSelect) {
+                options.presetSelect = dialogEls.presetSelect;
+            }
+            if (!options.modal && dialogEls.modal) {
+                options.modal = dialogEls.modal;
             }
             const self = this;
 
@@ -1027,6 +1079,9 @@
          */
         renderControls: function(presetId) {
             const container = options.controlsContainer;
+            if (typeof window.assert_arg === 'function') {
+                window.assert_arg(container, 'StyleEditor.renderControls: controlsContainer is missing!', { container, presetId });
+            }
             if (!container) return;
 
             container.innerHTML = '';

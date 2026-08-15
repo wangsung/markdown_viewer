@@ -237,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mathRenderWrapper, diagramRenderCheckbox, diagramRenderWrapper, colorSwatchWrapper,
         menuDropdown, btnMenu, mainMenu, btnNewFile, btnOpenFile, fileInput,
         viewDropdown, btnView, viewMenu,
-        headingDropdown, btnHeadingStyle, headingStyleMenu,
+        headingDropdown, btnHeadingStyle, headingStyleMenu, btnEditHeadingStyle, headingPresetSelect,
         exportDropdown, btnExport, exportMenu, btnExportHtml, btnExportPdfPrint,
         btnExportPdfHtml2Pdf, btnOpenNewWindow, btnOpenNewWindowDefault,
         btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
@@ -1839,13 +1839,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     // Heading Modal & Toast Control System
-    // Style 편집 Dialog 전용 DOM 요소 묶음 구조체 (styleDialogElements)
-    const styleDialogElements = {
-        btnEditHeadingStyle: document.getElementById('btn-edit-heading-style'),
-        modalHeadingSelect: document.getElementById('modal-heading-preset-select'),
-        headingStyleControls: document.getElementById('heading-style-controls'),
-        headingPresetSelect: document.getElementById('heading-preset-select')
-    };
+    const dialogEls = (typeof window.StyleEditor !== 'undefined' && typeof window.StyleEditor.getDialogElements === 'function')
+        ? window.StyleEditor.getDialogElements()
+        : {};
+    const modalHeadingSelect = dialogEls.presetSelect || document.getElementById('modal-heading-preset-select');
 
     function showToast(message, duration = 3000) {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
@@ -1854,13 +1851,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderHeadingModalControls(presetId) {
-        if (window.StyleEditor) {
-            window.StyleEditor.renderControls(presetId);
-        }
+        window.assert_arg(typeof window.StyleEditor !== 'undefined' && typeof window.StyleEditor.renderControls === 'function', 'StyleEditor.renderControls function is required!', { StyleEditor: window.StyleEditor, presetId });
+        window.StyleEditor.renderControls(presetId);
     }
 
-    if (styleDialogElements.btnEditHeadingStyle) {
-        styleDialogElements.btnEditHeadingStyle.addEventListener('click', (e) => {
+    if (btnEditHeadingStyle) {
+        btnEditHeadingStyle.addEventListener('click', (e) => {
             if (e) e.stopPropagation();
             if (viewMenu) viewMenu.classList.remove('show');
             if (exportMenu) exportMenu.classList.remove('show');
@@ -1872,7 +1868,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             updatePresetSelectOptions();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            if (styleDialogElements.modalHeadingSelect) styleDialogElements.modalHeadingSelect.value = currentActive;
+            if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
             if (window.StyleEditor && typeof window.StyleEditor.openModal === 'function') {
                 window.StyleEditor.openModal(currentActive);
             }
@@ -1888,15 +1884,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (styleDialogElements.headingPresetSelect) {
-        styleDialogElements.headingPresetSelect.addEventListener('change', (e) => {
+    if (headingPresetSelect) {
+        headingPresetSelect.addEventListener('change', (e) => {
             applyHeadingPreset(e.target.value);
             renderMarkdown();
         });
     }
 
-    if (styleDialogElements.modalHeadingSelect) {
-        styleDialogElements.modalHeadingSelect.addEventListener('change', (e) => {
+    if (modalHeadingSelect) {
+        modalHeadingSelect.addEventListener('change', (e) => {
             renderHeadingModalControls(e.target.value);
             applyHeadingPreset(e.target.value);
             renderMarkdown();
@@ -1917,13 +1913,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleLivePreview() {
-        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
         applyHeadingPreset(currentId, tempStyles);
     }
 
     function handleModalScroll(clientX, deltaY) {
-        const dragDivider = document.getElementById('drag-divider');
         const boundaryX = dragDivider 
             ? dragDivider.getBoundingClientRect().left 
             : window.innerWidth / 2;
@@ -1942,14 +1937,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePresetSave(presetName) {
-        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
         showToast(`'${presetName}' 스타일이 저장되었습니다.`);
     }
 
     function handlePresetSaveAndClose(presetName) {
         closeHeadingStyleModal();
-        const currentId = styleDialogElements.modalHeadingSelect ? styleDialogElements.modalHeadingSelect.value : 'github_classic';
+        const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         applyHeadingPreset(currentId);
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
@@ -1985,9 +1980,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.StyleEditor) {
         window.StyleEditor.init({
-            elements: styleDialogElements,
-            controlsContainer: styleDialogElements.headingStyleControls,
-            presetSelect: styleDialogElements.modalHeadingSelect,
             getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
             savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
             onPresetChange: handlePresetChange,

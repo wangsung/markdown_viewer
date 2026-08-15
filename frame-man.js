@@ -134,6 +134,8 @@
             headingDropdown: document.getElementById('heading-dropdown'),
             btnHeadingStyle: document.getElementById('btn-heading-style'),
             headingStyleMenu: document.getElementById('heading-style-menu'),
+            btnEditHeadingStyle: document.getElementById('btn-edit-heading-style'),
+            headingPresetSelect: document.getElementById('heading-preset-select'),
 
             exportDropdown: document.getElementById('export-dropdown'),
             btnExport: document.getElementById('btn-export'),
