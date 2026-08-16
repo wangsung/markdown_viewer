@@ -278,248 +278,15 @@ document.addEventListener('DOMContentLoaded', () => {
             FrameManager.updateFilenameDisplay(name, isModified);
         }
         
-        if (typeof add_recent_file_entry === 'function' && name && name !== '제목 없음.md') {
-            add_recent_file_entry(name, name);
+        if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function' && name && name !== '제목 없음.md') {
+            RecentFileManager.addFile(name, name);
         }
     }
 
     // 초기 파일명 뱃지 표시 설정
     updateFilenameDisplay(currentFilename, false);
 
-    // ==========================================================================
-    // Recent Files Management & Submenu (IndexedDB Handle Sync & snake_case)
-    // ==========================================================================
-    const RECENT_FILES_KEY = 'markvi_recent_files';
-    const IDB_NAME = 'markvi_recent_db';
-    const IDB_STORE = 'handles';
 
-    function init_recent_db() {
-        return new Promise((resolve) => {
-            if (!window.indexedDB) return resolve(null);
-            const req = indexedDB.open(IDB_NAME, 1);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(IDB_STORE)) {
-                    db.createObjectStore(IDB_STORE, { keyPath: 'name' });
-                }
-            };
-            req.onsuccess = (e) => resolve(e.target.result);
-            req.onerror = () => resolve(null);
-        });
-    }
-
-    async function save_handle_to_idb(name, handle) {
-        if (!name || !handle) return;
-        const db = await init_recent_db();
-        if (!db) return;
-        try {
-            const tx = db.transaction(IDB_STORE, 'readwrite');
-            const store = tx.objectStore(IDB_STORE);
-            store.put({ name: name, handle: handle, timestamp: Date.now() });
-        } catch (e) {
-            console.warn('Failed to save file handle to IndexedDB:', e);
-        }
-    }
-
-    async function get_handle_from_idb(name) {
-        if (!name) return null;
-        const db = await init_recent_db();
-        if (!db) return null;
-        return new Promise((resolve) => {
-            try {
-                const tx = db.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.get(name);
-                req.onsuccess = () => resolve(req.result ? req.result.handle : null);
-                req.onerror = () => resolve(null);
-            } catch (e) {
-                resolve(null);
-            }
-        });
-    }
-
-    // 다른 창/탭에서 최근 파일 목록이 변경되었을 때 실시간 동기화를 위한 storage 이벤트 리스너
-    window.addEventListener('storage', (e) => {
-        if (e.key === RECENT_FILES_KEY) {
-            render_recent_files_menu();
-        }
-    });
-
-    function get_recent_files() {
-        try {
-            const raw = localStorage.getItem(RECENT_FILES_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) {
-            console.warn('Failed to parse recent files:', e);
-            return [];
-        }
-    }
-
-    function save_recent_files(files) {
-        try {
-            localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(files));
-        } catch (e) {
-            console.warn('Failed to save recent files:', e);
-        }
-    }
-
-    function add_recent_file_entry(name, fullPath, handle = null, size = 0) {
-        if (!name || name === '제목 없음.md') return;
-        const pathToSave = fullPath || name;
-        let files = get_recent_files();
-        files = files.filter(f => f.fullPath !== pathToSave && f.name !== name);
-        
-        let contentSize = size;
-        if (!contentSize && typeof cm !== 'undefined' && cm) {
-            try {
-                contentSize = new Blob([cm.getValue()]).size;
-            } catch (e) {
-                contentSize = 0;
-            }
-        }
-
-        files.unshift({
-            name: name,
-            fullPath: pathToSave,
-            timestamp: Date.now(),
-            size: contentSize || 0
-        });
-        if (files.length > 5) {
-            files = files.slice(0, 5);
-        }
-        save_recent_files(files);
-        if (handle) {
-            save_handle_to_idb(name, handle);
-        }
-        render_recent_files_menu();
-    }
-
-    async function open_recent_file_in_new_window(fileEntry) {
-        if (!fileEntry) return;
-        
-        // 클릭 시 사용자 직접 행동(User Gesture) 문맥에서 미리 File Handle 점검 및 권한 요청
-        let handle = await get_handle_from_idb(fileEntry.name);
-        let hasValidHandle = false;
-
-        if (handle && typeof handle.queryPermission === 'function') {
-            try {
-                let perm = await handle.queryPermission({ mode: 'read' });
-                if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
-                    perm = await handle.requestPermission({ mode: 'read' });
-                }
-                if (perm === 'granted') {
-                    hasValidHandle = true;
-                }
-            } catch (err) {
-                console.warn('사용자 클릭 문맥 내 handle 권한 요청 실패:', err);
-            }
-        }
-
-        // IndexedDB에 유효한 핸들이 없거나 권한이 거부된 경우: 클릭 문맥(User Gesture)에서 즉시 파일 불러오기 창 팝업
-        if (!hasValidHandle && typeof window.showOpenFilePicker === 'function') {
-            try {
-                const [newHandle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'Markdown Documents',
-                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
-                    }],
-                    multiple: false
-                });
-                if (newHandle) {
-                    const file = await newHandle.getFile();
-                    handle = newHandle;
-                    add_recent_file_entry(file.name, file.path || file.name, newHandle, file.size);
-                    hasValidHandle = true;
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') return; // 사용자가 창을 닫은 경우 취소
-                console.warn('최근 파일 다시 선택 대화상자 실패:', err);
-            }
-        }
-
-        function isFreshWindow() {
-            return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-        }
-
-        // 새 창 막 열린 상태/깨끗한 상태라면 현재 창에 불러오기
-        if (isFreshWindow()) {
-            if (hasValidHandle && handle) {
-                try {
-                    const file = await handle.getFile();
-                    currentFileHandle = handle;
-                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                    loadSingleFile(file);
-                    isNewSessionSkippedRestore = false;
-                    return;
-                } catch (err) {
-                    console.warn('현재 창에 최근 파일 불러오기 실패:', err);
-                }
-            }
-        }
-
-        // 원본 경로로 깔끔한 새 URL 계산 (openRecent 파라미터 중첩 방지)
-        const originUrl = new URL(window.location.origin + window.location.pathname);
-        originUrl.searchParams.set('openRecent', fileEntry.name);
-        window.open(originUrl.toString(), '_blank');
-    }
-
-    async function check_and_load_recent_url_param() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const recentName = urlParams.get('openRecent');
-        if (!recentName) return;
-
-        // URL 파라미터 수신 및 로드 처리 후 히스토리에서 쿼리 클린업
-        try {
-            const cleanUrl = window.location.origin + window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-        } catch (e) {
-            console.warn('URL 히스토리 클린업 실패:', e);
-        }
-
-        let isLoadSuccess = false;
-        const handle = await get_handle_from_idb(recentName);
-        if (handle) {
-            try {
-                if (typeof handle.queryPermission === 'function') {
-                    let perm = await handle.queryPermission({ mode: 'read' });
-                    if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
-                        perm = await handle.requestPermission({ mode: 'read' });
-                    }
-                    if (perm === 'granted') {
-                        const file = await handle.getFile();
-                        currentFileHandle = handle;
-                        add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                        loadSingleFile(file);
-                        isLoadSuccess = true;
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.warn('IndexedDB handle 권한 로드 실패:', e);
-            }
-        }
-
-        // 새 창에서 최근 파일 로드 실패 시 (Handle 미존재, 파일 이동/삭제 등)
-        if (!isLoadSuccess) {
-            currentFileHandle = null;
-            // 본문은 새 문서 상태 (빈 텍스트)로 깔끔하게 유지
-            cm.setValue('');
-            updateFilenameDisplay('제목 없음.md', false);
-            renderMarkdown();
-            saveDocumentSession();
-            showToast(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 이용해 주세요.`, 5000);
-            render_recent_files_menu();
-        }
-    }
-
-    function render_recent_files_menu() {
-        const files = get_recent_files();
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.renderRecentFilesMenu === 'function') {
-            FrameManager.renderRecentFilesMenu(files, (entry) => {
-                open_recent_file_in_new_window(entry);
-            });
-        }
-    }
 
     // ==========================================================================
     // Preview Max Width Limit Control (snake_case sub-function)
@@ -1283,7 +1050,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (handle) {
                     const file = await handle.getFile();
                     currentFileHandle = handle;
-                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
+                    }
                     loadSingleFile(file);
                     return true;
                 }
@@ -1457,7 +1226,9 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.onload = function(event) {
                 cm.setValue(event.target.result);
                 updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
-                add_recent_file_entry(file.name, file.path || file.webkitRelativePath || file.name, null, file.size);
+                if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                    RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, null, file.size);
+                }
                 renderMarkdown();
                 saveDocumentSession();
                 
@@ -1513,7 +1284,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (allowedExtensions.includes(extension) || targetFile.type.startsWith('text/')) {
                 // 최근 파일 목록 및 IndexedDB에 저장
-                add_recent_file_entry(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
+                if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                    RecentFileManager.addFile(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
+                }
 
                 const isFresh = isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 if (isFresh) {
@@ -1652,8 +1425,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원
     restore_document_content(savedSessionData);
-    render_recent_files_menu();
-    check_and_load_recent_url_param();
+    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.init === 'function') {
+        RecentFileManager.init({
+            actions: {
+                onLoadSingleFile: (file, handle) => {
+                    currentFileHandle = handle || null;
+                    loadSingleFile(file);
+                    isNewSessionSkippedRestore = false;
+                },
+                isFreshWindow: () => {
+                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                }
+            }
+        });
+    }
 
     // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원
     restore_frame_ui_settings(savedSessionData);

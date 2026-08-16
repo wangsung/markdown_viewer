@@ -119,14 +119,31 @@ function runTestSuite() {
         'render_debug_panel_ui',
         'calc_scaled_font_size',
         'restore_frame_settings_ui',
-        'get_default_elements'
+        'get_default_elements',
+        'init_recent_db',
+        'get_handle_from_idb',
+        'save_handle_to_idb',
+        'get_recent_files',
+        'save_recent_files',
+        'add_recent_file_entry',
+        'open_recent_file_in_new_window',
+        'check_and_load_recent_url_param'
     ];
 
     pureSubFuncNames.forEach(funcName => {
         runAssert(frameManCode.includes(`function ${funcName}`), `Pure sub-function '${funcName}' defined in snake_case`);
     });
 
+    runAssert(typeof window.RecentFileManager === 'object', 'window.RecentFileManager object exists');
+    runAssert(typeof FrameManager.RecentFileManager === 'object', 'FrameManager.RecentFileManager sub-object exists');
+    runAssert(typeof FrameManager.RecentFileManager.addFile === 'function', 'FrameManager.RecentFileManager.addFile function exists');
+
     runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
+    runAssert(typeof FrameManager.initRecentFiles === 'function', 'FrameManager.initRecentFiles function exists');
+    runAssert(typeof FrameManager.addRecentFile === 'function', 'FrameManager.addRecentFile function exists');
+    runAssert(typeof FrameManager.getRecentFiles === 'function', 'FrameManager.getRecentFiles function exists');
+    runAssert(typeof FrameManager.getRecentFileHandle === 'function', 'FrameManager.getRecentFileHandle function exists');
+    runAssert(typeof FrameManager.checkAndLoadRecentUrlParam === 'function', 'FrameManager.checkAndLoadRecentUrlParam function exists');
 
     // Test 3: Theme UI Initialization & Toggle
     const mockContainer = createMockElement('editor-container');
