@@ -57,9 +57,10 @@
 - 모든 단위 테스트 및 검수용 테스트 스크립트는 `node -e "..."` 와 같은 긴 인라인 코맨드 방식 대신 **독립된 테스트 파일(`.js` 또는 `.html`)로 항상 작성하여 보관 및 저장**해야 합니다.
 - 테스트 스크립트를 파일로 관리하여 반복적이고 지속 가능한 자동화 테스트 및 재검증에 활용합니다.
 
-## 순수 서브 함수 네이밍 규칙 (Pure Sub-function Naming Convention)
+## 순수 서브 함수 네이밍 규칙 및 비동기 개체 명명 규칙 (Sub-function & Async Naming Rules)
 - **상위 비즈니스/상태 관리 함수**: camelCase (예: `applyHeadingPreset`, `handleSaveCurrentDocument`)
 - **순수 하위 서브 함수 (Pure Sub-function)**: 착오 방지를 위해 **모두 소문자 snake_case (예: `apply_heading_preset`, `join_paragraphs`, `insert_formatting`)**로 정의 및 표기해야 합니다.
+- **비동기 개체 접두사 규칙 (Async Object Naming Rule)**: `FileReader`, `Promise` 래퍼, 비동기 스트림/이벤트 처리 개체 변수 등 비동기(Asynchronous)로 동작하는 인스턴스/개체 변수를 정의하거나 사용할 때는 동기 개체와의 구분을 위해 **반드시 `async_` 접두사(Prefix)를 명시적으로 부여 (예: `async_file_reader`, `async_stream_loader`)**해야 합니다.
 
 ## 메타성 버그 해결 깃 커밋 기록 지침 (Meta-Bug Fix Commit Logging Policy)
 - 비즈니스 로직 버그가 아닌 **Git 충돌 마커 미제거, 오타/문법 오류(SyntaxError), 파일 구조 깨짐, 빌드/스크립트 환경 장애 등 메타(Meta)성 이슈 해결 시**에는 깃 커밋 메시지 본문(Body)에 관련 트러블슈팅 이력을 구체적으로 포함하여 기록해야 합니다.
