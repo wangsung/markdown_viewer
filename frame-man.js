@@ -154,7 +154,13 @@
             btnSave: document.getElementById('btn-save'),
             btnSaveAs: document.getElementById('btn-save-as'),
             btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
-            btnDebug: document.getElementById('btn-debug')
+            btnDebug: document.getElementById('btn-debug'),
+
+            // TOC Elements
+            tocSidebar: document.getElementById('toc-sidebar'),
+            tocList: document.getElementById('toc-list'),
+            btnTocToggleInner: document.getElementById('btn-toc-toggle-inner'),
+            tocToggleBar: document.getElementById('toc-toggle-bar')
         };
         assert_arg(els.container && els.preview, 'Core DOM elements container and preview must exist in get_default_elements!', { container: els.container, preview: els.preview });
         return els;
@@ -1022,6 +1028,113 @@
         }
     }
 
+    /**
+     * pure sub-function: 마크다운 텍스트에서 목차(TOC) 헤딩 목록을 추출 파싱합니다.
+     */
+    function parse_toc_headings(text) {
+        if (typeof text !== 'string') return [];
+        if (typeof EditorManager !== 'undefined' && typeof EditorManager.build_toc === 'function') {
+            return EditorManager.build_toc(text);
+        }
+        const headings = [];
+        const lines = text.split('\n');
+        lines.forEach((line, index) => {
+            const match = line.match(/^(#{1,6})\s+(.+)$/);
+            if (match) {
+                headings.push({
+                    level: match[1].length,
+                    text: match[2].trim(),
+                    line: index
+                });
+            }
+        });
+        return headings;
+    }
+
+    /**
+     * pure sub-function: TOC 헤딩 트리를 DOM(tocList) UI에 렌더링합니다.
+     */
+    function render_toc_tree_ui(headings, elements, onSelectHeading) {
+        if (!assert_arg(Array.isArray(headings), 'render_toc_tree_ui: headings must be an array', { headings })) {
+            return false;
+        }
+        if (!assert_arg(typeof onSelectHeading === 'function', 'render_toc_tree_ui: onSelectHeading must be a function', { onSelectHeading })) {
+            return false;
+        }
+        const els = elements || {};
+        const tocList = els.tocList || (typeof document !== 'undefined' ? document.getElementById('toc-list') : null);
+        if (!tocList) return false;
+
+        tocList.innerHTML = '';
+        headings.forEach(heading => {
+            const li = document.createElement('li');
+            li.className = `toc-item toc-h${heading.level}`;
+            li.setAttribute('data-line', heading.line + 1);
+
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = heading.text;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                onSelectHeading(heading.line + 1);
+            });
+
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+        return true;
+    }
+
+    /**
+     * pure sub-function: TOC 사이드바의 접기/열기 상태 및 ARIA 속성을 토글/전환합니다.
+     */
+    function toggle_toc_sidebar_ui(elements, forceState) {
+        const els = elements || {};
+        const tocSidebar = els.tocSidebar || (typeof document !== 'undefined' ? document.getElementById('toc-sidebar') : null);
+        if (!assert_arg(tocSidebar && typeof tocSidebar === 'object', 'toggle_toc_sidebar_ui: elements.tocSidebar DOM element is required', { tocSidebar })) {
+            return false;
+        }
+        if (!assert_arg(typeof forceState === 'boolean', 'toggle_toc_sidebar_ui: forceState must be a boolean', { forceState })) {
+            return false;
+        }
+
+        const btnTocToggleInner = els.btnTocToggleInner || (typeof document !== 'undefined' ? document.getElementById('btn-toc-toggle-inner') : null);
+        const tocToggleBar = els.tocToggleBar || (typeof document !== 'undefined' ? document.getElementById('toc-toggle-bar') : null);
+
+        if (forceState) {
+            tocSidebar.classList.add('collapsed');
+            if (btnTocToggleInner) btnTocToggleInner.setAttribute('aria-expanded', 'false');
+            if (tocToggleBar) tocToggleBar.setAttribute('aria-expanded', 'false');
+        } else {
+            tocSidebar.classList.remove('collapsed');
+            if (btnTocToggleInner) btnTocToggleInner.setAttribute('aria-expanded', 'true');
+            if (tocToggleBar) tocToggleBar.setAttribute('aria-expanded', 'true');
+        }
+        return true;
+    }
+
+    /**
+     * pure sub-function: 현재 에디터 활성 라인(activeLine)에 해당하는 TOC 항목을 하이라이트 표시합니다.
+     */
+    function highlight_active_toc_ui(elements, activeLine) {
+        if (!assert_arg(typeof activeLine === 'number' && activeLine >= 0, 'highlight_active_toc_ui: activeLine must be a non-negative number', { activeLine })) {
+            return false;
+        }
+        const els = elements || {};
+        const tocList = els.tocList || (typeof document !== 'undefined' ? document.getElementById('toc-list') : null);
+        const tocItems = tocList ? tocList.querySelectorAll('.toc-item') : (typeof document !== 'undefined' ? document.querySelectorAll('.toc-item') : []);
+
+        tocItems.forEach(item => {
+            const lineAttr = item.getAttribute('data-line');
+            if (lineAttr !== null && parseInt(lineAttr, 10) === activeLine) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        return true;
+    }
+
     // ==========================================================================
     // Public API (camelCase)
     // ==========================================================================
@@ -1075,6 +1188,90 @@
 
         checkAndLoadUrlParam: function(onLoadFile) {
             return check_and_load_recent_url_param(onLoadFile);
+        }
+    };
+
+    const TocManager = {
+        options: {
+            elements: {},
+            onSelectHeading: null
+        },
+
+        init: function(userOpts = {}) {
+            if (!assert_arg(typeof userOpts === 'object' && userOpts !== null, 'TocManager.init: userOpts must be an object', { userOpts })) {
+                return false;
+            }
+            const defaultEls = get_default_elements();
+            const userEls = (userOpts.elements && typeof userOpts.elements === 'object') ? userOpts.elements : {};
+            const els = Object.assign({}, defaultEls, userEls);
+
+            this.options = {
+                elements: els,
+                onSelectHeading: userOpts.onSelectHeading || null
+            };
+
+            this.bindEvents();
+            return true;
+        },
+
+        bindEvents: function() {
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            if (els.btnTocToggleInner && els.tocSidebar) {
+                els.btnTocToggleInner.onclick = () => {
+                    this.toggleSidebar(true);
+                };
+                els.btnTocToggleInner.onkeydown = (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.toggleSidebar(true);
+                    }
+                };
+            }
+            if (els.tocToggleBar && els.tocSidebar) {
+                els.tocToggleBar.onclick = () => {
+                    this.toggleSidebar(false);
+                };
+                els.tocToggleBar.onkeydown = (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.toggleSidebar(false);
+                    }
+                };
+            }
+        },
+
+        render: function(markdownText, cmInstance) {
+            if (!assert_arg(typeof markdownText === 'string', 'TocManager.render: markdownText must be a string', { markdownText })) {
+                return false;
+            }
+            const headings = parse_toc_headings(markdownText);
+            const onSelect = (line) => {
+                if (typeof this.options.onSelectHeading === 'function') {
+                    this.options.onSelectHeading(line);
+                } else if (cmInstance && typeof cmInstance.scrollToLine === 'function') {
+                    cmInstance.scrollToLine(line);
+                } else if (window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
+                    window.scrollSync.scrollToLine(line);
+                }
+            };
+            return render_toc_tree_ui(headings, this.options.elements, onSelect);
+        },
+
+        toggleSidebar: function(forceState) {
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            let targetState = forceState;
+            if (targetState === undefined) {
+                targetState = els.tocSidebar ? !els.tocSidebar.classList.contains('collapsed') : true;
+            }
+            return toggle_toc_sidebar_ui(els, targetState);
+        },
+
+        highlightActive: function(activeLine) {
+            if (!assert_arg(typeof activeLine === 'number' && activeLine >= 0, 'TocManager.highlightActive: activeLine must be a non-negative number', { activeLine })) {
+                return false;
+            }
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            return highlight_active_toc_ui(els, activeLine);
         }
     };
 
@@ -1184,11 +1381,30 @@
 
         checkAndLoadRecentUrlParam: function(onLoadFile) {
             return RecentFileManager.checkAndLoadUrlParam(onLoadFile);
+        },
+
+        TocManager: TocManager,
+
+        initToc: function(userOpts) {
+            return TocManager.init(userOpts);
+        },
+
+        renderToc: function(markdownText, cmInstance) {
+            return TocManager.render(markdownText, cmInstance);
+        },
+
+        toggleTocSidebar: function(forceState) {
+            return TocManager.toggleSidebar(forceState);
+        },
+
+        highlightActiveToc: function(activeLine) {
+            return TocManager.highlightActive(activeLine);
         }
     };
 
     if (typeof window !== 'undefined') {
         window.RecentFileManager = RecentFileManager;
+        window.TocManager = TocManager;
     }
     window.FrameManager = FrameManager;
 

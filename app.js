@@ -243,10 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
     } = frameElements;
 
-    // TOC 사이드바 DOM 요소
-    const tocSidebar = document.getElementById('toc-sidebar');
-    const btnTocToggleInner = document.getElementById('btn-toc-toggle-inner');
-    const tocToggleBar = document.getElementById('toc-toggle-bar');
+
 
     function applyTheme(theme) {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
@@ -1361,33 +1358,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (TocManager 위임)
     function buildTOC() {
-        const tocList = document.getElementById('toc-list');
-        if (!tocList || !cm) return;
-
-        const text = cm.getValue();
-        const headings = EditorManager.build_toc(text);
-
-        tocList.innerHTML = '';
-        headings.forEach(heading => {
-            const li = document.createElement('li');
-            li.className = `toc-item toc-h${heading.level}`;
-            li.setAttribute('data-line', heading.line + 1);
-
-            const a = document.createElement('a');
-            a.href = '#';
-            a.textContent = heading.text;
-            a.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (scrollSync) {
-                    scrollSync.scrollToLine(heading.line + 1);
-                }
-            });
-
-            li.appendChild(a);
-            tocList.appendChild(li);
-        });
+        if (!cm) return;
+        if (typeof TocManager !== 'undefined' && typeof TocManager.render === 'function') {
+            TocManager.render(cm.getValue(), cm);
+        }
     }
 
     // ==========================================================================
@@ -1405,7 +1381,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (containerRect.width === 0) return;
         
         // TOC 사이드바의 실제 점유 폭 계산
-        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
+        const tocSidebarEl = document.getElementById('toc-sidebar');
+        const tocWidth = tocSidebarEl && !tocSidebarEl.classList.contains('collapsed') ? tocSidebarEl.getBoundingClientRect().width : 0;
         const dividerWidth = 6;
         const availableWidth = containerRect.width - tocWidth - dividerWidth;
         
@@ -1591,35 +1568,13 @@ document.addEventListener('DOMContentLoaded', () => {
         SettingsManager.init();
     }
 
-    // TOC 사이드바 토글 관련 이벤트 바인딩
-    if (btnTocToggleInner && tocSidebar) {
-        btnTocToggleInner.addEventListener('click', () => {
-            tocSidebar.classList.add('collapsed');
-            btnTocToggleInner.setAttribute('aria-expanded', 'false');
-            if (tocToggleBar) {
-                tocToggleBar.setAttribute('aria-expanded', 'false');
-            }
-        });
-        btnTocToggleInner.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                btnTocToggleInner.click();
-            }
-        });
-    }
-
-    if (tocToggleBar && tocSidebar) {
-        tocToggleBar.addEventListener('click', () => {
-            tocSidebar.classList.remove('collapsed');
-            if (btnTocToggleInner) {
-                btnTocToggleInner.setAttribute('aria-expanded', 'true');
-            }
-            tocToggleBar.setAttribute('aria-expanded', 'true');
-        });
-        tocToggleBar.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                tocToggleBar.click();
+    // TOC 사이드바 토글 및 렌더링 제어기 초기화 (TocManager 위임)
+    if (typeof TocManager !== 'undefined' && typeof TocManager.init === 'function') {
+        TocManager.init({
+            onSelectHeading: (lineNum) => {
+                if (scrollSync) {
+                    scrollSync.scrollToLine(lineNum);
+                }
             }
         });
     }
@@ -1791,14 +1746,9 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer: preview,
         enableScrollSync: enableScrollSync,
         onActiveLineChange: (lineNum) => {
-            const tocItems = document.querySelectorAll('.toc-item');
-            tocItems.forEach(item => {
-                if (parseInt(item.getAttribute('data-line'), 10) === lineNum) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
+            if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
+                TocManager.highlightActive(lineNum);
+            }
         },
         onDebugUpdate: (keyframes, activeSource) => {
             updateDebugPanelUI(keyframes, activeSource);

@@ -127,7 +127,11 @@ function runTestSuite() {
         'save_recent_files',
         'add_recent_file_entry',
         'open_recent_file_in_new_window',
-        'check_and_load_recent_url_param'
+        'check_and_load_recent_url_param',
+        'parse_toc_headings',
+        'render_toc_tree_ui',
+        'toggle_toc_sidebar_ui',
+        'highlight_active_toc_ui'
     ];
 
     pureSubFuncNames.forEach(funcName => {
@@ -137,6 +141,12 @@ function runTestSuite() {
     runAssert(typeof window.RecentFileManager === 'object', 'window.RecentFileManager object exists');
     runAssert(typeof FrameManager.RecentFileManager === 'object', 'FrameManager.RecentFileManager sub-object exists');
     runAssert(typeof FrameManager.RecentFileManager.addFile === 'function', 'FrameManager.RecentFileManager.addFile function exists');
+
+    runAssert(typeof window.TocManager === 'object', 'window.TocManager object exists');
+    runAssert(typeof FrameManager.TocManager === 'object', 'FrameManager.TocManager sub-object exists');
+    runAssert(typeof FrameManager.TocManager.render === 'function', 'FrameManager.TocManager.render function exists');
+    runAssert(typeof FrameManager.initToc === 'function', 'FrameManager.initToc function exists');
+    runAssert(typeof FrameManager.renderToc === 'function', 'FrameManager.renderToc function exists');
 
     runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
     runAssert(typeof FrameManager.initRecentFiles === 'function', 'FrameManager.initRecentFiles function exists');
