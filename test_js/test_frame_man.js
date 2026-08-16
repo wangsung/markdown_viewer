@@ -119,14 +119,53 @@ function runTestSuite() {
         'render_debug_panel_ui',
         'calc_scaled_font_size',
         'restore_frame_settings_ui',
-        'get_default_elements'
+        'get_default_elements',
+        'init_recent_db',
+        'get_handle_from_idb',
+        'save_handle_to_idb',
+        'get_recent_files',
+        'save_recent_files',
+        'add_recent_file_entry',
+        'open_recent_file_in_new_window',
+        'check_and_load_recent_url_param',
+        'parse_toc_headings',
+        'render_toc_tree_ui',
+        'toggle_toc_sidebar_ui',
+        'highlight_active_toc_ui',
+        'prevent_window_default_drop',
+        'setup_drag_drop_overlay_ui',
+        'extract_dropped_file_and_handle',
+        'is_allowed_markdown_file',
+        'read_file_content_as_text'
     ];
 
     pureSubFuncNames.forEach(funcName => {
         runAssert(frameManCode.includes(`function ${funcName}`), `Pure sub-function '${funcName}' defined in snake_case`);
     });
 
+    runAssert(typeof window.RecentFileManager === 'object', 'window.RecentFileManager object exists');
+    runAssert(typeof FrameManager.RecentFileManager === 'object', 'FrameManager.RecentFileManager sub-object exists');
+    runAssert(typeof FrameManager.RecentFileManager.addFile === 'function', 'FrameManager.RecentFileManager.addFile function exists');
+
+    runAssert(typeof window.TocManager === 'object', 'window.TocManager object exists');
+    runAssert(typeof FrameManager.TocManager === 'object', 'FrameManager.TocManager sub-object exists');
+    runAssert(typeof FrameManager.TocManager.render === 'function', 'FrameManager.TocManager.render function exists');
+    runAssert(typeof FrameManager.initToc === 'function', 'FrameManager.initToc function exists');
+    runAssert(typeof FrameManager.renderToc === 'function', 'FrameManager.renderToc function exists');
+
+    runAssert(typeof window.FileDropManager === 'object', 'window.FileDropManager object exists');
+    runAssert(typeof FrameManager.FileDropManager === 'object', 'FrameManager.FileDropManager sub-object exists');
+    runAssert(typeof FrameManager.FileDropManager.init === 'function', 'FrameManager.FileDropManager.init function exists');
+    runAssert(typeof FrameManager.FileDropManager.handleDropEvent === 'function', 'FrameManager.FileDropManager.handleDropEvent function exists');
+    runAssert(typeof FrameManager.FileDropManager.loadSingleFile === 'function', 'FrameManager.FileDropManager.loadSingleFile function exists');
+    runAssert(typeof FrameManager.initFileDrop === 'function', 'FrameManager.initFileDrop function exists');
+
     runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
+    runAssert(typeof FrameManager.initRecentFiles === 'function', 'FrameManager.initRecentFiles function exists');
+    runAssert(typeof FrameManager.addRecentFile === 'function', 'FrameManager.addRecentFile function exists');
+    runAssert(typeof FrameManager.getRecentFiles === 'function', 'FrameManager.getRecentFiles function exists');
+    runAssert(typeof FrameManager.getRecentFileHandle === 'function', 'FrameManager.getRecentFileHandle function exists');
+    runAssert(typeof FrameManager.checkAndLoadRecentUrlParam === 'function', 'FrameManager.checkAndLoadRecentUrlParam function exists');
 
     // Test 3: Theme UI Initialization & Toggle
     const mockContainer = createMockElement('editor-container');

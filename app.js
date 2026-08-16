@@ -183,43 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
         mode: 'markdown',
         lineNumbers: true,
         lineWrapping: true,
-        dragDrop: false,
-        theme: 'default',
-        extraKeys: {
-            "Tab": function(cm) {
-                cm.replaceSelection("    ");
-            },
-            "Cmd-B": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'bold', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Ctrl-B": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'bold', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Cmd-I": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'italic', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Ctrl-I": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'italic', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Alt-Q": function(cmInstance) {
-                EditorManager.apply_paragraph_join(cmInstance, () => {
-                    renderMarkdown();
-                });
-            }
-        }
+        dragDrop: false
     });
+
+    // EditorManager 단축키 바인딩 전담 위임 (app.js에서 extraKeys 속성 완전 분리)
+    if (typeof EditorManager !== 'undefined' && typeof EditorManager.initShortcuts === 'function') {
+        EditorManager.initShortcuts(cm, {
+            onFormatChange: (type) => {
+                updateFilenameDisplay(currentFilename, true);
+                renderMarkdown();
+            },
+            onParagraphJoin: () => {
+                renderMarkdown();
+            }
+        });
+    }
 
     // 1. FrameManager UI 엘리먼트 자율 쿼리 및 바인딩 수신
     const frameElements = (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function')
@@ -243,10 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
     } = frameElements;
 
-    // TOC 사이드바 DOM 요소
-    const tocSidebar = document.getElementById('toc-sidebar');
-    const btnTocToggleInner = document.getElementById('btn-toc-toggle-inner');
-    const tocToggleBar = document.getElementById('toc-toggle-bar');
+
 
     function applyTheme(theme) {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
@@ -278,248 +253,15 @@ document.addEventListener('DOMContentLoaded', () => {
             FrameManager.updateFilenameDisplay(name, isModified);
         }
         
-        if (typeof add_recent_file_entry === 'function' && name && name !== '제목 없음.md') {
-            add_recent_file_entry(name, name);
+        if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function' && name && name !== '제목 없음.md') {
+            RecentFileManager.addFile(name, name);
         }
     }
 
     // 초기 파일명 뱃지 표시 설정
     updateFilenameDisplay(currentFilename, false);
 
-    // ==========================================================================
-    // Recent Files Management & Submenu (IndexedDB Handle Sync & snake_case)
-    // ==========================================================================
-    const RECENT_FILES_KEY = 'markvi_recent_files';
-    const IDB_NAME = 'markvi_recent_db';
-    const IDB_STORE = 'handles';
 
-    function init_recent_db() {
-        return new Promise((resolve) => {
-            if (!window.indexedDB) return resolve(null);
-            const req = indexedDB.open(IDB_NAME, 1);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(IDB_STORE)) {
-                    db.createObjectStore(IDB_STORE, { keyPath: 'name' });
-                }
-            };
-            req.onsuccess = (e) => resolve(e.target.result);
-            req.onerror = () => resolve(null);
-        });
-    }
-
-    async function save_handle_to_idb(name, handle) {
-        if (!name || !handle) return;
-        const db = await init_recent_db();
-        if (!db) return;
-        try {
-            const tx = db.transaction(IDB_STORE, 'readwrite');
-            const store = tx.objectStore(IDB_STORE);
-            store.put({ name: name, handle: handle, timestamp: Date.now() });
-        } catch (e) {
-            console.warn('Failed to save file handle to IndexedDB:', e);
-        }
-    }
-
-    async function get_handle_from_idb(name) {
-        if (!name) return null;
-        const db = await init_recent_db();
-        if (!db) return null;
-        return new Promise((resolve) => {
-            try {
-                const tx = db.transaction(IDB_STORE, 'readonly');
-                const store = tx.objectStore(IDB_STORE);
-                const req = store.get(name);
-                req.onsuccess = () => resolve(req.result ? req.result.handle : null);
-                req.onerror = () => resolve(null);
-            } catch (e) {
-                resolve(null);
-            }
-        });
-    }
-
-    // 다른 창/탭에서 최근 파일 목록이 변경되었을 때 실시간 동기화를 위한 storage 이벤트 리스너
-    window.addEventListener('storage', (e) => {
-        if (e.key === RECENT_FILES_KEY) {
-            render_recent_files_menu();
-        }
-    });
-
-    function get_recent_files() {
-        try {
-            const raw = localStorage.getItem(RECENT_FILES_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch (e) {
-            console.warn('Failed to parse recent files:', e);
-            return [];
-        }
-    }
-
-    function save_recent_files(files) {
-        try {
-            localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(files));
-        } catch (e) {
-            console.warn('Failed to save recent files:', e);
-        }
-    }
-
-    function add_recent_file_entry(name, fullPath, handle = null, size = 0) {
-        if (!name || name === '제목 없음.md') return;
-        const pathToSave = fullPath || name;
-        let files = get_recent_files();
-        files = files.filter(f => f.fullPath !== pathToSave && f.name !== name);
-        
-        let contentSize = size;
-        if (!contentSize && typeof cm !== 'undefined' && cm) {
-            try {
-                contentSize = new Blob([cm.getValue()]).size;
-            } catch (e) {
-                contentSize = 0;
-            }
-        }
-
-        files.unshift({
-            name: name,
-            fullPath: pathToSave,
-            timestamp: Date.now(),
-            size: contentSize || 0
-        });
-        if (files.length > 5) {
-            files = files.slice(0, 5);
-        }
-        save_recent_files(files);
-        if (handle) {
-            save_handle_to_idb(name, handle);
-        }
-        render_recent_files_menu();
-    }
-
-    async function open_recent_file_in_new_window(fileEntry) {
-        if (!fileEntry) return;
-        
-        // 클릭 시 사용자 직접 행동(User Gesture) 문맥에서 미리 File Handle 점검 및 권한 요청
-        let handle = await get_handle_from_idb(fileEntry.name);
-        let hasValidHandle = false;
-
-        if (handle && typeof handle.queryPermission === 'function') {
-            try {
-                let perm = await handle.queryPermission({ mode: 'read' });
-                if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
-                    perm = await handle.requestPermission({ mode: 'read' });
-                }
-                if (perm === 'granted') {
-                    hasValidHandle = true;
-                }
-            } catch (err) {
-                console.warn('사용자 클릭 문맥 내 handle 권한 요청 실패:', err);
-            }
-        }
-
-        // IndexedDB에 유효한 핸들이 없거나 권한이 거부된 경우: 클릭 문맥(User Gesture)에서 즉시 파일 불러오기 창 팝업
-        if (!hasValidHandle && typeof window.showOpenFilePicker === 'function') {
-            try {
-                const [newHandle] = await window.showOpenFilePicker({
-                    types: [{
-                        description: 'Markdown Documents',
-                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
-                    }],
-                    multiple: false
-                });
-                if (newHandle) {
-                    const file = await newHandle.getFile();
-                    handle = newHandle;
-                    add_recent_file_entry(file.name, file.path || file.name, newHandle, file.size);
-                    hasValidHandle = true;
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') return; // 사용자가 창을 닫은 경우 취소
-                console.warn('최근 파일 다시 선택 대화상자 실패:', err);
-            }
-        }
-
-        function isFreshWindow() {
-            return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-        }
-
-        // 새 창 막 열린 상태/깨끗한 상태라면 현재 창에 불러오기
-        if (isFreshWindow()) {
-            if (hasValidHandle && handle) {
-                try {
-                    const file = await handle.getFile();
-                    currentFileHandle = handle;
-                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                    loadSingleFile(file);
-                    isNewSessionSkippedRestore = false;
-                    return;
-                } catch (err) {
-                    console.warn('현재 창에 최근 파일 불러오기 실패:', err);
-                }
-            }
-        }
-
-        // 원본 경로로 깔끔한 새 URL 계산 (openRecent 파라미터 중첩 방지)
-        const originUrl = new URL(window.location.origin + window.location.pathname);
-        originUrl.searchParams.set('openRecent', fileEntry.name);
-        window.open(originUrl.toString(), '_blank');
-    }
-
-    async function check_and_load_recent_url_param() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const recentName = urlParams.get('openRecent');
-        if (!recentName) return;
-
-        // URL 파라미터 수신 및 로드 처리 후 히스토리에서 쿼리 클린업
-        try {
-            const cleanUrl = window.location.origin + window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-        } catch (e) {
-            console.warn('URL 히스토리 클린업 실패:', e);
-        }
-
-        let isLoadSuccess = false;
-        const handle = await get_handle_from_idb(recentName);
-        if (handle) {
-            try {
-                if (typeof handle.queryPermission === 'function') {
-                    let perm = await handle.queryPermission({ mode: 'read' });
-                    if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
-                        perm = await handle.requestPermission({ mode: 'read' });
-                    }
-                    if (perm === 'granted') {
-                        const file = await handle.getFile();
-                        currentFileHandle = handle;
-                        add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                        loadSingleFile(file);
-                        isLoadSuccess = true;
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.warn('IndexedDB handle 권한 로드 실패:', e);
-            }
-        }
-
-        // 새 창에서 최근 파일 로드 실패 시 (Handle 미존재, 파일 이동/삭제 등)
-        if (!isLoadSuccess) {
-            currentFileHandle = null;
-            // 본문은 새 문서 상태 (빈 텍스트)로 깔끔하게 유지
-            cm.setValue('');
-            updateFilenameDisplay('제목 없음.md', false);
-            renderMarkdown();
-            saveDocumentSession();
-            showToast(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 이용해 주세요.`, 5000);
-            render_recent_files_menu();
-        }
-    }
-
-    function render_recent_files_menu() {
-        const files = get_recent_files();
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.renderRecentFilesMenu === 'function') {
-            FrameManager.renderRecentFilesMenu(files, (entry) => {
-                open_recent_file_in_new_window(entry);
-            });
-        }
-    }
 
     // ==========================================================================
     // Preview Max Width Limit Control (snake_case sub-function)
@@ -727,185 +469,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
-    // KaTeX availability and state initialization
-    const isKatexAvailable = typeof katex !== 'undefined';
-    let enableMathSupport = isKatexAvailable; // default: true if KaTeX is loaded
-
-    // If KaTeX is not loaded, hide the UI toggle
-    if (mathRenderWrapper) {
-        if (!isKatexAvailable) {
-            mathRenderWrapper.style.display = 'none';
-        } else if (mathRenderCheckbox) {
-            mathRenderCheckbox.checked = enableMathSupport;
-        }
-    }
-    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function') {
-        PreviewManager.setMathSupport(enableMathSupport);
-    } else {
-        window._enableMathSupport = enableMathSupport;
-    }
-
-    // Mermaid availability and state initialization
-    const isMermaidAvailable = typeof mermaid !== 'undefined';
-    let enableDiagramSupport = isMermaidAvailable; // default: true if Mermaid is loaded
-
-    // If Mermaid is not loaded, hide the UI toggle
-    if (diagramRenderWrapper) {
-        if (!isMermaidAvailable) {
-            diagramRenderWrapper.style.display = 'none';
-        } else if (diagramRenderCheckbox) {
-            diagramRenderCheckbox.checked = enableDiagramSupport;
-        }
-    }
-    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function') {
-        PreviewManager.setDiagramSupport(enableDiagramSupport);
-    } else {
-        window._enableDiagramSupport = enableDiagramSupport;
-    }
-
-    // Initialize mermaid if available
-    if (isMermaidAvailable) {
-        try {
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'default',
-                securityLevel: 'loose'
-            });
-        } catch (e) {
-            console.error("Mermaid initialization failed:", e);
-        }
-    }
-
-    // Configure custom marked.js renderer to support highlight.js & KaTeX
-    if (typeof marked !== 'undefined') {
-        const renderer = new marked.Renderer();
-        
-        // Support old signature code(code, lang) and new signature code({text, lang})
-        renderer.code = function(codeOrObj, infostring) {
-            let text = '';
-            let lang = '';
-            if (typeof codeOrObj === 'object' && codeOrObj !== null) {
-                text = codeOrObj.text || '';
-                lang = codeOrObj.lang || '';
-            } else {
-                text = codeOrObj || '';
-                lang = infostring || '';
-            }
-            
-            // Check if it's math/latex code block and math rendering is enabled
-            if ((lang === 'math' || lang === 'latex') && enableMathSupport && isKatexAvailable) {
-                try {
-                    return `<div class="katex-block">${katex.renderToString(text, { displayMode: true, throwOnError: false })}</div>`;
-                } catch (e) {
-                    console.error("KaTeX code block error:", e);
-                    return `<div class="katex-error">${escapeHtml(text)}</div>`;
-                }
-            }
-
-            // Check if it's mermaid diagram code block and diagram support is enabled
-            if (lang === 'mermaid' && enableDiagramSupport && isMermaidAvailable) {
-                return `<div class="mermaid">${escapeHtml(text)}</div>`;
-            }
-            
-            const validLang = !!(lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang));
-            let highlighted = '';
-            try {
-                if (validLang) {
-                    highlighted = hljs.highlight(text, { language: lang }).value;
-                } else {
-                    highlighted = escapeHtml(text);
-                }
-            } catch (e) {
-                console.error("Syntax highlighting error:", e);
-                highlighted = escapeHtml(text);
-            }
-            return `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
-        };
-
-        const markedOptions = {
-            renderer: renderer,
-            gfm: true,
-            breaks: true,
-            pedantic: false
-        };
-
-        // Inject extensions only if KaTeX is available (can be toggled at render time)
-        const inlineMath = {
-            name: 'inlineMath',
-            level: 'inline',
-            start(src) { return src.indexOf('$'); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\$([^$\n]+?)\$/);
-                if (match) {
-                    return {
-                        type: 'inlineMath',
-                        raw: match[0],
-                        formula: match[1].trim()
-                    };
-                }
-            },
-            renderer(token) {
-                if (enableMathSupport && isKatexAvailable) {
-                    try {
-                        return katex.renderToString(token.formula, { displayMode: false, throwOnError: false });
-                    } catch (err) {
-                        console.error("KaTeX inline parsing error:", err);
-                        return `<span class="katex-error">${escapeHtml(token.raw)}</span>`;
-                    }
-                }
-                return escapeHtml(token.raw); // Fallback: output raw text
-            }
-        };
-
-        const blockMath = {
-            name: 'blockMath',
-            level: 'block',
-            start(src) { return src.indexOf('$$'); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\$\$\n?([\s\S]+?)\n?\$\$/);
-                if (match) {
-                    return {
-                        type: 'blockMath',
-                        raw: match[0],
-                        formula: match[1].trim()
-                    };
-                }
-            },
-            renderer(token) {
-                if (enableMathSupport && isKatexAvailable) {
-                    try {
-                        return `<div class="katex-block">${katex.renderToString(token.formula, { displayMode: true, throwOnError: false })}</div>`;
-                    } catch (err) {
-                        console.error("KaTeX block parsing error:", err);
-                        return `<div class="katex-error">${escapeHtml(token.raw)}</div>`;
-                    }
-                }
-                return `<div class="katex-fallback">${escapeHtml(token.raw)}</div>`; // Fallback: output raw text in a div
-            }
-        };
-
-        const bracketText = {
-            name: 'bracketText',
-            level: 'inline',
-            start(src) { return src.indexOf('['); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\[([^\]\n]+)\](?!\(|\[)/);
-                if (match) {
-                    return {
-                        type: 'bracketText',
-                        raw: match[0],
-                        text: match[1]
-                    };
-                }
-            },
-            renderer(token) {
-                return `<span class="md-bracket-link">[${token.text}]</span>`;
-            }
-        };
-
-        markedOptions.extensions = [inlineMath, blockMath, bracketText];
-        marked.use(markedOptions);
-    }
+    window.assert_arg(typeof PreviewManager !== 'undefined', 'PreviewManager module is required!');
+    PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
+    PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
 
     // Main Render Function with Line Mapping
     function renderMarkdown() {
@@ -1283,7 +849,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (handle) {
                     const file = await handle.getFile();
                     currentFileHandle = handle;
-                    add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
+                    }
                     loadSingleFile(file);
                     return true;
                 }
@@ -1409,137 +977,71 @@ document.addEventListener('DOMContentLoaded', () => {
         // FrameManager.init({ actions: { ... } })를 통해 캡슐화 및 단일 바인딩되어 처리됩니다.
 
     // ==========================================================================
-    // Drag & Drop Markdown File Loading Logic
+    // Drag & Drop Markdown File Loading Logic (Delegated to FileDropManager)
     // ==========================================================================
-    
-    // 브라우저 기본 드래그 앤 드롭 동작(새 탭에서 파일 열기) 전역 차단
-    window.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    }, false);
-    window.addEventListener('drop', (e) => {
-        e.preventDefault();
-    }, false);
 
     const editorContainer = document.querySelector('.editor-container');
-    let dragCounter = 0;
 
-    editorContainer.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        dragCounter++;
-        if (dragCounter === 1) {
-            editorContainer.classList.add('drag-over');
-        }
-    });
+    const FileDropManagerInstance = (typeof window !== 'undefined' && window.FileDropManager) ? window.FileDropManager : (typeof FrameManager !== 'undefined' ? FrameManager.FileDropManager : null);
 
-    editorContainer.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        dragCounter--;
-        if (dragCounter === 0) {
-            editorContainer.classList.remove('drag-over');
-        }
-    });
-
-    editorContainer.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    });
-
-
-
-    // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
-    function loadSingleFile(file) {
-        if (!file) return;
-        const fileName = file.name;
-        const extension = fileName.split('.').pop().toLowerCase();
-        const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
-        
-        if (allowedExtensions.includes(extension) || file.type.startsWith('text/')) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                cm.setValue(event.target.result);
-                updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
-                add_recent_file_entry(file.name, file.path || file.webkitRelativePath || file.name, null, file.size);
-                renderMarkdown();
-                saveDocumentSession();
-                
-                // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
-                cm.scrollTo(0, 0);
-                const previewViewport = document.querySelector('.preview-viewport');
-                if (previewViewport) {
-                    previewViewport.scrollTop = 0;
-                    previewViewport.scrollLeft = 0;
-                }
-            };
-            reader.readAsText(file);
-        } else {
-            alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.');
-        }
-    }
-
-    // 드래그 앤 드롭 파일 로딩 연동 (새 창/새 탭 구동)
-    editorContainer.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        dragCounter = 0;
-        editorContainer.classList.remove('drag-over');
-        
-        let targetFile = null;
-        let targetHandle = null;
-
-        // FileSystemAccess API: Drag & Drop 항목에서 FileHandle 추출 시도
-        if (e.dataTransfer && e.dataTransfer.items) {
-            for (const item of e.dataTransfer.items) {
-                if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
-                    try {
-                        const handle = await item.getAsFileSystemHandle();
-                        if (handle && handle.kind === 'file') {
-                            targetFile = await handle.getFile();
-                            targetHandle = handle;
-                            break;
-                        }
-                    } catch (err) {
-                        console.warn('getAsFileSystemHandle 실패 fallback 진행:', err);
+    if (FileDropManagerInstance) {
+        FileDropManagerInstance.init({
+            editorContainerEl: editorContainer,
+            callbacks: {
+                isFreshWindow: function() {
+                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                },
+                onFileExtracted: function(file, handle) {
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                     }
-                }
-            }
-        }
+                },
+                onFileLoaded: function(content, file, handle) {
+                    if (handle) currentFileHandle = handle;
+                    cm.setValue(content);
+                    updateFilenameDisplay(file.name, false);
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
+                    }
+                    renderMarkdown();
+                    saveDocumentSession();
 
-        if (!targetFile && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            targetFile = e.dataTransfer.files[0];
-        }
-
-        if (targetFile) {
-            const fileName = targetFile.name;
-            const extension = fileName.split('.').pop().toLowerCase();
-            const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
-
-            if (allowedExtensions.includes(extension) || targetFile.type.startsWith('text/')) {
-                // 최근 파일 목록 및 IndexedDB에 저장
-                add_recent_file_entry(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
-
-                const isFresh = isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-                if (isFresh) {
-                    currentFileHandle = targetHandle || null;
-                    loadSingleFile(targetFile);
+                    cm.scrollTo(0, 0);
+                    const previewViewport = document.querySelector('.preview-viewport');
+                    if (previewViewport) {
+                        previewViewport.scrollTop = 0;
+                        previewViewport.scrollLeft = 0;
+                    }
                     isNewSessionSkippedRestore = false;
-                } else {
-                    // 마우스 드롭 User Gesture 문맥 내에서 즉시 새 창 구동
+                },
+                onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
-                    originUrl.searchParams.set('openRecent', targetFile.name);
+                    originUrl.searchParams.set('openRecent', file.name);
                     window.open(originUrl.toString(), '_blank');
                 }
-            } else {
-                alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.');
-            }
-        }
-    });
-
-    // CodeMirror 내부 커서 위치 파일 텍스트 끼워넣기 이중 차단
-    if (cm) {
-        cm.on('drop', (cmInstance, e) => {
-            e.preventDefault();
-            if (typeof e.stopPropagation === 'function') {
-                e.stopPropagation();
             }
         });
+
+        function loadSingleFile(file) {
+            FileDropManagerInstance.loadSingleFile(file);
+        }
+        window.loadSingleFile = loadSingleFile;
+
+        if (editorContainer) {
+            editorContainer.addEventListener('drop', (e) => {
+                FileDropManagerInstance.handleDropEvent(e);
+            });
+        }
+
+        if (cm) {
+            cm.on('drop', (cmInstance, e) => {
+                e.preventDefault();
+                if (typeof e.stopPropagation === 'function') {
+                    e.stopPropagation();
+                }
+                FileDropManagerInstance.handleDropEvent(e);
+            });
+        }
     }
 
     // 숨김 파일 인풋 change 이벤트 연동 (md 불러오기)
@@ -1548,8 +1050,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const files = e.target.files;
             if (files && files.length > 0) {
                 currentFileHandle = null;
-                loadSingleFile(files[0]);
-                // 다음 파일 로드를 위해 input 값 초기화
+                if (FileDropManagerInstance) {
+                    FileDropManagerInstance.loadSingleFile(files[0]);
+                } else if (typeof window.loadSingleFile === 'function') {
+                    window.loadSingleFile(files[0]);
+                }
                 fileInput.value = '';
             }
         });
@@ -1588,33 +1093,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (EditorManager.build_toc 위임)
+    // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (TocManager 위임)
     function buildTOC() {
-        const tocList = document.getElementById('toc-list');
-        if (!tocList || !cm) return;
-
-        const text = cm.getValue();
-        const headings = EditorManager.build_toc(text);
-
-        tocList.innerHTML = '';
-        headings.forEach(heading => {
-            const li = document.createElement('li');
-            li.className = `toc-item toc-h${heading.level}`;
-            li.setAttribute('data-line', heading.line + 1);
-
-            const a = document.createElement('a');
-            a.href = '#';
-            a.textContent = heading.text;
-            a.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (scrollSync) {
-                    scrollSync.scrollToLine(heading.line + 1);
-                }
-            });
-
-            li.appendChild(a);
-            tocList.appendChild(li);
-        });
+        if (!cm) return;
+        if (typeof TocManager !== 'undefined' && typeof TocManager.render === 'function') {
+            TocManager.render(cm.getValue(), cm);
+        }
     }
 
     // ==========================================================================
@@ -1632,7 +1116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (containerRect.width === 0) return;
         
         // TOC 사이드바의 실제 점유 폭 계산
-        const tocWidth = tocSidebar && !tocSidebar.classList.contains('collapsed') ? tocSidebar.getBoundingClientRect().width : 0;
+        const tocSidebarEl = document.getElementById('toc-sidebar');
+        const tocWidth = tocSidebarEl && !tocSidebarEl.classList.contains('collapsed') ? tocSidebarEl.getBoundingClientRect().width : 0;
         const dividerWidth = 6;
         const availableWidth = containerRect.width - tocWidth - dividerWidth;
         
@@ -1652,8 +1137,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원
     restore_document_content(savedSessionData);
-    render_recent_files_menu();
-    check_and_load_recent_url_param();
+    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.init === 'function') {
+        RecentFileManager.init({
+            actions: {
+                onLoadSingleFile: (file, handle) => {
+                    currentFileHandle = handle || null;
+                    loadSingleFile(file);
+                    isNewSessionSkippedRestore = false;
+                },
+                isFreshWindow: () => {
+                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                }
+            }
+        });
+    }
 
     // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원
     restore_frame_ui_settings(savedSessionData);
@@ -1682,9 +1179,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
-            enableMathSupport = mathRenderCheckbox.checked;
             window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function', 'PreviewManager.setMathSupport is required!', { PreviewManager });
-            PreviewManager.setMathSupport(enableMathSupport);
+            PreviewManager.setMathSupport(mathRenderCheckbox.checked);
             renderMarkdown();
         });
     }
@@ -1692,9 +1188,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 다이어그램 토글 변경 시 이벤트 바인딩
     if (diagramRenderCheckbox) {
         diagramRenderCheckbox.addEventListener('change', () => {
-            enableDiagramSupport = diagramRenderCheckbox.checked;
             window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function', 'PreviewManager.setDiagramSupport is required!', { PreviewManager });
-            PreviewManager.setDiagramSupport(enableDiagramSupport);
+            PreviewManager.setDiagramSupport(diagramRenderCheckbox.checked);
             renderMarkdown();
         });
     }
@@ -1806,35 +1301,13 @@ document.addEventListener('DOMContentLoaded', () => {
         SettingsManager.init();
     }
 
-    // TOC 사이드바 토글 관련 이벤트 바인딩
-    if (btnTocToggleInner && tocSidebar) {
-        btnTocToggleInner.addEventListener('click', () => {
-            tocSidebar.classList.add('collapsed');
-            btnTocToggleInner.setAttribute('aria-expanded', 'false');
-            if (tocToggleBar) {
-                tocToggleBar.setAttribute('aria-expanded', 'false');
-            }
-        });
-        btnTocToggleInner.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                btnTocToggleInner.click();
-            }
-        });
-    }
-
-    if (tocToggleBar && tocSidebar) {
-        tocToggleBar.addEventListener('click', () => {
-            tocSidebar.classList.remove('collapsed');
-            if (btnTocToggleInner) {
-                btnTocToggleInner.setAttribute('aria-expanded', 'true');
-            }
-            tocToggleBar.setAttribute('aria-expanded', 'true');
-        });
-        tocToggleBar.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                tocToggleBar.click();
+    // TOC 사이드바 토글 및 렌더링 제어기 초기화 (TocManager 위임)
+    if (typeof TocManager !== 'undefined' && typeof TocManager.init === 'function') {
+        TocManager.init({
+            onSelectHeading: (lineNum) => {
+                if (scrollSync) {
+                    scrollSync.scrollToLine(lineNum);
+                }
             }
         });
     }
@@ -2006,14 +1479,9 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer: preview,
         enableScrollSync: enableScrollSync,
         onActiveLineChange: (lineNum) => {
-            const tocItems = document.querySelectorAll('.toc-item');
-            tocItems.forEach(item => {
-                if (parseInt(item.getAttribute('data-line'), 10) === lineNum) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
+            if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
+                TocManager.highlightActive(lineNum);
+            }
         },
         onDebugUpdate: (keyframes, activeSource) => {
             updateDebugPanelUI(keyframes, activeSource);

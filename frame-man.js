@@ -11,6 +11,10 @@
 (function(window) {
     'use strict';
 
+    const RECENT_FILES_KEY = 'markvi_recent_files';
+    const IDB_NAME = 'markvi_recent_db';
+    const IDB_STORE = 'handles';
+
     let options = {
         elements: {},
         actions: {}
@@ -150,7 +154,13 @@
             btnSave: document.getElementById('btn-save'),
             btnSaveAs: document.getElementById('btn-save-as'),
             btnJoinParagraphs: document.getElementById('btn-join-paragraphs'),
-            btnDebug: document.getElementById('btn-debug')
+            btnDebug: document.getElementById('btn-debug'),
+
+            // TOC Elements
+            tocSidebar: document.getElementById('toc-sidebar'),
+            tocList: document.getElementById('toc-list'),
+            btnTocToggleInner: document.getElementById('btn-toc-toggle-inner'),
+            tocToggleBar: document.getElementById('toc-toggle-bar')
         };
         assert_arg(els.container && els.preview, 'Core DOM elements container and preview must exist in get_default_elements!', { container: els.container, preview: els.preview });
         return els;
@@ -462,6 +472,16 @@
 
     function render_recent_files_ui(files, elements, onSelectFile) {
         if (typeof document === 'undefined') return;
+        if (files !== undefined && files !== null) {
+            if (!assert_arg(Array.isArray(files), 'render_recent_files_ui: files parameter must be an array', { files })) {
+                return;
+            }
+        }
+        if (onSelectFile !== undefined && onSelectFile !== null) {
+            if (!assert_arg(typeof onSelectFile === 'function', 'render_recent_files_ui: onSelectFile must be a function', { onSelectFile })) {
+                return;
+            }
+        }
         const wrapperEl = (elements && elements.recentFilesWrapper) || document.getElementById('recent-files-wrapper');
         const submenuEl = (elements && elements.recentFilesSubmenu) || document.getElementById('recent-files-submenu');
         if (!submenuEl) return;
@@ -497,6 +517,291 @@
             });
             submenuEl.appendChild(itemBtn);
         });
+    }
+
+    // ==========================================================================
+    // Recent Files Management Sub-functions (snake_case)
+    // ==========================================================================
+
+    function init_recent_db() {
+        return new Promise((resolve) => {
+            if (typeof window === 'undefined' || !window.indexedDB) return resolve(null);
+            const req = window.indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(IDB_STORE)) {
+                    db.createObjectStore(IDB_STORE, { keyPath: 'name' });
+                }
+            };
+            req.onsuccess = (e) => resolve(e.target.result);
+            req.onerror = () => resolve(null);
+        });
+    }
+
+    async function save_handle_to_idb(name, handle) {
+        if (!assert_arg(typeof name === 'string' && name.trim().length > 0, 'save_handle_to_idb: name parameter must be a non-empty string', { name })) {
+            return;
+        }
+        if (!assert_arg(handle && typeof handle === 'object', 'save_handle_to_idb: handle parameter must be a valid object', { handle })) {
+            return;
+        }
+        const db = await init_recent_db();
+        if (!db) return;
+        try {
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            const store = tx.objectStore(IDB_STORE);
+            store.put({ name: name, handle: handle, timestamp: Date.now() });
+        } catch (e) {
+            console.warn('Failed to save file handle to IndexedDB:', e);
+        }
+    }
+
+    async function get_handle_from_idb(name) {
+        if (!assert_arg(typeof name === 'string' && name.trim().length > 0, 'get_handle_from_idb: name parameter must be a non-empty string', { name })) {
+            return null;
+        }
+        const db = await init_recent_db();
+        if (!db) return null;
+        return new Promise((resolve) => {
+            try {
+                const tx = db.transaction(IDB_STORE, 'readonly');
+                const store = tx.objectStore(IDB_STORE);
+                const req = store.get(name);
+                req.onsuccess = () => resolve(req.result ? req.result.handle : null);
+                req.onerror = () => resolve(null);
+            } catch (e) {
+                resolve(null);
+            }
+        });
+    }
+
+    function get_recent_files() {
+        try {
+            if (typeof localStorage === 'undefined') return [];
+            const raw = localStorage.getItem(RECENT_FILES_KEY);
+            return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            console.warn('Failed to parse recent files:', e);
+            return [];
+        }
+    }
+
+    function save_recent_files(files) {
+        if (!assert_arg(Array.isArray(files), 'save_recent_files: files parameter must be an Array', { files })) {
+            return;
+        }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(files));
+            }
+        } catch (e) {
+            console.warn('Failed to save recent files:', e);
+        }
+    }
+
+    function add_recent_file_entry(name, fullPath, handle = null, size = 0) {
+        if (!assert_arg(typeof name === 'string' && name.trim().length > 0, 'add_recent_file_entry: name parameter must be a non-empty string', { name })) {
+            return;
+        }
+        if (size !== undefined && size !== null) {
+            if (!assert_arg(typeof size === 'number' && !isNaN(size) && size >= 0, 'add_recent_file_entry: size parameter must be a non-negative number', { size })) {
+                return;
+            }
+        }
+        if (name === '제목 없음.md') return;
+
+        const pathToSave = fullPath || name;
+        let files = get_recent_files();
+        files = files.filter(f => f.fullPath !== pathToSave && f.name !== name);
+        
+        let contentSize = size;
+        if (!contentSize && typeof window !== 'undefined' && window.cm) {
+            try {
+                contentSize = new Blob([window.cm.getValue()]).size;
+            } catch (e) {
+                contentSize = 0;
+            }
+        }
+
+        files.unshift({
+            name: name,
+            fullPath: pathToSave,
+            timestamp: Date.now(),
+            size: contentSize || 0
+        });
+        if (files.length > 5) {
+            files = files.slice(0, 5);
+        }
+        save_recent_files(files);
+        if (handle) {
+            save_handle_to_idb(name, handle);
+        }
+        const selectCb = (options.actions && typeof options.actions.onSelectRecentFile === 'function')
+            ? options.actions.onSelectRecentFile
+            : ((entry) => open_recent_file_in_new_window(entry));
+        render_recent_files_ui(files, options.elements, selectCb);
+    }
+
+    async function open_recent_file_in_new_window(fileEntry) {
+        if (!assert_arg(fileEntry && typeof fileEntry === 'object' && typeof fileEntry.name === 'string', 'open_recent_file_in_new_window: fileEntry must be an object with name property', { fileEntry })) {
+            return;
+        }
+        
+        // 클릭 시 사용자 직접 행동(User Gesture) 문맥에서 미리 File Handle 점검 및 권한 요청
+        let handle = await get_handle_from_idb(fileEntry.name);
+        let hasValidHandle = false;
+
+        if (handle && typeof handle.queryPermission === 'function') {
+            try {
+                let perm = await handle.queryPermission({ mode: 'read' });
+                if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
+                    perm = await handle.requestPermission({ mode: 'read' });
+                }
+                if (perm === 'granted') {
+                    hasValidHandle = true;
+                }
+            } catch (err) {
+                console.warn('사용자 클릭 문맥 내 handle 권한 요청 실패:', err);
+            }
+        }
+
+        // IndexedDB에 유효한 핸들이 없거나 권한이 거부된 경우: 클릭 문맥(User Gesture)에서 즉시 파일 불러오기 창 팝업
+        if (!hasValidHandle && typeof window !== 'undefined' && typeof window.showOpenFilePicker === 'function') {
+            try {
+                const [newHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Markdown Documents',
+                        accept: { 'text/markdown': ['.md', '.markdown', '.txt'] }
+                    }],
+                    multiple: false
+                });
+                if (newHandle) {
+                    const file = await newHandle.getFile();
+                    handle = newHandle;
+                    add_recent_file_entry(file.name, file.path || file.name, newHandle, file.size);
+                    hasValidHandle = true;
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') return; // 사용자가 창을 닫은 경우 취소
+                console.warn('최근 파일 다시 선택 대화상자 실패:', err);
+            }
+        }
+
+        function isFreshWindow() {
+            if (options.actions && typeof options.actions.isFreshWindow === 'function') {
+                return options.actions.isFreshWindow();
+            }
+            if (typeof window !== 'undefined') {
+                const isNewSessionSkippedRestore = !!window.isNewSessionSkippedRestore;
+                const isDirty = !!window.isDirty;
+                const cm = window.cm;
+                const currentFileHandle = window.currentFileHandle;
+                return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+            }
+            return false;
+        }
+
+        // 새 창 막 열린 상태/깨끗한 상태라면 현재 창에 불러오기
+        if (isFreshWindow()) {
+            if (hasValidHandle && handle) {
+                try {
+                    const file = await handle.getFile();
+                    if (options.actions && typeof options.actions.onLoadSingleFile === 'function') {
+                        options.actions.onLoadSingleFile(file, handle);
+                    } else if (typeof window !== 'undefined') {
+                        window.currentFileHandle = handle;
+                        add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                        if (typeof window.loadSingleFile === 'function') {
+                            window.loadSingleFile(file);
+                        }
+                        window.isNewSessionSkippedRestore = false;
+                    }
+                    return;
+                } catch (err) {
+                    console.warn('현재 창에 최근 파일 불러오기 실패:', err);
+                }
+            }
+        }
+
+        // 원본 경로로 깔끔한 새 URL 계산 (openRecent 파라미터 중첩 방지)
+        if (typeof window !== 'undefined' && window.location) {
+            const originUrl = new URL(window.location.origin + window.location.pathname);
+            originUrl.searchParams.set('openRecent', fileEntry.name);
+            window.open(originUrl.toString(), '_blank');
+        }
+    }
+
+    async function check_and_load_recent_url_param(onLoadFile) {
+        if (onLoadFile !== undefined && onLoadFile !== null) {
+            if (!assert_arg(typeof onLoadFile === 'function', 'check_and_load_recent_url_param: onLoadFile must be a function', { onLoadFile })) {
+                return;
+            }
+        }
+        if (typeof window === 'undefined' || !window.location || !window.location.search) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const recentName = urlParams.get('openRecent');
+        if (!recentName) return;
+
+        // URL 파라미터 수신 및 로드 처리 후 히스토리에서 쿼리 클린업
+        try {
+            const cleanUrl = window.location.origin + window.location.pathname;
+            if (window.history && typeof window.history.replaceState === 'function') {
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+        } catch (e) {
+            console.warn('URL 히스토리 클린업 실패:', e);
+        }
+
+        let isLoadSuccess = false;
+        const handle = await get_handle_from_idb(recentName);
+        if (handle) {
+            try {
+                if (typeof handle.queryPermission === 'function') {
+                    let perm = await handle.queryPermission({ mode: 'read' });
+                    if (perm !== 'granted' && typeof handle.requestPermission === 'function') {
+                        perm = await handle.requestPermission({ mode: 'read' });
+                    }
+                    if (perm === 'granted') {
+                        const file = await handle.getFile();
+                        const loadCb = onLoadFile || (options.actions && options.actions.onLoadSingleFile);
+                        if (typeof loadCb === 'function') {
+                            loadCb(file, handle);
+                        } else if (typeof window !== 'undefined') {
+                            window.currentFileHandle = handle;
+                            add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
+                            if (typeof window.loadSingleFile === 'function') {
+                                window.loadSingleFile(file);
+                            }
+                        }
+                        isLoadSuccess = true;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('IndexedDB handle 권한 로드 실패:', e);
+            }
+        }
+
+        // 새 창에서 최근 파일 로드 실패 시 (Handle 미존재, 파일 이동/삭제 등)
+        if (!isLoadSuccess) {
+            if (typeof window !== 'undefined') {
+                if (window.currentFileHandle !== undefined) window.currentFileHandle = null;
+                if (window.cm && typeof window.cm.setValue === 'function') window.cm.setValue('');
+                if (typeof window.updateFilenameDisplay === 'function') {
+                    window.updateFilenameDisplay('제목 없음.md', false);
+                } else {
+                    update_filename_display_ui('제목 없음.md', false, options.elements);
+                }
+                if (typeof window.renderMarkdown === 'function') window.renderMarkdown();
+                if (typeof window.saveDocumentSession === 'function') window.saveDocumentSession();
+            }
+            show_toast_ui(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 이용해 주세요.`, 5000, options.elements);
+            const selectCb = (options.actions && typeof options.actions.onSelectRecentFile === 'function')
+                ? options.actions.onSelectRecentFile
+                : ((entry) => open_recent_file_in_new_window(entry));
+            render_recent_files_ui(get_recent_files(), options.elements, selectCb);
+        }
     }
 
     function show_toast_ui(message, duration = 3000, elements = {}) {
@@ -723,9 +1028,515 @@
         }
     }
 
+    /**
+     * pure sub-function: 마크다운 텍스트에서 목차(TOC) 헤딩 목록을 추출 파싱합니다.
+     */
+    function parse_toc_headings(text) {
+        if (typeof text !== 'string') return [];
+        if (typeof EditorManager !== 'undefined' && typeof EditorManager.build_toc === 'function') {
+            return EditorManager.build_toc(text);
+        }
+        const headings = [];
+        const lines = text.split('\n');
+        lines.forEach((line, index) => {
+            const match = line.match(/^(#{1,6})\s+(.+)$/);
+            if (match) {
+                headings.push({
+                    level: match[1].length,
+                    text: match[2].trim(),
+                    line: index
+                });
+            }
+        });
+        return headings;
+    }
+
+    /**
+     * pure sub-function: TOC 헤딩 트리를 DOM(tocList) UI에 렌더링합니다.
+     */
+    function render_toc_tree_ui(headings, elements, onSelectHeading) {
+        if (!assert_arg(Array.isArray(headings), 'render_toc_tree_ui: headings must be an array', { headings })) {
+            return false;
+        }
+        if (!assert_arg(typeof onSelectHeading === 'function', 'render_toc_tree_ui: onSelectHeading must be a function', { onSelectHeading })) {
+            return false;
+        }
+        const els = elements || {};
+        const tocList = els.tocList || (typeof document !== 'undefined' ? document.getElementById('toc-list') : null);
+        if (!tocList) return false;
+
+        tocList.innerHTML = '';
+        headings.forEach(heading => {
+            const li = document.createElement('li');
+            li.className = `toc-item toc-h${heading.level}`;
+            li.setAttribute('data-line', heading.line + 1);
+
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = heading.text;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                onSelectHeading(heading.line + 1);
+            });
+
+            li.appendChild(a);
+            tocList.appendChild(li);
+        });
+        return true;
+    }
+
+    /**
+     * pure sub-function: TOC 사이드바의 접기/열기 상태 및 ARIA 속성을 토글/전환합니다.
+     */
+    function toggle_toc_sidebar_ui(elements, forceState) {
+        const els = elements || {};
+        const tocSidebar = els.tocSidebar || (typeof document !== 'undefined' ? document.getElementById('toc-sidebar') : null);
+        if (!assert_arg(tocSidebar && typeof tocSidebar === 'object', 'toggle_toc_sidebar_ui: elements.tocSidebar DOM element is required', { tocSidebar })) {
+            return false;
+        }
+        if (!assert_arg(typeof forceState === 'boolean', 'toggle_toc_sidebar_ui: forceState must be a boolean', { forceState })) {
+            return false;
+        }
+
+        const btnTocToggleInner = els.btnTocToggleInner || (typeof document !== 'undefined' ? document.getElementById('btn-toc-toggle-inner') : null);
+        const tocToggleBar = els.tocToggleBar || (typeof document !== 'undefined' ? document.getElementById('toc-toggle-bar') : null);
+
+        if (forceState) {
+            tocSidebar.classList.add('collapsed');
+            if (btnTocToggleInner) btnTocToggleInner.setAttribute('aria-expanded', 'false');
+            if (tocToggleBar) tocToggleBar.setAttribute('aria-expanded', 'false');
+        } else {
+            tocSidebar.classList.remove('collapsed');
+            if (btnTocToggleInner) btnTocToggleInner.setAttribute('aria-expanded', 'true');
+            if (tocToggleBar) tocToggleBar.setAttribute('aria-expanded', 'true');
+        }
+        return true;
+    }
+
+    /**
+     * pure sub-function: 현재 에디터 활성 라인(activeLine)에 해당하는 TOC 항목을 하이라이트 표시합니다.
+     */
+    function highlight_active_toc_ui(elements, activeLine) {
+        if (!assert_arg(typeof activeLine === 'number' && activeLine >= 0, 'highlight_active_toc_ui: activeLine must be a non-negative number', { activeLine })) {
+            return false;
+        }
+        const els = elements || {};
+        const tocList = els.tocList || (typeof document !== 'undefined' ? document.getElementById('toc-list') : null);
+        const tocItems = tocList ? tocList.querySelectorAll('.toc-item') : (typeof document !== 'undefined' ? document.querySelectorAll('.toc-item') : []);
+
+        tocItems.forEach(item => {
+            const lineAttr = item.getAttribute('data-line');
+            if (lineAttr !== null && parseInt(lineAttr, 10) === activeLine) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+        return true;
+    }
+
+    /**
+     * pure sub-function: 브라우저 기본 드래그 앤 드롭 동작(새 탭 파일 열기)을 전역 차단합니다.
+     */
+    function prevent_window_default_drop() {
+        if (typeof window === 'undefined' || !window.addEventListener) return;
+        if (window._preventWindowDropBound) return;
+        window.addEventListener('dragover', (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        }, false);
+        window.addEventListener('drop', (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        }, false);
+        window._preventWindowDropBound = true;
+    }
+
+    /**
+     * pure sub-function: 에디터 컨테이너 드래그 앤 드롭 오버레이 UI 감지 및 CSS 클래스 토글을 설정합니다.
+     */
+    function setup_drag_drop_overlay_ui(editorContainerEl) {
+        if (!assert_arg(editorContainerEl && typeof editorContainerEl === 'object' && (editorContainerEl.nodeType || typeof editorContainerEl.addEventListener === 'function'), 'setup_drag_drop_overlay_ui: editorContainerEl DOM element is required', { editorContainerEl })) {
+            return null;
+        }
+        let dragCounter = 0;
+
+        const handleDragEnter = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            dragCounter++;
+            if (dragCounter === 1 && editorContainerEl.classList) {
+                editorContainerEl.classList.add('drag-over');
+            }
+        };
+
+        const handleDragLeave = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0 && editorContainerEl.classList) {
+                editorContainerEl.classList.remove('drag-over');
+                dragCounter = 0;
+            }
+        };
+
+        const handleDragOver = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        };
+
+        editorContainerEl.addEventListener('dragenter', handleDragEnter);
+        editorContainerEl.addEventListener('dragleave', handleDragLeave);
+        editorContainerEl.addEventListener('dragover', handleDragOver);
+
+        return {
+            resetCounter: function() {
+                dragCounter = 0;
+                if (editorContainerEl && editorContainerEl.classList) {
+                    editorContainerEl.classList.remove('drag-over');
+                }
+            }
+        };
+    }
+
+    /**
+     * pure sub-function: Drop 이벤트 dataTransfer 객체로부터 File 및 FileSystemHandle을 추출합니다.
+     */
+    async function extract_dropped_file_and_handle(dataTransfer) {
+        let targetFile = null;
+        let targetHandle = null;
+
+        if (dataTransfer && dataTransfer.items) {
+            for (const item of dataTransfer.items) {
+                if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
+                    try {
+                        const handle = await item.getAsFileSystemHandle();
+                        if (handle && handle.kind === 'file') {
+                            targetFile = await handle.getFile();
+                            targetHandle = handle;
+                            break;
+                        }
+                    } catch (err) {
+                        console.warn('getAsFileSystemHandle fallback 진행:', err);
+                    }
+                }
+            }
+        }
+
+        if (!targetFile && dataTransfer && dataTransfer.files && dataTransfer.files.length > 0) {
+            targetFile = dataTransfer.files[0];
+        }
+
+        return { file: targetFile, handle: targetHandle, targetFile: targetFile, targetHandle: targetHandle };
+    }
+
+    /**
+     * pure sub-function: 확장자 및 MIME 타입을 검증하여 허용된 마크다운/텍스트 파일 여부를 판단합니다.
+     */
+    function is_allowed_markdown_file(fileName, fileType) {
+        if (!assert_arg(typeof fileName === 'string' && fileName.trim().length > 0, 'is_allowed_markdown_file: fileName must be a non-empty string', { fileName })) {
+            return false;
+        }
+        const extension = fileName.split('.').pop().toLowerCase();
+        const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
+        if (allowedExtensions.includes(extension)) return true;
+        if (typeof fileType === 'string' && fileType.startsWith('text/')) return true;
+        return false;
+    }
+
+    /**
+     * pure sub-function: FileReader API를 사용하여 파일을 비동기 텍스트로 읽고 콜백을 호출합니다.
+     */
+    function read_file_content_as_text(file, onComplete) {
+        if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'read_file_content_as_text: file object with name is required', { file })) {
+            return false;
+        }
+        if (!assert_arg(typeof onComplete === 'function', 'read_file_content_as_text: onComplete callback function is required', { onComplete })) {
+            return false;
+        }
+
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB 상한선
+        if (typeof file.size === 'number') {
+            if (!assert_arg(file.size <= MAX_FILE_SIZE, 'read_file_content_as_text: file size exceeds maximum limit (50MB)', { size: file.size })) {
+                return false;
+            }
+        }
+
+        if (typeof FileReader !== 'undefined') {
+            const async_file_reader = new FileReader();
+            async_file_reader.onload = function(event) {
+                onComplete(event.target ? event.target.result : (event.result || ''));
+            };
+            async_file_reader.readAsText(file);
+            return true;
+        } else if (typeof file.text === 'function') {
+            file.text().then(text => onComplete(text)).catch(() => onComplete(''));
+            return true;
+        } else {
+            const content = file.content || file._content || '';
+            onComplete(content);
+            return true;
+        }
+    }
+
     // ==========================================================================
     // Public API (camelCase)
     // ==========================================================================
+
+    const RecentFileManager = {
+        init: function(userOpts) {
+            if (userOpts !== undefined && userOpts !== null) {
+                if (!assert_arg(typeof userOpts === 'object', 'RecentFileManager.init: userOpts must be an object if provided', { userOpts })) {
+                    return get_recent_files();
+                }
+                if (userOpts.elements) {
+                    options.elements = Object.assign({}, options.elements, userOpts.elements);
+                }
+                if (userOpts.actions) {
+                    options.actions = Object.assign({}, options.actions, userOpts.actions);
+                }
+            }
+
+            if (typeof window !== 'undefined' && window.addEventListener && !window._recentFilesStorageListenerAdded) {
+                window.addEventListener('storage', (e) => {
+                    if (e.key === RECENT_FILES_KEY) {
+                        const selectCb = (options.actions && typeof options.actions.onSelectRecentFile === 'function')
+                            ? options.actions.onSelectRecentFile
+                            : ((entry) => open_recent_file_in_new_window(entry));
+                        render_recent_files_ui(get_recent_files(), options.elements, selectCb);
+                    }
+                });
+                window._recentFilesStorageListenerAdded = true;
+            }
+
+            const files = get_recent_files();
+            const selectCb = (options.actions && typeof options.actions.onSelectRecentFile === 'function')
+                ? options.actions.onSelectRecentFile
+                : ((entry) => open_recent_file_in_new_window(entry));
+            render_recent_files_ui(files, options.elements, selectCb);
+            check_and_load_recent_url_param(options.actions && options.actions.onLoadSingleFile);
+            return files;
+        },
+
+        addFile: function(name, fullPath, handle, size) {
+            return add_recent_file_entry(name, fullPath, handle, size);
+        },
+
+        getFiles: function() {
+            return get_recent_files();
+        },
+
+        getHandle: function(name) {
+            return get_handle_from_idb(name);
+        },
+
+        checkAndLoadUrlParam: function(onLoadFile) {
+            return check_and_load_recent_url_param(onLoadFile);
+        }
+    };
+
+    const TocManager = {
+        options: {
+            elements: {},
+            onSelectHeading: null
+        },
+
+        init: function(userOpts = {}) {
+            if (!assert_arg(typeof userOpts === 'object' && userOpts !== null, 'TocManager.init: userOpts must be an object', { userOpts })) {
+                return false;
+            }
+            const defaultEls = get_default_elements();
+            const userEls = (userOpts.elements && typeof userOpts.elements === 'object') ? userOpts.elements : {};
+            const els = Object.assign({}, defaultEls, userEls);
+
+            this.options = {
+                elements: els,
+                onSelectHeading: userOpts.onSelectHeading || null
+            };
+
+            this.bindEvents();
+            return true;
+        },
+
+        bindEvents: function() {
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            if (els.btnTocToggleInner && els.tocSidebar) {
+                els.btnTocToggleInner.onclick = () => {
+                    this.toggleSidebar(true);
+                };
+                els.btnTocToggleInner.onkeydown = (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.toggleSidebar(true);
+                    }
+                };
+            }
+            if (els.tocToggleBar && els.tocSidebar) {
+                els.tocToggleBar.onclick = () => {
+                    this.toggleSidebar(false);
+                };
+                els.tocToggleBar.onkeydown = (e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.toggleSidebar(false);
+                    }
+                };
+            }
+        },
+
+        render: function(markdownText, cmInstance) {
+            if (!assert_arg(typeof markdownText === 'string', 'TocManager.render: markdownText must be a string', { markdownText })) {
+                return false;
+            }
+            const headings = parse_toc_headings(markdownText);
+            const onSelect = (line) => {
+                if (typeof this.options.onSelectHeading === 'function') {
+                    this.options.onSelectHeading(line);
+                } else if (cmInstance && typeof cmInstance.scrollToLine === 'function') {
+                    cmInstance.scrollToLine(line);
+                } else if (window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
+                    window.scrollSync.scrollToLine(line);
+                }
+            };
+            return render_toc_tree_ui(headings, this.options.elements, onSelect);
+        },
+
+        toggleSidebar: function(forceState) {
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            let targetState = forceState;
+            if (targetState === undefined) {
+                targetState = els.tocSidebar ? !els.tocSidebar.classList.contains('collapsed') : true;
+            }
+            return toggle_toc_sidebar_ui(els, targetState);
+        },
+
+        highlightActive: function(activeLine) {
+            if (!assert_arg(typeof activeLine === 'number' && activeLine >= 0, 'TocManager.highlightActive: activeLine must be a non-negative number', { activeLine })) {
+                return false;
+            }
+            const els = (this.options && this.options.elements) ? this.options.elements : get_default_elements();
+            return highlight_active_toc_ui(els, activeLine);
+        }
+    };
+
+    const FileDropManager = {
+        options: {
+            editorContainerEl: null,
+            maxFileSize: 50 * 1024 * 1024, // 기본 50MB (환경설정 변경 지원)
+            callbacks: {}
+        },
+        overlayState: null,
+
+        prevent_window_default_drop: prevent_window_default_drop,
+        setup_drag_drop_overlay_ui: setup_drag_drop_overlay_ui,
+        extract_dropped_file_and_handle: extract_dropped_file_and_handle,
+        is_allowed_markdown_file: is_allowed_markdown_file,
+        read_file_content_as_text: read_file_content_as_text,
+
+        init: function(userOpts = {}) {
+            if (userOpts !== undefined && userOpts !== null) {
+                if (!assert_arg(typeof userOpts === 'object', 'FileDropManager.init: userOpts must be an object', { userOpts })) {
+                    return this;
+                }
+            }
+            prevent_window_default_drop();
+
+            const opts = userOpts || {};
+            const container = opts.editorContainerEl || (typeof document !== 'undefined' ? document.querySelector('.editor-container') : null);
+
+            if (container) {
+                this.overlayState = setup_drag_drop_overlay_ui(container);
+                this.options.editorContainerEl = container;
+            }
+
+            if (opts.maxFileSize && typeof opts.maxFileSize === 'number') {
+                this.options.maxFileSize = opts.maxFileSize;
+            }
+
+            if (opts.callbacks) {
+                this.options.callbacks = Object.assign({}, this.options.callbacks, opts.callbacks);
+            }
+
+            return this;
+        },
+
+        handleDropEvent: async function(event, callbacks = {}) {
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+
+            if (this.overlayState && typeof this.overlayState.resetCounter === 'function') {
+                this.overlayState.resetCounter();
+            }
+
+            const cb = Object.assign({}, this.options.callbacks, callbacks);
+            const dataTransfer = (event && event.dataTransfer) ? event.dataTransfer : null;
+            const { file, handle } = await extract_dropped_file_and_handle(dataTransfer);
+
+            if (file) {
+                const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
+                if (isAllowed) {
+                    if (typeof cb.onFileExtracted === 'function') {
+                        cb.onFileExtracted(file, handle);
+                    }
+
+                    const isFresh = (typeof cb.isFreshWindow === 'function') ? cb.isFreshWindow() : true;
+                    if (isFresh) {
+                        this.loadSingleFile(file, cb, handle);
+                    } else {
+                        if (typeof cb.onOpenNewWindow === 'function') {
+                            cb.onOpenNewWindow(file, handle);
+                        } else if (typeof window !== 'undefined' && window.location) {
+                            const originUrl = new URL(window.location.origin + window.location.pathname);
+                            originUrl.searchParams.set('openRecent', file.name);
+                            window.open(originUrl.toString(), '_blank');
+                        }
+                    }
+                } else {
+                    const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.';
+                    if (typeof cb.onError === 'function') {
+                        cb.onError(msg);
+                    } else if (typeof alert !== 'undefined') {
+                        alert(msg);
+                    }
+                }
+            }
+            return { file, handle };
+        },
+
+        loadSingleFile: function(file, callbacks = {}, handle = null) {
+            if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'FileDropManager.loadSingleFile: file object with name is required', { file })) {
+                return false;
+            }
+
+            const cb = Object.assign({}, this.options.callbacks, callbacks);
+            const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
+
+            if (!isAllowed) {
+                const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.';
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            // 파일 크기 제한 검증 (기본값 50MB, 환경설정 커스텀 지원)
+            const maxFileSize = (this.options && typeof this.options.maxFileSize === 'number') ? this.options.maxFileSize : (50 * 1024 * 1024);
+            if (typeof file.size === 'number' && file.size > maxFileSize) {
+                const maxMb = Math.round(maxFileSize / (1024 * 1024));
+                const msg = `파일 크기가 제한 용량(${maxMb}MB)을 초과하였습니다. 더 작은 마크다운 파일(${maxMb}MB 이하)을 열어 주세요.`;
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            return read_file_content_as_text(file, (content) => {
+                if (typeof cb.onFileLoaded === 'function') {
+                    cb.onFileLoaded(content, file, handle);
+                }
+            });
+        }
+    };
 
     const FrameManager = {
         init: function(userOptions) {
@@ -811,8 +1622,71 @@
 
         calcScaledFontSize: calc_scaled_font_size,
         formatFileSize: format_file_size,
-        formatRecentTime: format_recent_time
+        formatRecentTime: format_recent_time,
+
+        RecentFileManager: RecentFileManager,
+
+        initRecentFiles: function(userOpts) {
+            return RecentFileManager.init(userOpts);
+        },
+
+        addRecentFile: function(name, fullPath, handle, size) {
+            return RecentFileManager.addFile(name, fullPath, handle, size);
+        },
+
+        getRecentFiles: function() {
+            return RecentFileManager.getFiles();
+        },
+
+        getRecentFileHandle: function(name) {
+            return RecentFileManager.getHandle(name);
+        },
+
+        checkAndLoadRecentUrlParam: function(onLoadFile) {
+            return RecentFileManager.checkAndLoadUrlParam(onLoadFile);
+        },
+
+        TocManager: TocManager,
+
+        initToc: function(userOpts) {
+            return TocManager.init(userOpts);
+        },
+
+        renderToc: function(markdownText, cmInstance) {
+            return TocManager.render(markdownText, cmInstance);
+        },
+
+        toggleTocSidebar: function(forceState) {
+            return TocManager.toggleSidebar(forceState);
+        },
+
+        highlightActiveToc: function(activeLine) {
+            return TocManager.highlightActive(activeLine);
+        },
+
+        FileDropManager: FileDropManager,
+
+        initFileDrop: function(userOpts) {
+            return FileDropManager.init(userOpts);
+        },
+
+        handleDropEvent: function(event, callbacks) {
+            return FileDropManager.handleDropEvent(event, callbacks);
+        },
+
+        loadSingleFile: function(file, callbacks, handle) {
+            return FileDropManager.loadSingleFile(file, callbacks, handle);
+        }
     };
+
+    if (typeof window !== 'undefined') {
+        window.RecentFileManager = RecentFileManager;
+        window.TocManager = TocManager;
+        window.FileDropManager = FileDropManager;
+    }
+    FrameManager.RecentFileManager = RecentFileManager;
+    FrameManager.TocManager = TocManager;
+    FrameManager.FileDropManager = FileDropManager;
 
     window.FrameManager = FrameManager;
 

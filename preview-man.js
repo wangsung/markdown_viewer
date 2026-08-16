@@ -1,4 +1,19 @@
 window.PreviewManager = (function() {
+    let isMarkedInitialized = false;
+
+    /**
+     * 순수 하위 서브 함수: HTML 렌더링 시 특수문자 이스케이프 처리를 수행합니다.
+     */
+    function escape_html(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     /**
      * 순수 하위 서브 함수: 코드 블록 내의 Hex 컬러 코드 옆에 작은 네모 스와치를 주입합니다.
      * @param {Document} doc - 전역 document 객체
@@ -58,13 +73,18 @@ window.PreviewManager = (function() {
      */
     function init_marked_parser() {
         if (typeof marked === 'undefined') return;
+        if (isMarkedInitialized) return;
+        isMarkedInitialized = true;
         
         const isKatexAvailable = typeof katex !== 'undefined';
         const isMermaidAvailable = typeof mermaid !== 'undefined';
         
-        // window 영역에 플래그 노출하여 렌더링 시 접근 가능토록 함 (선택적)
-        window._enableMathSupport = isKatexAvailable;
-        window._enableDiagramSupport = isMermaidAvailable;
+        if (typeof window._enableMathSupport === 'undefined') {
+            window._enableMathSupport = isKatexAvailable;
+        }
+        if (typeof window._enableDiagramSupport === 'undefined') {
+            window._enableDiagramSupport = isMermaidAvailable;
+        }
 
         if (isMermaidAvailable) {
             try {
@@ -96,12 +116,12 @@ window.PreviewManager = (function() {
                     return `<div class="katex-block">${katex.renderToString(text, { displayMode: true, throwOnError: false })}</div>`;
                 } catch (e) {
                     console.error("KaTeX code block error:", e);
-                    return `<div class="katex-error">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+                    return `<div class="katex-error">${escape_html(text)}</div>`;
                 }
             }
 
             if (lang === 'mermaid' && window._enableDiagramSupport && typeof mermaid !== 'undefined') {
-                return `<div class="mermaid">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+                return `<div class="mermaid">${escape_html(text)}</div>`;
             }
             
             const validLang = !!(lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang));
@@ -110,11 +130,11 @@ window.PreviewManager = (function() {
                 if (validLang) {
                     highlighted = hljs.highlight(text, { language: lang }).value;
                 } else {
-                    highlighted = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    highlighted = escape_html(text);
                 }
             } catch (e) {
                 console.error("Syntax highlighting error:", e);
-                highlighted = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                highlighted = escape_html(text);
             }
             return `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
         };
@@ -145,10 +165,10 @@ window.PreviewManager = (function() {
                     try {
                         return katex.renderToString(token.formula, { displayMode: false, throwOnError: false });
                     } catch (err) {
-                        return `<span class="katex-error">${token.raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`;
+                        return `<span class="katex-error">${escape_html(token.raw)}</span>`;
                     }
                 }
-                return token.raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return escape_html(token.raw);
             }
         };
 
@@ -171,10 +191,10 @@ window.PreviewManager = (function() {
                     try {
                         return `<div class="katex-block">${katex.renderToString(token.formula, { displayMode: true, throwOnError: false })}</div>`;
                     } catch (err) {
-                        return `<div class="katex-error">${token.raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+                        return `<div class="katex-error">${escape_html(token.raw)}</div>`;
                     }
                 }
-                return `<div class="katex-fallback">${token.raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
+                return `<div class="katex-fallback">${escape_html(token.raw)}</div>`;
             }
         };
 
@@ -202,6 +222,98 @@ window.PreviewManager = (function() {
     }
 
     /**
+     * 순수 하위 서브 함수: KaTeX 수식 렌더링 지원을 초기화합니다.
+     * @param {Object} [options] - 초기화 옵션 (mathRenderWrapper, mathRenderCheckbox 등)
+     */
+    function init_math_support(options = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            window.assert_arg(options && typeof options === 'object', 'init_math_support: options must be an object!', { options });
+        }
+        const opts = options || {};
+        const { mathRenderWrapper, mathRenderCheckbox } = opts;
+
+        const isKatexAvailable = typeof katex !== 'undefined';
+        const enableMathSupport = isKatexAvailable;
+
+        if (mathRenderWrapper) {
+            if (!isKatexAvailable) {
+                mathRenderWrapper.style.display = 'none';
+            } else if (mathRenderCheckbox) {
+                mathRenderCheckbox.checked = enableMathSupport;
+            }
+        }
+
+        set_math_support(enableMathSupport);
+        init_marked_parser();
+
+        return enableMathSupport;
+    }
+
+    /**
+     * 순수 하위 서브 함수: Mermaid 다이어그램 렌더링 지원을 초기화합니다.
+     * @param {Object} [options] - 초기화 옵션 (diagramRenderWrapper, diagramRenderCheckbox 등)
+     */
+    function init_diagram_support(options = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            window.assert_arg(options && typeof options === 'object', 'init_diagram_support: options must be an object!', { options });
+        }
+        const opts = options || {};
+        const { diagramRenderWrapper, diagramRenderCheckbox } = opts;
+
+        const isMermaidAvailable = typeof mermaid !== 'undefined';
+        const enableDiagramSupport = isMermaidAvailable;
+
+        if (diagramRenderWrapper) {
+            if (!isMermaidAvailable) {
+                diagramRenderWrapper.style.display = 'none';
+            } else if (diagramRenderCheckbox) {
+                diagramRenderCheckbox.checked = enableDiagramSupport;
+            }
+        }
+
+        set_diagram_support(enableDiagramSupport);
+
+        if (isMermaidAvailable) {
+            try {
+                mermaid.initialize({
+                    startOnLoad: false,
+                    theme: 'default',
+                    securityLevel: 'loose'
+                });
+            } catch (e) {
+                console.error("Mermaid initialization failed:", e);
+            }
+        }
+
+        init_marked_parser();
+
+        return enableDiagramSupport;
+    }
+
+    /**
+     * 순수 하위 서브 함수: 컨테이너 내부의 Mermaid 다이어그램을 비동기 렌더링합니다.
+     * @param {HTMLElement} containerEl - 다이어그램이 포함된 프리뷰 컨테이너
+     */
+    function render_diagrams(containerEl) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            window.assert_arg(containerEl, 'render_diagrams: containerEl is required!', { containerEl });
+        }
+        if (!containerEl) return;
+
+        if (window._enableDiagramSupport && typeof mermaid !== 'undefined') {
+            try {
+                mermaid.run({
+                    querySelector: '.mermaid'
+                }).catch(err => {
+                    console.error("Mermaid asynchronous render error:", err);
+                });
+            } catch (e) {
+                console.error("Mermaid run invocation error:", e);
+            }
+        }
+    }
+
+    /**
      * 순수 하위 서브 함수: 마크다운 렌더링을 수행합니다.
      */
     function render_markdown(cm, previewEl, colorSwatchCheckbox, scrollSync, buildTOC) {
@@ -216,6 +328,8 @@ window.PreviewManager = (function() {
             previewEl.innerHTML = `<div style="color: red; padding: 20px;">marked.js 라이브러리가 로드되지 않았습니다.</div>`;
             return;
         }
+
+        init_marked_parser();
 
         try {
             const linePositions = [0];
@@ -277,17 +391,7 @@ window.PreviewManager = (function() {
                 inject_color_swatches(document, previewEl);
             }
             
-            if (window._enableDiagramSupport && typeof mermaid !== 'undefined') {
-                try {
-                    mermaid.run({
-                        querySelector: '.mermaid'
-                    }).catch(err => {
-                        console.error("Mermaid asynchronous render error:", err);
-                    });
-                } catch (e) {
-                    console.error("Mermaid run invocation error:", e);
-                }
-            }
+            render_diagrams(previewEl);
             
             if (scrollSync && typeof scrollSync.rebuildKeyframes === 'function') {
                 scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
@@ -370,6 +474,8 @@ window.PreviewManager = (function() {
         injectColorSwatches: inject_color_swatches,
         removeColorSwatches: remove_color_swatches,
         initMarkedParser: init_marked_parser,
+        initMath: init_math_support,
+        initDiagrams: init_diagram_support,
         renderMarkdown: render_markdown,
         applyPreviewFontFamily: apply_preview_font_family,
         applyPreviewFontSize: apply_preview_font_size,
@@ -377,6 +483,7 @@ window.PreviewManager = (function() {
         setDiagramSupport: set_diagram_support,
         getDiagramSupport: get_diagram_support,
         setMathSupport: set_math_support,
-        getMathSupport: get_math_support
+        getMathSupport: get_math_support,
+        renderDiagrams: render_diagrams
     };
 })();

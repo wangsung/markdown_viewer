@@ -148,10 +148,17 @@ function run_tests() {
     window.PreviewManager.setMathSupport(false);
     run_assert(window.PreviewManager.getMathSupport() === false, "setMathSupport(false) disables math support state");
 
+    run_assert(typeof window.PreviewManager.initMath === 'function', "initMath is a function");
+    run_assert(typeof window.PreviewManager.initDiagrams === 'function', "initDiagrams is a function");
+    run_assert(typeof window.PreviewManager.renderDiagrams === 'function', "renderDiagrams is a function");
+
     // 2. Verify pure sub-function snake_case naming
     run_assert(previewManCode.includes('function inject_color_swatches('), "Sub-function inject_color_swatches uses snake_case");
     run_assert(previewManCode.includes('function remove_color_swatches('), "Sub-function remove_color_swatches uses snake_case");
     run_assert(previewManCode.includes('function init_marked_parser('), "Sub-function init_marked_parser uses snake_case");
+    run_assert(previewManCode.includes('function init_math_support('), "Sub-function init_math_support uses snake_case");
+    run_assert(previewManCode.includes('function init_diagram_support('), "Sub-function init_diagram_support uses snake_case");
+    run_assert(previewManCode.includes('function render_diagrams('), "Sub-function render_diagrams uses snake_case");
     run_assert(previewManCode.includes('function render_markdown('), "Sub-function render_markdown uses snake_case");
     run_assert(previewManCode.includes('function apply_preview_font_family('), "Sub-function apply_preview_font_family uses snake_case");
     run_assert(previewManCode.includes('function apply_preview_font_size('), "Sub-function apply_preview_font_size uses snake_case");

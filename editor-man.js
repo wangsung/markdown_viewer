@@ -531,11 +531,103 @@ window.EditorManager = (function() {
         return headings;
     }
 
+    /**
+     * 매개변수(Argument) 및 상태 검증 전용 단증 서브 함수 (assert_arg)
+     */
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) {
+            console.error(`[System Warning] ${message}`, context);
+        }
+        return condition;
+    }
+
+    /**
+     * [Refactoring] Pure Sub-function: CodeMirror extraKeys 단축키 바인딩 매핑 객체를 생성하는 순수 서브 함수.
+     * @param {Object} [callbacks={}] - 단축키 동작 완료 후 호출될 이벤트 콜백 객체 ({ onFormatChange, onParagraphJoin })
+     * @returns {Object} CodeMirror extraKeys 단축키 매핑 객체
+     */
+    function build_extra_keys_map(callbacks = {}) {
+        const isValidCallbacks = assert_arg(
+            callbacks !== null && typeof callbacks === 'object' && !Array.isArray(callbacks),
+            'build_extra_keys_map: callbacks parameter must be a valid object',
+            { callbacks }
+        );
+        const cb = isValidCallbacks ? callbacks : {};
+
+        return {
+            "Tab": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance.replaceSelection === 'function', 'extraKeys Tab: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                cmInstance.replaceSelection("    ");
+            },
+            "Cmd-B": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance === 'object', 'extraKeys Cmd-B: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                insert_formatting(cmInstance, 'bold', () => {
+                    if (typeof cb.onFormatChange === 'function') {
+                        cb.onFormatChange('bold', cmInstance);
+                    }
+                });
+            },
+            "Ctrl-B": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance === 'object', 'extraKeys Ctrl-B: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                insert_formatting(cmInstance, 'bold', () => {
+                    if (typeof cb.onFormatChange === 'function') {
+                        cb.onFormatChange('bold', cmInstance);
+                    }
+                });
+            },
+            "Cmd-I": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance === 'object', 'extraKeys Cmd-I: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                insert_formatting(cmInstance, 'italic', () => {
+                    if (typeof cb.onFormatChange === 'function') {
+                        cb.onFormatChange('italic', cmInstance);
+                    }
+                });
+            },
+            "Ctrl-I": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance === 'object', 'extraKeys Ctrl-I: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                insert_formatting(cmInstance, 'italic', () => {
+                    if (typeof cb.onFormatChange === 'function') {
+                        cb.onFormatChange('italic', cmInstance);
+                    }
+                });
+            },
+            "Alt-Q": function(cmInstance) {
+                if (!assert_arg(cmInstance && typeof cmInstance === 'object', 'extraKeys Alt-Q: cmInstance must be a valid CodeMirror instance', { cmInstance })) return;
+                apply_paragraph_join(cmInstance, () => {
+                    if (typeof cb.onParagraphJoin === 'function') {
+                        cb.onParagraphJoin(cmInstance);
+                    }
+                });
+            }
+        };
+    }
+
+    /**
+     * pure sub-function: CodeMirror 인스턴스에 extraKeys 단축키 맵을 바인딩하여 적용합니다.
+     */
+    function attach_extra_keys(cmInstance, callbacks = {}) {
+        if (!assert_arg(cmInstance && typeof cmInstance.setOption === 'function', 'attach_extra_keys: cmInstance must be a valid CodeMirror instance', { cmInstance })) {
+            return false;
+        }
+        const extraKeysMap = build_extra_keys_map(callbacks);
+        cmInstance.setOption('extraKeys', extraKeysMap);
+        return true;
+    }
+
     return {
         join_paragraphs,
         apply_paragraph_join,
         insert_formatting,
         apply_heading_preset,
-        build_toc
+        build_toc,
+        build_extra_keys_map,
+        attach_extra_keys,
+        getExtraKeys: build_extra_keys_map,
+        buildExtraKeysMap: build_extra_keys_map,
+        initShortcuts: attach_extra_keys,
+        attachShortcuts: attach_extra_keys
     };
 })();
