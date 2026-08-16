@@ -1135,6 +1135,145 @@
         return true;
     }
 
+    /**
+     * pure sub-function: 브라우저 기본 드래그 앤 드롭 동작(새 탭 파일 열기)을 전역 차단합니다.
+     */
+    function prevent_window_default_drop() {
+        if (typeof window === 'undefined' || !window.addEventListener) return;
+        if (window._preventWindowDropBound) return;
+        window.addEventListener('dragover', (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        }, false);
+        window.addEventListener('drop', (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        }, false);
+        window._preventWindowDropBound = true;
+    }
+
+    /**
+     * pure sub-function: 에디터 컨테이너 드래그 앤 드롭 오버레이 UI 감지 및 CSS 클래스 토글을 설정합니다.
+     */
+    function setup_drag_drop_overlay_ui(editorContainerEl) {
+        if (!assert_arg(editorContainerEl && typeof editorContainerEl === 'object' && (editorContainerEl.nodeType || typeof editorContainerEl.addEventListener === 'function'), 'setup_drag_drop_overlay_ui: editorContainerEl DOM element is required', { editorContainerEl })) {
+            return null;
+        }
+        let dragCounter = 0;
+
+        const handleDragEnter = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            dragCounter++;
+            if (dragCounter === 1 && editorContainerEl.classList) {
+                editorContainerEl.classList.add('drag-over');
+            }
+        };
+
+        const handleDragLeave = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            dragCounter--;
+            if (dragCounter <= 0 && editorContainerEl.classList) {
+                editorContainerEl.classList.remove('drag-over');
+                dragCounter = 0;
+            }
+        };
+
+        const handleDragOver = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        };
+
+        editorContainerEl.addEventListener('dragenter', handleDragEnter);
+        editorContainerEl.addEventListener('dragleave', handleDragLeave);
+        editorContainerEl.addEventListener('dragover', handleDragOver);
+
+        return {
+            resetCounter: function() {
+                dragCounter = 0;
+                if (editorContainerEl && editorContainerEl.classList) {
+                    editorContainerEl.classList.remove('drag-over');
+                }
+            }
+        };
+    }
+
+    /**
+     * pure sub-function: Drop 이벤트 dataTransfer 객체로부터 File 및 FileSystemHandle을 추출합니다.
+     */
+    async function extract_dropped_file_and_handle(dataTransfer) {
+        let targetFile = null;
+        let targetHandle = null;
+
+        if (dataTransfer && dataTransfer.items) {
+            for (const item of dataTransfer.items) {
+                if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
+                    try {
+                        const handle = await item.getAsFileSystemHandle();
+                        if (handle && handle.kind === 'file') {
+                            targetFile = await handle.getFile();
+                            targetHandle = handle;
+                            break;
+                        }
+                    } catch (err) {
+                        console.warn('getAsFileSystemHandle fallback 진행:', err);
+                    }
+                }
+            }
+        }
+
+        if (!targetFile && dataTransfer && dataTransfer.files && dataTransfer.files.length > 0) {
+            targetFile = dataTransfer.files[0];
+        }
+
+        return { file: targetFile, handle: targetHandle, targetFile: targetFile, targetHandle: targetHandle };
+    }
+
+    /**
+     * pure sub-function: 확장자 및 MIME 타입을 검증하여 허용된 마크다운/텍스트 파일 여부를 판단합니다.
+     */
+    function is_allowed_markdown_file(fileName, fileType) {
+        if (!assert_arg(typeof fileName === 'string' && fileName.trim().length > 0, 'is_allowed_markdown_file: fileName must be a non-empty string', { fileName })) {
+            return false;
+        }
+        const extension = fileName.split('.').pop().toLowerCase();
+        const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
+        if (allowedExtensions.includes(extension)) return true;
+        if (typeof fileType === 'string' && fileType.startsWith('text/')) return true;
+        return false;
+    }
+
+    /**
+     * pure sub-function: FileReader API를 사용하여 파일을 비동기 텍스트로 읽고 콜백을 호출합니다.
+     */
+    function read_file_content_as_text(file, onComplete) {
+        if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'read_file_content_as_text: file object with name is required', { file })) {
+            return false;
+        }
+        if (!assert_arg(typeof onComplete === 'function', 'read_file_content_as_text: onComplete callback function is required', { onComplete })) {
+            return false;
+        }
+
+        const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB 상한선
+        if (typeof file.size === 'number') {
+            if (!assert_arg(file.size <= MAX_FILE_SIZE, 'read_file_content_as_text: file size exceeds maximum limit (50MB)', { size: file.size })) {
+                return false;
+            }
+        }
+
+        if (typeof FileReader !== 'undefined') {
+            const async_file_reader = new FileReader();
+            async_file_reader.onload = function(event) {
+                onComplete(event.target ? event.target.result : (event.result || ''));
+            };
+            async_file_reader.readAsText(file);
+            return true;
+        } else if (typeof file.text === 'function') {
+            file.text().then(text => onComplete(text)).catch(() => onComplete(''));
+            return true;
+        } else {
+            const content = file.content || file._content || '';
+            onComplete(content);
+            return true;
+        }
+    }
+
     // ==========================================================================
     // Public API (camelCase)
     // ==========================================================================
@@ -1275,6 +1414,130 @@
         }
     };
 
+    const FileDropManager = {
+        options: {
+            editorContainerEl: null,
+            maxFileSize: 50 * 1024 * 1024, // 기본 50MB (환경설정 변경 지원)
+            callbacks: {}
+        },
+        overlayState: null,
+
+        prevent_window_default_drop: prevent_window_default_drop,
+        setup_drag_drop_overlay_ui: setup_drag_drop_overlay_ui,
+        extract_dropped_file_and_handle: extract_dropped_file_and_handle,
+        is_allowed_markdown_file: is_allowed_markdown_file,
+        read_file_content_as_text: read_file_content_as_text,
+
+        init: function(userOpts = {}) {
+            if (userOpts !== undefined && userOpts !== null) {
+                if (!assert_arg(typeof userOpts === 'object', 'FileDropManager.init: userOpts must be an object', { userOpts })) {
+                    return this;
+                }
+            }
+            prevent_window_default_drop();
+
+            const opts = userOpts || {};
+            const container = opts.editorContainerEl || (typeof document !== 'undefined' ? document.querySelector('.editor-container') : null);
+
+            if (container) {
+                this.overlayState = setup_drag_drop_overlay_ui(container);
+                this.options.editorContainerEl = container;
+            }
+
+            if (opts.maxFileSize && typeof opts.maxFileSize === 'number') {
+                this.options.maxFileSize = opts.maxFileSize;
+            }
+
+            if (opts.callbacks) {
+                this.options.callbacks = Object.assign({}, this.options.callbacks, opts.callbacks);
+            }
+
+            return this;
+        },
+
+        handleDropEvent: async function(event, callbacks = {}) {
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+
+            if (this.overlayState && typeof this.overlayState.resetCounter === 'function') {
+                this.overlayState.resetCounter();
+            }
+
+            const cb = Object.assign({}, this.options.callbacks, callbacks);
+            const dataTransfer = (event && event.dataTransfer) ? event.dataTransfer : null;
+            const { file, handle } = await extract_dropped_file_and_handle(dataTransfer);
+
+            if (file) {
+                const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
+                if (isAllowed) {
+                    if (typeof cb.onFileExtracted === 'function') {
+                        cb.onFileExtracted(file, handle);
+                    }
+
+                    const isFresh = (typeof cb.isFreshWindow === 'function') ? cb.isFreshWindow() : true;
+                    if (isFresh) {
+                        this.loadSingleFile(file, cb, handle);
+                    } else {
+                        if (typeof cb.onOpenNewWindow === 'function') {
+                            cb.onOpenNewWindow(file, handle);
+                        } else if (typeof window !== 'undefined' && window.location) {
+                            const originUrl = new URL(window.location.origin + window.location.pathname);
+                            originUrl.searchParams.set('openRecent', file.name);
+                            window.open(originUrl.toString(), '_blank');
+                        }
+                    }
+                } else {
+                    const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.';
+                    if (typeof cb.onError === 'function') {
+                        cb.onError(msg);
+                    } else if (typeof alert !== 'undefined') {
+                        alert(msg);
+                    }
+                }
+            }
+            return { file, handle };
+        },
+
+        loadSingleFile: function(file, callbacks = {}, handle = null) {
+            if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'FileDropManager.loadSingleFile: file object with name is required', { file })) {
+                return false;
+            }
+
+            const cb = Object.assign({}, this.options.callbacks, callbacks);
+            const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
+
+            if (!isAllowed) {
+                const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.';
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            // 파일 크기 제한 검증 (기본값 50MB, 환경설정 커스텀 지원)
+            const maxFileSize = (this.options && typeof this.options.maxFileSize === 'number') ? this.options.maxFileSize : (50 * 1024 * 1024);
+            if (typeof file.size === 'number' && file.size > maxFileSize) {
+                const maxMb = Math.round(maxFileSize / (1024 * 1024));
+                const msg = `파일 크기가 제한 용량(${maxMb}MB)을 초과하였습니다. 더 작은 마크다운 파일(${maxMb}MB 이하)을 열어 주세요.`;
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            return read_file_content_as_text(file, (content) => {
+                if (typeof cb.onFileLoaded === 'function') {
+                    cb.onFileLoaded(content, file, handle);
+                }
+            });
+        }
+    };
+
     const FrameManager = {
         init: function(userOptions) {
             const userOpts = userOptions || {};
@@ -1399,13 +1662,32 @@
 
         highlightActiveToc: function(activeLine) {
             return TocManager.highlightActive(activeLine);
+        },
+
+        FileDropManager: FileDropManager,
+
+        initFileDrop: function(userOpts) {
+            return FileDropManager.init(userOpts);
+        },
+
+        handleDropEvent: function(event, callbacks) {
+            return FileDropManager.handleDropEvent(event, callbacks);
+        },
+
+        loadSingleFile: function(file, callbacks, handle) {
+            return FileDropManager.loadSingleFile(file, callbacks, handle);
         }
     };
 
     if (typeof window !== 'undefined') {
         window.RecentFileManager = RecentFileManager;
         window.TocManager = TocManager;
+        window.FileDropManager = FileDropManager;
     }
+    FrameManager.RecentFileManager = RecentFileManager;
+    FrameManager.TocManager = TocManager;
+    FrameManager.FileDropManager = FileDropManager;
+
     window.FrameManager = FrameManager;
 
 })(typeof window !== 'undefined' ? window : this);

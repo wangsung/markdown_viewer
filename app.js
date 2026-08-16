@@ -999,141 +999,71 @@ document.addEventListener('DOMContentLoaded', () => {
         // FrameManager.init({ actions: { ... } })를 통해 캡슐화 및 단일 바인딩되어 처리됩니다.
 
     // ==========================================================================
-    // Drag & Drop Markdown File Loading Logic
+    // Drag & Drop Markdown File Loading Logic (Delegated to FileDropManager)
     // ==========================================================================
-    
-    // 브라우저 기본 드래그 앤 드롭 동작(새 탭에서 파일 열기) 전역 차단
-    window.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    }, false);
-    window.addEventListener('drop', (e) => {
-        e.preventDefault();
-    }, false);
 
     const editorContainer = document.querySelector('.editor-container');
-    let dragCounter = 0;
 
-    editorContainer.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        dragCounter++;
-        if (dragCounter === 1) {
-            editorContainer.classList.add('drag-over');
-        }
-    });
+    const FileDropManagerInstance = (typeof window !== 'undefined' && window.FileDropManager) ? window.FileDropManager : (typeof FrameManager !== 'undefined' ? FrameManager.FileDropManager : null);
 
-    editorContainer.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        dragCounter--;
-        if (dragCounter === 0) {
-            editorContainer.classList.remove('drag-over');
-        }
-    });
-
-    editorContainer.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    });
-
-
-
-    // 마크다운/텍스트 파일을 로드하여 에디터에 적용하는 공통 함수
-    function loadSingleFile(file) {
-        if (!file) return;
-        const fileName = file.name;
-        const extension = fileName.split('.').pop().toLowerCase();
-        const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
-        
-        if (allowedExtensions.includes(extension) || file.type.startsWith('text/')) {
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                cm.setValue(event.target.result);
-                updateFilenameDisplay(file.name, false); // 새 파일 로드 및 파일명 적용
-                if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
-                    RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, null, file.size);
-                }
-                renderMarkdown();
-                saveDocumentSession();
-                
-                // 에디터와 프리뷰 패널 스크롤 최상단으로 초기화
-                cm.scrollTo(0, 0);
-                const previewViewport = document.querySelector('.preview-viewport');
-                if (previewViewport) {
-                    previewViewport.scrollTop = 0;
-                    previewViewport.scrollLeft = 0;
-                }
-            };
-            reader.readAsText(file);
-        } else {
-            alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.');
-        }
-    }
-
-    // 드래그 앤 드롭 파일 로딩 연동 (새 창/새 탭 구동)
-    editorContainer.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        dragCounter = 0;
-        editorContainer.classList.remove('drag-over');
-        
-        let targetFile = null;
-        let targetHandle = null;
-
-        // FileSystemAccess API: Drag & Drop 항목에서 FileHandle 추출 시도
-        if (e.dataTransfer && e.dataTransfer.items) {
-            for (const item of e.dataTransfer.items) {
-                if (item.kind === 'file' && typeof item.getAsFileSystemHandle === 'function') {
-                    try {
-                        const handle = await item.getAsFileSystemHandle();
-                        if (handle && handle.kind === 'file') {
-                            targetFile = await handle.getFile();
-                            targetHandle = handle;
-                            break;
-                        }
-                    } catch (err) {
-                        console.warn('getAsFileSystemHandle 실패 fallback 진행:', err);
+    if (FileDropManagerInstance) {
+        FileDropManagerInstance.init({
+            editorContainerEl: editorContainer,
+            callbacks: {
+                isFreshWindow: function() {
+                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                },
+                onFileExtracted: function(file, handle) {
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                     }
-                }
-            }
-        }
+                },
+                onFileLoaded: function(content, file, handle) {
+                    if (handle) currentFileHandle = handle;
+                    cm.setValue(content);
+                    updateFilenameDisplay(file.name, false);
+                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
+                        RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
+                    }
+                    renderMarkdown();
+                    saveDocumentSession();
 
-        if (!targetFile && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            targetFile = e.dataTransfer.files[0];
-        }
-
-        if (targetFile) {
-            const fileName = targetFile.name;
-            const extension = fileName.split('.').pop().toLowerCase();
-            const allowedExtensions = ['md', 'markdown', 'txt', 'html', 'json'];
-
-            if (allowedExtensions.includes(extension) || targetFile.type.startsWith('text/')) {
-                // 최근 파일 목록 및 IndexedDB에 저장
-                if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
-                    RecentFileManager.addFile(targetFile.name, targetFile.path || targetFile.name, targetHandle, targetFile.size);
-                }
-
-                const isFresh = isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-                if (isFresh) {
-                    currentFileHandle = targetHandle || null;
-                    loadSingleFile(targetFile);
+                    cm.scrollTo(0, 0);
+                    const previewViewport = document.querySelector('.preview-viewport');
+                    if (previewViewport) {
+                        previewViewport.scrollTop = 0;
+                        previewViewport.scrollLeft = 0;
+                    }
                     isNewSessionSkippedRestore = false;
-                } else {
-                    // 마우스 드롭 User Gesture 문맥 내에서 즉시 새 창 구동
+                },
+                onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
-                    originUrl.searchParams.set('openRecent', targetFile.name);
+                    originUrl.searchParams.set('openRecent', file.name);
                     window.open(originUrl.toString(), '_blank');
                 }
-            } else {
-                alert('불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 드롭해 주세요.');
-            }
-        }
-    });
-
-    // CodeMirror 내부 커서 위치 파일 텍스트 끼워넣기 이중 차단
-    if (cm) {
-        cm.on('drop', (cmInstance, e) => {
-            e.preventDefault();
-            if (typeof e.stopPropagation === 'function') {
-                e.stopPropagation();
             }
         });
+
+        function loadSingleFile(file) {
+            FileDropManagerInstance.loadSingleFile(file);
+        }
+        window.loadSingleFile = loadSingleFile;
+
+        if (editorContainer) {
+            editorContainer.addEventListener('drop', (e) => {
+                FileDropManagerInstance.handleDropEvent(e);
+            });
+        }
+
+        if (cm) {
+            cm.on('drop', (cmInstance, e) => {
+                e.preventDefault();
+                if (typeof e.stopPropagation === 'function') {
+                    e.stopPropagation();
+                }
+                FileDropManagerInstance.handleDropEvent(e);
+            });
+        }
     }
 
     // 숨김 파일 인풋 change 이벤트 연동 (md 불러오기)
@@ -1142,8 +1072,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const files = e.target.files;
             if (files && files.length > 0) {
                 currentFileHandle = null;
-                loadSingleFile(files[0]);
-                // 다음 파일 로드를 위해 input 값 초기화
+                if (FileDropManagerInstance) {
+                    FileDropManagerInstance.loadSingleFile(files[0]);
+                } else if (typeof window.loadSingleFile === 'function') {
+                    window.loadSingleFile(files[0]);
+                }
                 fileInput.value = '';
             }
         });

@@ -131,7 +131,12 @@ function runTestSuite() {
         'parse_toc_headings',
         'render_toc_tree_ui',
         'toggle_toc_sidebar_ui',
-        'highlight_active_toc_ui'
+        'highlight_active_toc_ui',
+        'prevent_window_default_drop',
+        'setup_drag_drop_overlay_ui',
+        'extract_dropped_file_and_handle',
+        'is_allowed_markdown_file',
+        'read_file_content_as_text'
     ];
 
     pureSubFuncNames.forEach(funcName => {
@@ -147,6 +152,13 @@ function runTestSuite() {
     runAssert(typeof FrameManager.TocManager.render === 'function', 'FrameManager.TocManager.render function exists');
     runAssert(typeof FrameManager.initToc === 'function', 'FrameManager.initToc function exists');
     runAssert(typeof FrameManager.renderToc === 'function', 'FrameManager.renderToc function exists');
+
+    runAssert(typeof window.FileDropManager === 'object', 'window.FileDropManager object exists');
+    runAssert(typeof FrameManager.FileDropManager === 'object', 'FrameManager.FileDropManager sub-object exists');
+    runAssert(typeof FrameManager.FileDropManager.init === 'function', 'FrameManager.FileDropManager.init function exists');
+    runAssert(typeof FrameManager.FileDropManager.handleDropEvent === 'function', 'FrameManager.FileDropManager.handleDropEvent function exists');
+    runAssert(typeof FrameManager.FileDropManager.loadSingleFile === 'function', 'FrameManager.FileDropManager.loadSingleFile function exists');
+    runAssert(typeof FrameManager.initFileDrop === 'function', 'FrameManager.initFileDrop function exists');
 
     runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
     runAssert(typeof FrameManager.initRecentFiles === 'function', 'FrameManager.initRecentFiles function exists');
