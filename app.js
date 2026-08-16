@@ -491,185 +491,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
-    // KaTeX availability and state initialization
-    const isKatexAvailable = typeof katex !== 'undefined';
-    let enableMathSupport = isKatexAvailable; // default: true if KaTeX is loaded
-
-    // If KaTeX is not loaded, hide the UI toggle
-    if (mathRenderWrapper) {
-        if (!isKatexAvailable) {
-            mathRenderWrapper.style.display = 'none';
-        } else if (mathRenderCheckbox) {
-            mathRenderCheckbox.checked = enableMathSupport;
-        }
-    }
-    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function') {
-        PreviewManager.setMathSupport(enableMathSupport);
-    } else {
-        window._enableMathSupport = enableMathSupport;
-    }
-
-    // Mermaid availability and state initialization
-    const isMermaidAvailable = typeof mermaid !== 'undefined';
-    let enableDiagramSupport = isMermaidAvailable; // default: true if Mermaid is loaded
-
-    // If Mermaid is not loaded, hide the UI toggle
-    if (diagramRenderWrapper) {
-        if (!isMermaidAvailable) {
-            diagramRenderWrapper.style.display = 'none';
-        } else if (diagramRenderCheckbox) {
-            diagramRenderCheckbox.checked = enableDiagramSupport;
-        }
-    }
-    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function') {
-        PreviewManager.setDiagramSupport(enableDiagramSupport);
-    } else {
-        window._enableDiagramSupport = enableDiagramSupport;
-    }
-
-    // Initialize mermaid if available
-    if (isMermaidAvailable) {
-        try {
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'default',
-                securityLevel: 'loose'
-            });
-        } catch (e) {
-            console.error("Mermaid initialization failed:", e);
-        }
-    }
-
-    // Configure custom marked.js renderer to support highlight.js & KaTeX
-    if (typeof marked !== 'undefined') {
-        const renderer = new marked.Renderer();
-        
-        // Support old signature code(code, lang) and new signature code({text, lang})
-        renderer.code = function(codeOrObj, infostring) {
-            let text = '';
-            let lang = '';
-            if (typeof codeOrObj === 'object' && codeOrObj !== null) {
-                text = codeOrObj.text || '';
-                lang = codeOrObj.lang || '';
-            } else {
-                text = codeOrObj || '';
-                lang = infostring || '';
-            }
-            
-            // Check if it's math/latex code block and math rendering is enabled
-            if ((lang === 'math' || lang === 'latex') && enableMathSupport && isKatexAvailable) {
-                try {
-                    return `<div class="katex-block">${katex.renderToString(text, { displayMode: true, throwOnError: false })}</div>`;
-                } catch (e) {
-                    console.error("KaTeX code block error:", e);
-                    return `<div class="katex-error">${escapeHtml(text)}</div>`;
-                }
-            }
-
-            // Check if it's mermaid diagram code block and diagram support is enabled
-            if (lang === 'mermaid' && enableDiagramSupport && isMermaidAvailable) {
-                return `<div class="mermaid">${escapeHtml(text)}</div>`;
-            }
-            
-            const validLang = !!(lang && typeof hljs !== 'undefined' && hljs.getLanguage(lang));
-            let highlighted = '';
-            try {
-                if (validLang) {
-                    highlighted = hljs.highlight(text, { language: lang }).value;
-                } else {
-                    highlighted = escapeHtml(text);
-                }
-            } catch (e) {
-                console.error("Syntax highlighting error:", e);
-                highlighted = escapeHtml(text);
-            }
-            return `<pre><code class="hljs language-${lang || 'plaintext'}">${highlighted}</code></pre>`;
-        };
-
-        const markedOptions = {
-            renderer: renderer,
-            gfm: true,
-            breaks: true,
-            pedantic: false
-        };
-
-        // Inject extensions only if KaTeX is available (can be toggled at render time)
-        const inlineMath = {
-            name: 'inlineMath',
-            level: 'inline',
-            start(src) { return src.indexOf('$'); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\$([^$\n]+?)\$/);
-                if (match) {
-                    return {
-                        type: 'inlineMath',
-                        raw: match[0],
-                        formula: match[1].trim()
-                    };
-                }
-            },
-            renderer(token) {
-                if (enableMathSupport && isKatexAvailable) {
-                    try {
-                        return katex.renderToString(token.formula, { displayMode: false, throwOnError: false });
-                    } catch (err) {
-                        console.error("KaTeX inline parsing error:", err);
-                        return `<span class="katex-error">${escapeHtml(token.raw)}</span>`;
-                    }
-                }
-                return escapeHtml(token.raw); // Fallback: output raw text
-            }
-        };
-
-        const blockMath = {
-            name: 'blockMath',
-            level: 'block',
-            start(src) { return src.indexOf('$$'); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\$\$\n?([\s\S]+?)\n?\$\$/);
-                if (match) {
-                    return {
-                        type: 'blockMath',
-                        raw: match[0],
-                        formula: match[1].trim()
-                    };
-                }
-            },
-            renderer(token) {
-                if (enableMathSupport && isKatexAvailable) {
-                    try {
-                        return `<div class="katex-block">${katex.renderToString(token.formula, { displayMode: true, throwOnError: false })}</div>`;
-                    } catch (err) {
-                        console.error("KaTeX block parsing error:", err);
-                        return `<div class="katex-error">${escapeHtml(token.raw)}</div>`;
-                    }
-                }
-                return `<div class="katex-fallback">${escapeHtml(token.raw)}</div>`; // Fallback: output raw text in a div
-            }
-        };
-
-        const bracketText = {
-            name: 'bracketText',
-            level: 'inline',
-            start(src) { return src.indexOf('['); },
-            tokenizer(src, tokens) {
-                const match = src.match(/^\[([^\]\n]+)\](?!\(|\[)/);
-                if (match) {
-                    return {
-                        type: 'bracketText',
-                        raw: match[0],
-                        text: match[1]
-                    };
-                }
-            },
-            renderer(token) {
-                return `<span class="md-bracket-link">[${token.text}]</span>`;
-            }
-        };
-
-        markedOptions.extensions = [inlineMath, blockMath, bracketText];
-        marked.use(markedOptions);
-    }
+    window.assert_arg(typeof PreviewManager !== 'undefined', 'PreviewManager module is required!');
+    PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
+    PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
 
     // Main Render Function with Line Mapping
     function renderMarkdown() {
@@ -1444,9 +1268,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
-            enableMathSupport = mathRenderCheckbox.checked;
             window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function', 'PreviewManager.setMathSupport is required!', { PreviewManager });
-            PreviewManager.setMathSupport(enableMathSupport);
+            PreviewManager.setMathSupport(mathRenderCheckbox.checked);
             renderMarkdown();
         });
     }
@@ -1454,9 +1277,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 다이어그램 토글 변경 시 이벤트 바인딩
     if (diagramRenderCheckbox) {
         diagramRenderCheckbox.addEventListener('change', () => {
-            enableDiagramSupport = diagramRenderCheckbox.checked;
             window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function', 'PreviewManager.setDiagramSupport is required!', { PreviewManager });
-            PreviewManager.setDiagramSupport(enableDiagramSupport);
+            PreviewManager.setDiagramSupport(diagramRenderCheckbox.checked);
             renderMarkdown();
         });
     }
