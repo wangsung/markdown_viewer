@@ -183,43 +183,21 @@ document.addEventListener('DOMContentLoaded', () => {
         mode: 'markdown',
         lineNumbers: true,
         lineWrapping: true,
-        dragDrop: false,
-        theme: 'default',
-        extraKeys: {
-            "Tab": function(cm) {
-                cm.replaceSelection("    ");
-            },
-            "Cmd-B": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'bold', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Ctrl-B": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'bold', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Cmd-I": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'italic', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Ctrl-I": function(cmInstance) {
-                EditorManager.insert_formatting(cmInstance, 'italic', () => {
-                    updateFilenameDisplay(currentFilename, true);
-                    renderMarkdown();
-                });
-            },
-            "Alt-Q": function(cmInstance) {
-                EditorManager.apply_paragraph_join(cmInstance, () => {
-                    renderMarkdown();
-                });
-            }
-        }
+        dragDrop: false
     });
+
+    // EditorManager 단축키 바인딩 전담 위임 (app.js에서 extraKeys 속성 완전 분리)
+    if (typeof EditorManager !== 'undefined' && typeof EditorManager.initShortcuts === 'function') {
+        EditorManager.initShortcuts(cm, {
+            onFormatChange: (type) => {
+                updateFilenameDisplay(currentFilename, true);
+                renderMarkdown();
+            },
+            onParagraphJoin: () => {
+                renderMarkdown();
+            }
+        });
+    }
 
     // 1. FrameManager UI 엘리먼트 자율 쿼리 및 바인딩 수신
     const frameElements = (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function')

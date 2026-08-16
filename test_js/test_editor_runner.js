@@ -41,9 +41,9 @@ function createMockCodeMirror(initialText = '', selectedText = '') {
 }
 
 // 2. editor-man.js 파일 로드 또는 app.js 순수 서브 함수 검증 샌드박스 설정
-const editorManPath = path.join(__dirname, '..', '');
-const settingsManPath = path.join(__dirname, '..', '');
-const appPath = path.join(__dirname, '..', '');
+const editorManPath = path.join(__dirname, '..', 'editor-man.js');
+const settingsManPath = path.join(__dirname, '..', 'settings-man.js');
+const appPath = path.join(__dirname, '..', 'app.js');
 let EditorManager = null;
 let SettingsManager = null;
 
