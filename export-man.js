@@ -6,6 +6,42 @@
  * HTML 내보내기(Export) 기능을 순수 서브 함수(Pure Sub-functions)로 캡슐화하여 제공함.
  */
 
+/**
+ * 내보내기 및 스타일 커스텀 프로퍼티 수집 전용 StyleSet 상수 객체 (ExportStyleSet)
+ */
+const ExportStyleSet = {
+    PRESET_VARS: [
+        '--h1-color', '--h1-size', '--h1-border',
+        '--h2-color', '--h2-size', '--h2-border',
+        '--h3-color', '--h3-size', '--h3-border',
+        '--h4-color', '--h4-size', '--h4-border',
+        '--h5-color', '--h5-size', '--h5-border',
+        '--h6-color', '--h6-size', '--h6-border',
+        '--link-color', '--link-decoration',
+        '--bold-color', '--italic-color',
+        '--inline-code-fg', '--custom-inline-code-bg',
+        '--custom-code-block-bg', '--custom-code-block-fg',
+        '--blockquote-text-color', '--blockquote-border-color',
+        '--list-marker-color', '--list-item-gap',
+        '--line-color', '--line-border',
+        '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
+        '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
+        '--table-border-color', '--table-border-style', '--table-cell-padding',
+        '--table-vertical-align', '--table-row-border-bottom'
+    ],
+    CONTAINER_VARS: [
+        '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
+        '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text'
+    ],
+    LAYOUT_VARS: [
+        '--preview-font-family', '--preview-font-size',
+        '--preview-code-whitespace', '--preview-code-word-break'
+    ],
+    getAll: function() {
+        return [...this.PRESET_VARS, ...this.CONTAINER_VARS, ...this.LAYOUT_VARS];
+    }
+};
+
 const ExportManager = (function() {
     function assert_arg(condition, message, context = {}) {
         if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
@@ -901,6 +937,7 @@ const ExportManager = (function() {
 
     // 외부로 공개하는 모듈 API
     return {
+        ExportStyleSet,
         ClipboardManager,
         copy_preview_to_clipboard_ui,
         copyPreviewToClipboard: copy_preview_to_clipboard_ui,
@@ -919,8 +956,14 @@ const ExportManager = (function() {
     };
 })();
 
-// 글로벌 Window 객체에 ExportManager 및 ClipboardManager 등록
+// 글로벌 Window 객체에 ExportManager, ExportStyleSet 및 ClipboardManager 등록
 if (typeof window !== 'undefined') {
     window.ExportManager = ExportManager;
     window.ClipboardManager = ExportManager.ClipboardManager;
+    window.ExportStyleSet = ExportStyleSet;
+}
+if (typeof global !== 'undefined' && global.window) {
+    global.window.ExportManager = ExportManager;
+    global.window.ClipboardManager = ExportManager.ClipboardManager;
+    global.window.ExportStyleSet = ExportStyleSet;
 }

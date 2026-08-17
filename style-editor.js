@@ -190,6 +190,25 @@
         return true;
     }
 
+    // -------------------------------------------------------------------------
+    // Pre-load Fail-Fast Assertions (6-Layer Loading Priority Policy)
+    // Layer 1: FrameManager, Layer 2: ExportStyleSet / ExportManager, Layer 3: EditorManager
+    // -------------------------------------------------------------------------
+    function check_preload_dependencies() {
+        const win = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' ? global.window : null);
+        if (win) {
+            const isFrameMgrPresent = typeof win.FrameManager !== 'undefined';
+            assert_arg(isFrameMgrPresent, '[Pre-load Assertion] Layer 1 Dependency Missing: window.FrameManager must be loaded before style-editor.js', { FrameManager: win ? win.FrameManager : undefined });
+
+            const exportStyleSetRef = win.ExportStyleSet || (win.ExportManager && win.ExportManager.ExportStyleSet) || (typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet) || (typeof ExportStyleSet !== 'undefined' && ExportStyleSet);
+            assert_arg(!!exportStyleSetRef, '[Pre-load Assertion] Layer 2 Dependency Missing: window.ExportStyleSet or ExportManager.ExportStyleSet must be loaded before style-editor.js', { ExportStyleSet: exportStyleSetRef });
+
+            const isEditorMgrPresent = typeof win.EditorManager !== 'undefined';
+            assert_arg(isEditorMgrPresent, '[Pre-load Assertion] Layer 3 Dependency Missing: window.EditorManager must be loaded before style-editor.js', { EditorManager: win ? win.EditorManager : undefined });
+        }
+    }
+    check_preload_dependencies();
+
     // ==========================================================================
     // Heading Style Presets Pure Sub-functions & StylePresetManager
     // ==========================================================================
@@ -324,7 +343,11 @@
         savePresets: save_heading_presets_data,
         syncPresets: sync_heading_presets_data,
         applyPreset: apply_heading_preset_ui,
-        updateSelects: update_preset_select_options_ui
+        updateSelects: update_preset_select_options_ui,
+        getPresetVars: function() {
+            const styleSet = (typeof ExportStyleSet !== 'undefined' ? ExportStyleSet : ((typeof window !== 'undefined' && window.ExportStyleSet) || (typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet)));
+            return styleSet ? styleSet.PRESET_VARS : [];
+        }
     };
 
     // -------------------------------------------------------------------------

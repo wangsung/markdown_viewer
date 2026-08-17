@@ -597,29 +597,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
         const computedStyle = getComputedStyle(root);
         
-        // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
-        const cssVarList = [
-            '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
-            '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text',
-            '--h1-color', '--h1-size', '--h1-border',
-            '--h2-color', '--h2-size', '--h2-border',
-            '--h3-color', '--h3-size', '--h3-border',
-            '--h4-color', '--h4-size', '--h4-border',
-            '--h5-color', '--h5-size', '--h5-border',
-            '--h6-color', '--h6-size', '--h6-border',
-            '--link-color', '--link-decoration',
-            '--bold-color', '--italic-color', '--inline-code-fg', '--custom-inline-code-bg',
-            '--custom-code-block-bg', '--custom-code-block-fg',
-            '--blockquote-text-color', '--blockquote-border-color',
-            '--list-marker-color', '--list-item-gap',
-            '--line-color', '--line-border',
-            '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
-            '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
-            '--table-border-color', '--table-border-style', '--table-cell-padding',
-            '--table-vertical-align', '--table-row-border-bottom',
-            '--preview-font-family', '--preview-font-size',
-            '--preview-code-whitespace', '--preview-code-word-break'
-        ];
+        // 프리뷰의 전체 테마 + Heading Preset + 레이아웃 변수 수집 목록 (ExportStyleSet 기반)
+        const exportStyleSetRef = (typeof ExportStyleSet !== 'undefined' && typeof ExportStyleSet.getAll === 'function')
+            ? ExportStyleSet
+            : ((typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet)
+                ? ExportManager.ExportStyleSet
+                : (typeof window !== 'undefined' && window.ExportStyleSet ? window.ExportStyleSet : null));
+        const cssVarList = exportStyleSetRef ? exportStyleSetRef.getAll() : [];
 
         const styleVars = {};
         const previewEl = document.getElementById('preview');

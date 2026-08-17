@@ -71,9 +71,13 @@ global.window = global;
 global.document = mockDocument;
 global.localStorage = mockLocalStorage;
 global.EditorManager = mockEditorManager;
+global.FrameManager = { init: () => {} };
 global.ENABLE_DEBUG_HANDLER = true; // Enables Error throwing on assert_arg failure
 
-// 2. Load style-editor.js into global context
+// 2. Load export-man.js (Layer 2) & style-editor.js into global context
+const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
+eval(exportManCode);
+
 const styleEditorPath = path.join(__dirname, '..', 'style-editor.js');
 const styleEditorCode = fs.readFileSync(styleEditorPath, 'utf8');
 eval(styleEditorCode);
