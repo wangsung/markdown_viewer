@@ -78,21 +78,15 @@ global.document = {
     }
 };
 
-// 3. Load functions from app.js
-const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+// 3. Load module from frame-man.js
+const frameManPath = path.join(__dirname, '..', 'frame-man.js');
+const frameManCode = fs.readFileSync(frameManPath, 'utf8');
+eval(frameManCode);
 
-// Extract function declarations and evaluate
-const detectBrowserMatch = appCode.match(/function detect_browser_type[\s\S]*?(?=function showGlobalBottomBanner)/);
-const showBannerMatch = appCode.match(/function showGlobalBottomBanner[\s\S]*?^    \}/m);
-const hideBannerMatch = appCode.match(/function hideGlobalBottomBanner[\s\S]*?^    \}/m);
-
-assert(detectBrowserMatch, 'PASS: detect_browser_type function found in app.js');
-assert(showBannerMatch, 'PASS: showGlobalBottomBanner function found in app.js');
-assert(hideBannerMatch, 'PASS: hideGlobalBottomBanner function found in app.js');
-
-eval(detectBrowserMatch[0]);
-eval(showBannerMatch[0]);
-eval(hideBannerMatch[0]);
+assert(typeof SysEnvManager === 'object', 'PASS: SysEnvManager defined in frame-man.js');
+assert(typeof detect_browser_type === 'function', 'PASS: detect_browser_type function bound globally');
+assert(typeof showGlobalBottomBanner === 'function', 'PASS: showGlobalBottomBanner function bound globally');
+assert(typeof hideGlobalBottomBanner === 'function', 'PASS: hideGlobalBottomBanner function bound globally');
 
 // Test Case A: Test detect_browser_type
 const detectedType = detect_browser_type();

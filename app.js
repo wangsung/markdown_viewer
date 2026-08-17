@@ -103,77 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 pure 서브 함수
-     */
-    function detect_browser_type() {
-        if (typeof navigator === 'undefined') return 'other';
 
-        const ua = navigator.userAgent || '';
-        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
-            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
-            if (isEdge) return 'edge';
-
-            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
-            if (isChrome) return 'chrome';
-        }
-
-        if (/Edg\//i.test(ua)) return 'edge';
-        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
-
-        return 'other';
-    }
-
-    /**
-     * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
-     * @param {string} message - 표시할 안내 문구
-     * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
-     */
-    function showGlobalBottomBanner(message, showCloseBtn = false) {
-        let banner = document.getElementById('global-bottom-banner');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'global-bottom-banner';
-            document.body.appendChild(banner);
-        }
-
-        const bType = detect_browser_type();
-        banner.setAttribute('data-browser-type', bType);
-
-        let contentHtml = `<div class="banner-content">${message || ''}</div>`;
-        if (showCloseBtn) {
-            contentHtml += `<button type="button" class="banner-close-btn" aria-label="Close banner">✕</button>`;
-        }
-        banner.innerHTML = contentHtml;
-
-        if (showCloseBtn) {
-            const closeBtn = banner.querySelector('.banner-close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    hideGlobalBottomBanner();
-                });
-            }
-        }
-
-        banner.offsetHeight;
-        banner.classList.add('show');
-    }
-
-    /**
-     * 화면 최하단의 전역 안내 배너를 슬라이드 다운 후 숨기는 함수.
-     */
-    function hideGlobalBottomBanner() {
-        const banner = document.getElementById('global-bottom-banner');
-        if (banner) {
-            banner.classList.remove('show');
-        }
-    }
-
-    if (typeof window !== 'undefined') {
-        window.detect_browser_type = detect_browser_type;
-        window.showGlobalBottomBanner = showGlobalBottomBanner;
-        window.hideGlobalBottomBanner = hideGlobalBottomBanner;
-    }
 
     // DOM Elements
     const editor = document.getElementById('editor');
@@ -699,12 +629,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof ExportManager !== 'undefined') {
                         window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
                         const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
-                        showGlobalBottomBanner(pdfBannerMsg, false);
+                        SysEnvManager.showBanner(pdfBannerMsg, false);
                         const exportOptions = collectExportOptions({ theme: 'light' });
                         try {
                             await ExportManager.printToPdf(preview, currentFilename, exportOptions);
                         } finally {
-                            hideGlobalBottomBanner();
+                            SysEnvManager.hideBanner();
                         }
                     }
                 },
@@ -1141,12 +1071,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const SAVE_SECURITY_NOTICE = '[App] 브라우저 보안사항으로 파일 접근 권한에 대한 확인창이 뜰 수 있습니다. ';
 
     function triggerSaveSecurityNotice() {
-        showGlobalBottomBanner(SAVE_SECURITY_NOTICE, false);
+        SysEnvManager.showBanner(SAVE_SECURITY_NOTICE, false);
     }
 
     function dismissSaveSecurityNoticeDelayed(delayMs = 1000) {
         setTimeout(() => {
-            hideGlobalBottomBanner();
+            SysEnvManager.hideBanner();
         }, delayMs);
     }
 

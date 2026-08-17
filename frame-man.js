@@ -98,6 +98,91 @@
     }
 
     /**
+     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 순수 서브 함수
+     * @returns {'edge' | 'chrome' | 'other'}
+     */
+    function detect_browser_type() {
+        if (typeof navigator === 'undefined') return 'other';
+
+        const ua = navigator.userAgent || '';
+        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
+            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
+            if (isEdge) return 'edge';
+
+            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
+            if (isChrome) return 'chrome';
+        }
+
+        if (/Edg\//i.test(ua)) return 'edge';
+        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
+
+        return 'other';
+    }
+
+    /**
+     * 화면 최하단에 전역 알림/안내 배너를 노출하는 순수 서브 함수
+     * @param {string} message - 표시할 안내 문구 (필수, 비어있지 않은 문자열)
+     * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
+     */
+    function show_global_bottom_banner_ui(message, showCloseBtn = false) {
+        if (!assert_arg(typeof message === 'string' && message.trim().length > 0, 'show_global_bottom_banner_ui requires a valid non-empty string message', { message })) {
+            return;
+        }
+
+        if (typeof document === 'undefined') return;
+
+        let banner = document.getElementById('global-bottom-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'global-bottom-banner';
+            document.body.appendChild(banner);
+        }
+
+        const bType = detect_browser_type();
+        banner.setAttribute('data-browser-type', bType);
+
+        let contentHtml = `<div class="banner-content">${message}</div>`;
+        if (showCloseBtn) {
+            contentHtml += `<button type="button" class="banner-close-btn" aria-label="Close banner">✕</button>`;
+        }
+        banner.innerHTML = contentHtml;
+
+        if (showCloseBtn) {
+            const closeBtn = banner.querySelector('.banner-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    hide_global_bottom_banner_ui();
+                });
+            }
+        }
+
+        banner.offsetHeight;
+        banner.classList.add('show');
+    }
+
+    /**
+     * 화면 최하단의 전역 안내 배너를 슬라이드 다운 후 숨기는 순수 서브 함수
+     */
+    function hide_global_bottom_banner_ui() {
+        if (typeof document === 'undefined') return;
+        const banner = document.getElementById('global-bottom-banner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+    }
+
+    // ==========================================================================
+    // SysEnvManager 서브 객체 (시스템 환경 감지 및 전역 배너 제어 전용)
+    // ==========================================================================
+    const SysEnvManager = {
+        detectBrowser: detect_browser_type,
+        showBanner: show_global_bottom_banner_ui,
+        hideBanner: hide_global_bottom_banner_ui,
+        getBrowserType: detect_browser_type
+    };
+
+
+    /**
      * 순수 하위 서브 함수: DOM 프레임 및 메뉴 UI 엘리먼트들을 자율 탐색 및 쿼리합니다.
      */
     function get_default_elements() {
@@ -1851,6 +1936,11 @@
         formatFileSize: format_file_size,
         formatRecentTime: format_recent_time,
 
+        SysEnvManager: SysEnvManager,
+        detectBrowserType: detect_browser_type,
+        showGlobalBottomBanner: show_global_bottom_banner_ui,
+        hideGlobalBottomBanner: hide_global_bottom_banner_ui,
+
         RecentFileManager: RecentFileManager,
 
         initRecentFiles: function(userOpts) {
@@ -1929,11 +2019,19 @@
     };
 
     if (typeof window !== 'undefined') {
+        window.SysEnvManager = SysEnvManager;
+        window.detect_browser_type = detect_browser_type;
+        window.showGlobalBottomBanner = show_global_bottom_banner_ui;
+        window.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
         window.RecentFileManager = RecentFileManager;
         window.TocManager = TocManager;
         window.FileDropManager = FileDropManager;
         window.SessionManager = SessionManager;
     }
+    FrameManager.SysEnvManager = SysEnvManager;
+    FrameManager.detectBrowserType = detect_browser_type;
+    FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
+    FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
     FrameManager.RecentFileManager = RecentFileManager;
     FrameManager.TocManager = TocManager;
     FrameManager.FileDropManager = FileDropManager;

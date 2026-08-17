@@ -140,12 +140,21 @@ function runTestSuite() {
         'resolve_session_storage_key',
         'save_document_session_data',
         'read_saved_document_session_data',
-        'restore_document_content_to_editor'
+        'restore_document_content_to_editor',
+        'detect_browser_type',
+        'show_global_bottom_banner_ui',
+        'hide_global_bottom_banner_ui'
     ];
 
     pureSubFuncNames.forEach(funcName => {
         runAssert(frameManCode.includes(`function ${funcName}`), `Pure sub-function '${funcName}' defined in snake_case`);
     });
+
+    runAssert(typeof window.SysEnvManager === 'object', 'window.SysEnvManager object exists');
+    runAssert(typeof FrameManager.SysEnvManager === 'object', 'FrameManager.SysEnvManager sub-object exists');
+    runAssert(typeof FrameManager.SysEnvManager.detectBrowser === 'function', 'FrameManager.SysEnvManager.detectBrowser function exists');
+    runAssert(typeof FrameManager.SysEnvManager.showBanner === 'function', 'FrameManager.SysEnvManager.showBanner function exists');
+    runAssert(typeof FrameManager.SysEnvManager.hideBanner === 'function', 'FrameManager.SysEnvManager.hideBanner function exists');
 
     runAssert(typeof window.RecentFileManager === 'object', 'window.RecentFileManager object exists');
     runAssert(typeof FrameManager.RecentFileManager === 'object', 'FrameManager.RecentFileManager sub-object exists');
