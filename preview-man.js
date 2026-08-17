@@ -1,4 +1,12 @@
 window.PreviewManager = (function() {
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
+
     let isMarkedInitialized = false;
 
     /**

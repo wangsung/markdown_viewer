@@ -684,65 +684,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사 서브 함수)
     // ==========================================================================
 
-    /**
-     * [리팩토링 목적]: 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 순수 서브 함수로 모듈화하여 재사용성과 가독성을 높임.
-     * @param {HTMLElement} previewEl - 복사 대상 프리뷰 엘리먼트
-     * @param {HTMLElement|null} exportMenuEl - 닫을 내보내기 메뉴 엘리먼트
-     * @param {HTMLElement|null} feedbackBtnEl - 복사 완료 성공 표시를 해줄 버튼 엘리먼트
-     */
-    function copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl) {
-        // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
-        if (!previewEl || previewEl.children.length === 0) {
-            alert('복사할 프리뷰 내용이 없습니다.');
-            return;
-        }
-
-        // 드롭다운 메뉴 닫기
-        if (exportMenuEl) {
-            exportMenuEl.classList.remove('show');
-        }
-
-        // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
-        const range = document.createRange();
-        range.selectNodeContents(previewEl);
-
-        // 이전 선택 범위를 지우고 새로운 범위 추가
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        try {
-            // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
-            const successful = document.execCommand('copy');
-            if (successful) {
-                // 내보내기 버튼에 복사 성공 피드백 표시
-                if (feedbackBtnEl) {
-                    const originalHTML = feedbackBtnEl.innerHTML;
-                    feedbackBtnEl.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        복사 완료!
-                    `;
-                    feedbackBtnEl.style.borderColor = '#10b981';
-                    feedbackBtnEl.style.color = '#10b981';
-                    
-                    setTimeout(() => {
-                        feedbackBtnEl.innerHTML = originalHTML;
-                        feedbackBtnEl.style.borderColor = '';
-                        feedbackBtnEl.style.color = '';
-                    }, 2000);
-                }
-            } else {
-                alert('클립보드 복사 명령을 실행할 수 없습니다.');
-            }
-        } catch (err) {
-            console.error('클립보드 복사 실패:', err);
-            alert('클립보드 복사에 실패했습니다.');
-        } finally {
-            // 복사 완료 후 선택 영역 해제 (시각적 잔상 제거 및 정리)
-            selection.removeAllRanges();
-        }
-    }
-
     // 💡 주: 복사 및 내보내기 버튼 이벤트는 FrameManager.init({ actions: { onCopy: ... } })를 통해 통합 처리됩니다.
 
     // ==========================================================================
@@ -785,8 +726,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 onNewFile: () => handleNewFile(),
                 onOpenFile: () => trigger_open_file_dialog(),
                 onCopy: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
+                    if (typeof ClipboardManager !== 'undefined') {
+                        ClipboardManager.copyPreview(preview, exportMenu, btnExport);
+                    } else if (typeof ExportManager !== 'undefined' && ExportManager.ClipboardManager) {
+                        ExportManager.ClipboardManager.copyPreview(preview, exportMenu, btnExport);
                     }
                 },
                 onSave: () => handleSaveDirect(),

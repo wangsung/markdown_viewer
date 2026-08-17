@@ -11,6 +11,14 @@
 (function(window) {
     'use strict';
 
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
+
     const RECENT_FILES_KEY = 'markvi_recent_files';
     const IDB_NAME = 'markvi_recent_db';
     const IDB_STORE = 'handles';

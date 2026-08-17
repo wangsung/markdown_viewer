@@ -3,6 +3,13 @@
  * CodeMirror 에디터 제어 및 마크다운 텍스트 처리 전용 독립 서브 모듈 (Pure Sub-function Module)
  */
 window.EditorManager = (function() {
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
 
     /**
      * [Refactoring] Pure Sub-function: 연속해서 들어간 강제 줄바꿈(엔터)들을 분석하여 의미상 한 문단인 경우 결합해 주는 순수 함수.
@@ -529,19 +536,6 @@ window.EditorManager = (function() {
         });
 
         return headings;
-    }
-
-    /**
-     * 매개변수(Argument) 및 상태 검증 전용 단증 서브 함수 (assert_arg)
-     */
-    function assert_arg(condition, message, context = {}) {
-        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
-            return window.assert_arg(condition, message, context);
-        }
-        if (!condition) {
-            console.error(`[System Warning] ${message}`, context);
-        }
-        return condition;
     }
 
     /**
