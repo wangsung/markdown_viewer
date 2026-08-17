@@ -35,9 +35,11 @@ global.getComputedStyle = () => ({
         return '';
     }
 });
+global.togglePreviewMaxWidthCheckbox = null;
+global.colorSwatchCheckbox = null;
 
 // 2. Read app.js code to test collectExportOptions behavior
-const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
+const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
 // Mock EditorManager for cross-theme preset calculation
 global.EditorManager = {
@@ -74,7 +76,7 @@ assert.strictEqual(lightOpts.styleVars['--blockquote-text-color'], '#475569', 'P
 global.chrome = undefined;
 global.fetch = async () => ({ text: async () => '' });
 
-const exportManCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
+const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
 eval(exportManCode);
 
 const mockPreview = {

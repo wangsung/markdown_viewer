@@ -172,6 +172,160 @@
         verticalAlign: 'middle'
     };
 
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+            return window.assert_arg(condition, message, context);
+        }
+        if (typeof global !== 'undefined' && typeof global.window !== 'undefined' && typeof global.window.assert_arg === 'function' && global.window.assert_arg !== assert_arg) {
+            return global.window.assert_arg(condition, message, context);
+        }
+        if (!condition) {
+            const fullMessage = `[System Assertion Failed] ${message}`;
+            console.error(fullMessage, context);
+            if (typeof window !== 'undefined' && window.ENABLE_DEBUG_HANDLER !== false) {
+                throw new Error(fullMessage);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    // ==========================================================================
+    // Heading Style Presets Pure Sub-functions & StylePresetManager
+    // ==========================================================================
+    function get_heading_presets_data() {
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage) {
+                const stored = localStorage.getItem('markvi_heading_presets');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to parse heading presets:', e);
+        }
+        return JSON.parse(JSON.stringify(DEFAULT_HEADING_PRESETS));
+    }
+
+    function save_heading_presets_data(presets) {
+        assert_arg(Array.isArray(presets), 'save_heading_presets_data: presets must be an Array!', { presets });
+        try {
+            if (typeof localStorage !== 'undefined' && localStorage) {
+                localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
+            }
+        } catch (e) {
+            console.warn('Failed to save heading presets:', e);
+        }
+    }
+
+    function sync_heading_presets_data() {
+        try {
+            if (typeof localStorage === 'undefined' || !localStorage) return;
+            const stored = localStorage.getItem('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    let changed = false;
+
+                    parsed.forEach(p => {
+                        if (p.styles && !p.styles.codeblock) {
+                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
+                            changed = true;
+                        }
+                    });
+
+                    const defaultPresets = JSON.parse(JSON.stringify(DEFAULT_HEADING_PRESETS));
+                    defaultPresets.forEach(defPreset => {
+                        if (!parsed.some(p => p.id === defPreset.id)) {
+                            parsed.push(defPreset);
+                            changed = true;
+                        }
+                    });
+                    if (changed) {
+                        save_heading_presets_data(parsed);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to sync new heading presets:', e);
+        }
+    }
+
+    function apply_heading_preset_ui(presetId, tempStyles = null) {
+        assert_arg(typeof presetId === 'string' && presetId.trim().length > 0, 'apply_heading_preset_ui: presetId must be a non-empty string!', { presetId, tempStyles });
+        const presets = get_heading_presets_data();
+        const found = presets.find(p => p.id === presetId) || presets[0];
+        if (!found || !found.styles) return;
+
+        const styles = tempStyles || found.styles;
+        const root = (typeof document !== 'undefined' && document) ? document.documentElement : null;
+        const currentTheme = root ? (root.getAttribute('data-editor-theme') || 'dark') : 'dark';
+
+        if (typeof EditorManager !== 'undefined' && typeof EditorManager.apply_heading_preset === 'function') {
+            EditorManager.apply_heading_preset(root, styles, currentTheme);
+        } else if (typeof window !== 'undefined' && window.EditorManager && typeof window.EditorManager.apply_heading_preset === 'function') {
+            window.EditorManager.apply_heading_preset(root, styles, currentTheme);
+        }
+
+        if (!tempStyles && typeof localStorage !== 'undefined' && localStorage) {
+            localStorage.setItem('markvi_active_heading_preset', presetId);
+        }
+
+        if (typeof document !== 'undefined' && document) {
+            const headingSelect = document.getElementById('heading-preset-select');
+            const modalSelect = document.getElementById('modal-heading-preset-select');
+            if (headingSelect) headingSelect.value = presetId;
+            if (modalSelect) modalSelect.value = presetId;
+        }
+
+        if (typeof window !== 'undefined' && window.cm) {
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        if (window.cm && typeof window.cm.refresh === 'function') window.cm.refresh();
+                    }, 50);
+                });
+            }
+        }
+    }
+
+    function update_preset_select_options_ui(selectElements = null) {
+        const presets = get_heading_presets_data();
+        let selectEls = [];
+        if (selectElements) {
+            selectEls = Array.isArray(selectElements) ? selectElements : [selectElements];
+        } else if (typeof document !== 'undefined' && document) {
+            const headingSelect = document.getElementById('heading-preset-select');
+            const modalSelect = document.getElementById('modal-heading-preset-select');
+            selectEls = [headingSelect, modalSelect];
+        }
+
+        selectEls.forEach(selectEl => {
+            if (!selectEl) return;
+            const currentVal = selectEl.value;
+            selectEl.innerHTML = '';
+            presets.forEach(p => {
+                const opt = (typeof document !== 'undefined' && document) ? document.createElement('option') : null;
+                if (opt) {
+                    opt.value = p.id;
+                    opt.textContent = p.name;
+                    selectEl.appendChild(opt);
+                }
+            });
+            if (currentVal && presets.some(p => p.id === currentVal)) {
+                selectEl.value = currentVal;
+            }
+        });
+    }
+
+    const StylePresetManager = {
+        getPresets: get_heading_presets_data,
+        savePresets: save_heading_presets_data,
+        syncPresets: sync_heading_presets_data,
+        applyPreset: apply_heading_preset_ui,
+        updateSelects: update_preset_select_options_ui
+    };
 
     // -------------------------------------------------------------------------
     // 🛠️ 순수 서브 함수 (snake_case)
@@ -720,6 +874,8 @@
     // ⚙️ 공개 인터페이스 노출 객체
     // =========================================================================
     window.StyleEditor = {
+        StylePresetManager: StylePresetManager,
+
         /**
          * Dialog 영역 DOM 요소 구조체 리턴 API
          */
@@ -1503,4 +1659,22 @@
             return styles;
         }
     };
+
+    if (typeof window !== 'undefined') {
+        window.StylePresetManager = StylePresetManager;
+        window.getHeadingPresets = StylePresetManager.getPresets;
+        window.saveHeadingPresets = StylePresetManager.savePresets;
+        window.syncNewHeadingPresets = StylePresetManager.syncPresets;
+        window.applyHeadingPreset = StylePresetManager.applyPreset;
+        window.updatePresetSelectOptions = StylePresetManager.updateSelects;
+    }
+    if (typeof global !== 'undefined' && global.window) {
+        global.window.StyleEditor = window.StyleEditor;
+        global.window.StylePresetManager = StylePresetManager;
+        global.window.getHeadingPresets = StylePresetManager.getPresets;
+        global.window.saveHeadingPresets = StylePresetManager.savePresets;
+        global.window.syncNewHeadingPresets = StylePresetManager.syncPresets;
+        global.window.applyHeadingPreset = StylePresetManager.applyPreset;
+        global.window.updatePresetSelectOptions = StylePresetManager.updateSelects;
+    }
 })();

@@ -242,114 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // Heading Style Presets Multi-Set System (Minimum 5 Sets)
+    // Heading Style Presets Multi-Set System (StylePresetManager)
     // ==========================================================================
-    const DEFAULT_HEADING_PRESETS = [];
-
-    function getHeadingPresets() {
-        try {
-            const stored = localStorage.getItem('markvi_heading_presets');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-            }
-        } catch (e) {
-            console.warn('Failed to parse heading presets:', e);
-        }
-        return window.StyleEditor.getDefaultPresets();
-    }
-
-    function saveHeadingPresets(presets) {
-        try {
-            localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
-        } catch (e) {
-            console.warn('Failed to save heading presets:', e);
-        }
-    }
-
-    function syncNewHeadingPresets() {
-        try {
-            const stored = localStorage.getItem('markvi_heading_presets');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    let changed = false;
-                    
-                    parsed.forEach(p => {
-                        if (p.styles && !p.styles.codeblock) {
-                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
-                            changed = true;
-                        }
-                    });
-
-                    const defaultPresets = window.StyleEditor.getDefaultPresets();
-                    defaultPresets.forEach(defPreset => {
-                        if (!parsed.some(p => p.id === defPreset.id)) {
-                            parsed.push(defPreset);
-                            changed = true;
-                        }
-                    });
-                    if (changed) {
-                        saveHeadingPresets(parsed);
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('Failed to sync new heading presets:', e);
-        }
-    }
-
-    function applyHeadingPreset(presetId, tempStyles = null) {
-        const presets = getHeadingPresets();
-        const found = presets.find(p => p.id === presetId) || presets[0];
-        if (!found || !found.styles) return;
-
-        const styles = tempStyles || found.styles;
-        const root = document.documentElement;
-        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
-
-        // 순수 서브 함수 EditorManager.apply_heading_preset로 스타일 바인딩 호출
-        EditorManager.apply_heading_preset(root, styles, currentTheme);
-
-        if (!tempStyles) {
-            localStorage.setItem('markvi_active_heading_preset', presetId);
-        }
-
-        const headingSelect = document.getElementById('heading-preset-select');
-        const modalSelect = document.getElementById('modal-heading-preset-select');
-        if (headingSelect) headingSelect.value = presetId;
-        if (modalSelect) modalSelect.value = presetId;
-
-        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시 (비동기 렌더 딜레이 보장)
-        if (typeof cm !== 'undefined' && cm) {
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    cm.refresh();
-                }, 50);
-            });
-        }
-    }
-
-    function updatePresetSelectOptions() {
-        const presets = getHeadingPresets();
-        const headingSelect = document.getElementById('heading-preset-select');
-        const modalSelect = document.getElementById('modal-heading-preset-select');
-
-        [headingSelect, modalSelect].forEach(selectEl => {
-            if (!selectEl) return;
-            const currentVal = selectEl.value;
-            selectEl.innerHTML = '';
-            presets.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                selectEl.appendChild(opt);
-            });
-            if (currentVal && presets.some(p => p.id === currentVal)) {
-                selectEl.value = currentVal;
-            }
-        });
-    }
 
     // ==========================================================================
     // Markdown & Syntax Highlight & Math Configuration
@@ -582,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 onThemeChange: (theme) => {
                     apply_code_theme(theme);
                     const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-                    applyHeadingPreset(activePresetId);
+                    StylePresetManager.applyPreset(activePresetId);
                 },
                 onPanelResize: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
@@ -755,7 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
         if (targetTheme !== currentTheme && typeof EditorManager !== 'undefined' && EditorManager.apply_heading_preset) {
             const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            const presets = typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []);
+            const presets = (typeof StylePresetManager !== 'undefined' && typeof StylePresetManager.getPresets === 'function')
+                ? StylePresetManager.getPresets()
+                : (typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []));
             const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
 
             if (foundPreset && foundPreset.styles) {
@@ -1184,9 +1080,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             
             // 스타일 편집 Dialog를 띄울 때 신규 프리셋이 누락되었는지 검사하여 추가
-            syncNewHeadingPresets();
+            StylePresetManager.syncPresets();
             
-            updatePresetSelectOptions();
+            StylePresetManager.updateSelects();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
             if (window.StyleEditor && typeof window.StyleEditor.openModal === 'function') {
@@ -1206,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (headingPresetSelect) {
         headingPresetSelect.addEventListener('change', (e) => {
-            applyHeadingPreset(e.target.value);
+            StylePresetManager.applyPreset(e.target.value);
             renderMarkdown();
         });
     }
@@ -1214,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalHeadingSelect) {
         modalHeadingSelect.addEventListener('change', (e) => {
             renderHeadingModalControls(e.target.value);
-            applyHeadingPreset(e.target.value);
+            StylePresetManager.applyPreset(e.target.value);
             renderMarkdown();
         });
     }
@@ -1229,13 +1125,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🎨 스타일 편집 다이얼로그 콜백 핸들러 리액티브 명명 함수 정의 (리팩토링)
     // ==========================================================================
     function handlePresetChange(presetId) {
-        applyHeadingPreset(presetId);
+        StylePresetManager.applyPreset(presetId);
     }
 
     function handleLivePreview() {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
-        applyHeadingPreset(currentId, tempStyles);
+        StylePresetManager.applyPreset(currentId, tempStyles);
     }
 
     function handleModalScroll(clientX, deltaY) {
@@ -1258,14 +1154,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handlePresetSave(presetName) {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-        applyHeadingPreset(currentId);
+        StylePresetManager.applyPreset(currentId);
         showToast(`'${presetName}' 스타일이 저장되었습니다.`);
     }
 
     function handlePresetSaveAndClose(presetName) {
         closeHeadingStyleModal();
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-        applyHeadingPreset(currentId);
+        StylePresetManager.applyPreset(currentId);
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
         if (typeof cm !== 'undefined' && cm) {
@@ -1279,29 +1175,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePresetAdd(newId, newName) {
-        updatePresetSelectOptions();
-        applyHeadingPreset(newId);
+        StylePresetManager.updateSelects();
+        StylePresetManager.applyPreset(newId);
         renderHeadingModalControls(newId);
         showToast(`'${newName}' 스타일이 생성되었습니다.`);
     }
 
     function handlePresetDelete(nextId, deletedName) {
-        updatePresetSelectOptions();
-        applyHeadingPreset(nextId);
+        StylePresetManager.updateSelects();
+        StylePresetManager.applyPreset(nextId);
         renderHeadingModalControls(nextId);
         showToast(`'${deletedName}' 스타일이 삭제되었습니다.`);
     }
 
     function handlePresetReset(presetId, presetName) {
-        applyHeadingPreset(presetId);
+        StylePresetManager.applyPreset(presetId);
         renderHeadingModalControls(presetId);
         showToast(`'${presetName}' 스타일이 초기 기본값으로 복원되었습니다.`);
     }
 
     if (window.StyleEditor) {
         window.StyleEditor.init({
-            getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
-            savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
+            getPresetsData: StylePresetManager.getPresets,      // ◄ 1:1 함수 참조 매핑
+            savePresetsData: StylePresetManager.savePresets,    // ◄ 1:1 함수 참조 매핑
             onPresetChange: handlePresetChange,
             onLivePreview: handleLivePreview,
             onScroll: handleModalScroll,
@@ -1315,9 +1211,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 문서 시작 시 Heading Preset 초기화
-    updatePresetSelectOptions();
+    StylePresetManager.updateSelects();
     const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-    applyHeadingPreset(activePreset);
+    StylePresetManager.applyPreset(activePreset);
 
     // ScrollSync 인스턴스 생성 및 초기화 (최하단 배치)
     scrollSync = new ScrollSync({
