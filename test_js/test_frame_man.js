@@ -136,7 +136,11 @@ function runTestSuite() {
         'setup_drag_drop_overlay_ui',
         'extract_dropped_file_and_handle',
         'is_allowed_markdown_file',
-        'read_file_content_as_text'
+        'read_file_content_as_text',
+        'resolve_session_storage_key',
+        'save_document_session_data',
+        'read_saved_document_session_data',
+        'restore_document_content_to_editor'
     ];
 
     pureSubFuncNames.forEach(funcName => {
@@ -159,6 +163,15 @@ function runTestSuite() {
     runAssert(typeof FrameManager.FileDropManager.handleDropEvent === 'function', 'FrameManager.FileDropManager.handleDropEvent function exists');
     runAssert(typeof FrameManager.FileDropManager.loadSingleFile === 'function', 'FrameManager.FileDropManager.loadSingleFile function exists');
     runAssert(typeof FrameManager.initFileDrop === 'function', 'FrameManager.initFileDrop function exists');
+
+    runAssert(typeof window.SessionManager === 'object', 'window.SessionManager object exists');
+    runAssert(typeof FrameManager.SessionManager === 'object', 'FrameManager.SessionManager sub-object exists');
+    runAssert(typeof FrameManager.SessionManager.init === 'function', 'FrameManager.SessionManager.init function exists');
+    runAssert(typeof FrameManager.initSession === 'function', 'FrameManager.initSession function exists');
+    runAssert(typeof FrameManager.saveSessionData === 'function', 'FrameManager.saveSessionData function exists');
+    runAssert(typeof FrameManager.readSessionData === 'function', 'FrameManager.readSessionData function exists');
+    runAssert(typeof FrameManager.restoreSessionContent === 'function', 'FrameManager.restoreSessionContent function exists');
+    runAssert(typeof FrameManager.restoreSessionUI === 'function', 'FrameManager.restoreSessionUI function exists');
 
     runAssert(typeof FrameManager.getElements === 'function', 'FrameManager.getElements function exists');
     runAssert(typeof FrameManager.initRecentFiles === 'function', 'FrameManager.initRecentFiles function exists');

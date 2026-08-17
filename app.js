@@ -276,25 +276,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
+    // Session Auto-Save & Restore (Delegated to SessionManager in frame-man.js)
     // ==========================================================================
-    let SESSION_STORAGE_KEY = 'markvi_document_session';
-    let isNewSessionSkippedRestore = false;
+    const SessionManagerInstance = (typeof window !== 'undefined' && window.SessionManager)
+        ? window.SessionManager
+        : (typeof FrameManager !== 'undefined' ? FrameManager.SessionManager : null);
 
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('new') === '1') {
-            const sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
-            SESSION_STORAGE_KEY = 'markvi_document_session_' + sessionId;
-            urlParams.delete('new');
-            urlParams.set('session', sessionId);
-            window.history.replaceState(null, '', '?' + urlParams.toString());
-            isNewSessionSkippedRestore = true;
-        } else if (urlParams.has('session')) {
-            SESSION_STORAGE_KEY = 'markvi_document_session_' + urlParams.get('session');
-        }
-    } catch (e) {
-        console.warn('Failed to parse URL session params:', e);
+    if (SessionManagerInstance) {
+        SessionManagerInstance.init();
     }
 
     function saveDocumentSession() {
@@ -312,47 +301,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true,
                 scrollSyncEnabled: scrollSyncCheckbox ? scrollSyncCheckbox.checked : true
             };
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+            if (SessionManagerInstance) {
+                SessionManagerInstance.saveData(sessionData);
+            } else if (typeof FrameManager !== 'undefined' && typeof FrameManager.saveSessionData === 'function') {
+                FrameManager.saveSessionData(sessionData);
+            }
         } catch (e) {
             console.warn('Failed to save document session:', e);
         }
-    }
-
-    /**
-     * 1단계 [Data Read Phase]: localStorage에서 세션 저장 데이터를 독립적으로 수집 및 파싱합니다.
-     */
-    function read_saved_document_session() {
-        try {
-            const rawData = localStorage.getItem(SESSION_STORAGE_KEY);
-            if (!rawData) return null;
-            return JSON.parse(rawData);
-        } catch (e) {
-            console.warn('Failed to read document session from localStorage:', e);
-            return null;
-        }
-    }
-
-    /**
-     * 2단계 [Content Restore Phase]: 문서 본문 내용 및 파일명/상태를 에디터에 반영합니다.
-     */
-    function restore_document_content(sessionData) {
-        if (!sessionData) return;
-        window.assert_arg(typeof cm !== 'undefined' && cm, 'CodeMirror instance cm must be initialized before restore_document_content!', { cm, sessionData });
-        if (!isNewSessionSkippedRestore && typeof sessionData.content === 'string' && sessionData.content.length > 0) {
-            cm.setValue(sessionData.content);
-        }
-        if (!isNewSessionSkippedRestore && sessionData.filename) {
-            updateFilenameDisplay(sessionData.filename, !!sessionData.isDirty);
-        }
-    }
-
-    /**
-     * 3단계 [Frame UI Restore Phase]: FrameManager 액션 준비 완료 후 프레임 및 시각적 레이아웃 설정을 복원합니다.
-     */
-    function restore_frame_ui_settings(sessionData) {
-        if (!sessionData) return;
-        window.assert_arg(typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function', 'FrameManager.restoreFrameSettings is required for restore_frame_ui_settings!', { FrameManager, sessionData });
-        FrameManager.restoreFrameSettings(sessionData);
     }
 
     // ==========================================================================
@@ -932,7 +888,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editorContainerEl: editorContainer,
             callbacks: {
                 isFreshWindow: function() {
-                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 },
                 onFileExtracted: function(file, handle) {
                     if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
@@ -955,7 +912,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         previewViewport.scrollTop = 0;
                         previewViewport.scrollLeft = 0;
                     }
-                    isNewSessionSkippedRestore = false;
+                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
+                        SessionManagerInstance.setNewSessionSkippedRestore(false);
+                    } else {
+                        window.isNewSessionSkippedRestore = false;
+                    }
                 },
                 onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
@@ -1048,7 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 초기 렌더링 및 이벤트 등록 (Scroll Sync 초기화 지연 방지를 위해 가장 하단에 배치)
     // ==========================================================================
     // 탐색기 더블클릭 연동으로 로드되었는지 확인 및 적용
-    if (!isNewSessionSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
+    const isSkippedRestore = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+    if (!isSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
         cm.setValue(window.loadedFileContent.content);
         updateFilenameDisplay(window.loadedFileContent.name, false);
     }
@@ -1074,29 +1036,41 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
-    // 1단계 [Data Read Phase]: localStorage 세션 데이터 독립 수집
-    const savedSessionData = read_saved_document_session();
+    // 1단계 [Data Read Phase]: localStorage 세션 데이터 수집 (SessionManager)
+    const savedSessionData = SessionManagerInstance ? SessionManagerInstance.readData() : null;
     const hasSavedSession = !!savedSessionData;
 
-    // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원
-    restore_document_content(savedSessionData);
+    // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원 (SessionManager)
+    if (SessionManagerInstance && savedSessionData) {
+        SessionManagerInstance.restoreContent(cm, savedSessionData, {
+            onUpdateFilename: (name, isModified) => updateFilenameDisplay(name, isModified)
+        });
+    }
+
     if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.init === 'function') {
         RecentFileManager.init({
             actions: {
                 onLoadSingleFile: (file, handle) => {
                     currentFileHandle = handle || null;
                     loadSingleFile(file);
-                    isNewSessionSkippedRestore = false;
+                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
+                        SessionManagerInstance.setNewSessionSkippedRestore(false);
+                    } else {
+                        window.isNewSessionSkippedRestore = false;
+                    }
                 },
                 isFreshWindow: () => {
-                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 }
             }
         });
     }
 
-    // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원
-    restore_frame_ui_settings(savedSessionData);
+    // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원 (SessionManager)
+    if (SessionManagerInstance && savedSessionData) {
+        SessionManagerInstance.restoreUI(savedSessionData);
+    }
 
     // Trigger Initial Render
     renderMarkdown();
