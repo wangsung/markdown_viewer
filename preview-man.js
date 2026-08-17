@@ -401,8 +401,9 @@ window.PreviewManager = (function() {
             
             render_diagrams(previewEl);
             
-            if (scrollSync && typeof scrollSync.rebuildKeyframes === 'function') {
-                scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
+            const activeScrollSync = scrollSync || (typeof window !== 'undefined' && typeof window.ScrollSyncManager !== 'undefined' ? window.ScrollSyncManager.getInstance() : null) || (typeof window !== 'undefined' ? window.scrollSync : null);
+            if (activeScrollSync && typeof activeScrollSync.rebuildKeyframes === 'function') {
+                activeScrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
             }
 
             if (typeof buildTOC === 'function') {

@@ -499,7 +499,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 onScrollSyncToggle: (enabled) => {
                     enableScrollSync = enabled;
-                    if (scrollSync) {
+                    if (typeof ScrollSyncManager !== 'undefined') {
+                        ScrollSyncManager.setEnable(enabled);
+                    } else if (scrollSync) {
                         scrollSync.setEnable(enabled);
                     }
                 },
@@ -794,16 +796,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggle_debug_panel() {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.toggleDebugPanel === 'function') {
             FrameManager.toggleDebugPanel((isOpen) => {
-                if (isOpen && scrollSync) {
-                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                if (isOpen) {
+                    if (typeof ScrollSyncManager !== 'undefined') {
+                        ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
+                    } else if (scrollSync) {
+                        scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                    }
                 }
             });
         }
     }
 
     function updateDebugPanel() {
-        if (scrollSync) {
-            updateDebugPanelUI(scrollSync.keyframes, scrollSync.activeScrollSource);
+        const activeSync = (typeof ScrollSyncManager !== 'undefined' ? ScrollSyncManager.getInstance() : null) || scrollSync;
+        if (activeSync) {
+            updateDebugPanelUI(activeSync.keyframes, activeSync.activeScrollSource);
         }
     }
 
@@ -938,7 +945,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {
             enableScrollSync = scrollSyncCheckbox.checked;
-            if (scrollSync) {
+            if (typeof ScrollSyncManager !== 'undefined') {
+                ScrollSyncManager.setEnable(enableScrollSync);
+                if (enableScrollSync) {
+                    ScrollSyncManager.syncPreviewToCursor();
+                }
+            } else if (scrollSync) {
                 scrollSync.setEnable(enableScrollSync);
                 if (enableScrollSync && typeof scrollSync.syncPreviewToCursor === 'function') {
                     scrollSync.syncPreviewToCursor();
@@ -1032,7 +1044,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof TocManager !== 'undefined' && typeof TocManager.init === 'function') {
         TocManager.init({
             onSelectHeading: (lineNum) => {
-                if (scrollSync) {
+                if (typeof ScrollSyncManager !== 'undefined') {
+                    ScrollSyncManager.scrollToLine(lineNum);
+                } else if (scrollSync) {
                     scrollSync.scrollToLine(lineNum);
                 }
             }
@@ -1199,11 +1213,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
     StylePresetManager.applyPreset(activePreset);
 
-    // ScrollSync 인스턴스 생성 및 초기화 (최하단 배치)
-    scrollSync = new ScrollSync({
-        cm: cm,
+    // ScrollSync 인스턴스 생성 및 초기화 (ScrollSyncManager 위임)
+    scrollSync = ScrollSyncManager.init(cm, preview, {
         previewViewport: document.querySelector('.preview-viewport'),
-        previewContainer: preview,
         enableScrollSync: enableScrollSync,
         onActiveLineChange: (lineNum) => {
             if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
@@ -1219,24 +1231,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    scrollSync.init();
+    if (typeof window !== 'undefined') {
+        window.scrollSync = scrollSync;
+    }
     if (cm && typeof cm.refresh === 'function') {
         cm.refresh();
     }
-
-    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거 Stage 3)
-    window.addEventListener('load', () => {
-        if (scrollSync) {
-            scrollSync.rebuildKeyframes('Stage 3: window.onload');
-        }
-    });
-
-    // 100ms 비동기 페인트 후 안전 재구축 (Stage 2)
-    setTimeout(() => {
-        if (scrollSync) {
-            scrollSync.rebuildKeyframes('Stage 2: setTimeout 100ms');
-        }
-    }, 100);
 });
 
 

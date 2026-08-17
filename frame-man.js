@@ -1618,7 +1618,9 @@
                     this.options.onSelectHeading(line);
                 } else if (cmInstance && typeof cmInstance.scrollToLine === 'function') {
                     cmInstance.scrollToLine(line);
-                } else if (window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
+                } else if (typeof window !== 'undefined' && typeof window.ScrollSyncManager !== 'undefined' && typeof window.ScrollSyncManager.scrollToLine === 'function') {
+                    window.ScrollSyncManager.scrollToLine(line);
+                } else if (typeof window !== 'undefined' && window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
                     window.scrollSync.scrollToLine(line);
                 }
             };
