@@ -108,3 +108,14 @@
 - **단위 테스트 동기 검증 규칙 (Unit Test Synchronization Rule)**:
   - 순수 서브 함수 추가 및 코드 리팩토링 진행 시 독립 테스트 파일(`test_*.js`)을 즉시 동기화하고, 전체 자동화 테스트 100% 통과(PASS)를 검증한다.
 
+## 자바스크립트 모듈 6단계 로딩 우선순위 및 사전 단증 지침 (6-Layer Script Loading & Pre-load Assertion Policy)
+- **6단계 의존성 계층화 로딩 규칙**: 스크립트 모듈 간 의존성 불일치 및 Temporal Dead Zone (TDZ) 오류를 방지하기 위해 HTML 태그 배치 및 모듈 로딩 순서를 아래 6단계 순서대로 엄격히 배치해야 합니다:
+  1. **Layer 0 (외부 서드파티 라이브러리)**: CodeMirror v5, marked.js, KaTeX, Mermaid.js, html2pdf.js
+  2. **Layer 1 (기초 시스템 & 프레임 인프라)**: `frame-man.js` (`FrameManager`, `SysEnvManager`, `RecentFileManager`, `TocManager`, `FileDropManager`, `SessionManager`, 전역 `window.assert_arg`)
+  3. **Layer 2 (중앙 내보내기 & 속성 관리자)**: `export-man.js` (`ExportManager`, `ExportStyleSet`, `ClipboardManager`)
+  4. **Layer 3 (핵심 렌더러 & 에디터 엔진)**: `preview-man.js` (`PreviewManager`), `editor-man.js` (`EditorManager`)
+  5. **Layer 4 (인터랙티브 다이얼로그 모듈)**: `style-editor.js` (`StyleEditor`, `StylePresetManager`) 및 대화상자/모달 모듈
+  6. **Layer 5 (메인 진입점 오케스트레이터)**: `app.js` (`App Orchestrator`)
+- **다이얼로그 모듈 사전 로드 단증 지침 (Fail-Fast Policy)**: Layer 4 이상의 인터랙티브 다이얼로그/모달 모듈(`style-editor.js` 등)이 초기화/진입할 때는 반드시 하위 계층(Layer 1~3) 필수 의존 모듈(`FrameManager`, `ExportStyleSet`, `EditorManager` 등)의 사전 로드 여부를 `window.assert_arg`로 즉각 검사하여 누락 시 실행을 즉시 차단(Fail-Fast)해야 합니다.
+
+
