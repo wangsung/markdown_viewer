@@ -261,121 +261,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Customization Settings Sync (Font, Font-size, Line color)
     // ==========================================================================
     
-    // 1. Font Family Selector
-    fontSelect.addEventListener('change', () => {
-        const selectedFont = fontSelect.value;
-        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewFontFamily === 'function') {
-            PreviewManager.applyPreviewFontFamily(preview, selectedFont);
-        } else if (preview) {
-            preview.style.setProperty('--preview-font-family', selectedFont);
-        }
-        document.documentElement.style.setProperty('--preview-font-family', selectedFont);
-        saveDocumentSession();
-    });
-
-    // 2. Font Size Selector (% 비율 기반 -> 10pt == 100% 환산 적용)
-    fontSizeSelect.addEventListener('change', () => {
-        const selectedVal = fontSizeSelect.value;
-        const computedPt = calc_scaled_font_size(selectedVal, 10);
-        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewFontSize === 'function') {
-            PreviewManager.applyPreviewFontSize(preview, computedPt);
-        } else if (preview) {
-            preview.style.setProperty('--preview-font-size', computedPt);
-        }
-        document.documentElement.style.setProperty('--preview-font-size', computedPt);
-        document.documentElement.style.setProperty('--editor-font-size', computedPt);
-        if (cm && typeof cm.refresh === 'function') cm.refresh();
-        saveDocumentSession();
-    });
-
-    // 2-2. Font Size Spin Buttons (Up/Down 10% / 1pt 단위 증감)
+    // ==========================================================================
+    // Customization Settings Sync (Preview UI Controls via PreviewManager)
+    // ==========================================================================
     const btnFontSizeUp = document.getElementById('btn-font-size-up');
     const btnFontSizeDown = document.getElementById('btn-font-size-down');
 
-    if (btnFontSizeUp && btnFontSizeDown && fontSizeSelect) {
-        btnFontSizeUp.addEventListener('click', () => {
-            const currentVal = fontSizeSelect.value;
-            let currentPercent = parseFloat(currentVal);
-            if (isNaN(currentPercent)) currentPercent = 120;
-            
-            // 10% (1pt) 증가
-            const newPercent = Math.min(300, Math.round(currentPercent + 10));
-            const newPercentStr = `${newPercent}%`;
-            
-            let matchedOption = Array.from(fontSizeSelect.options).find(opt => opt.value === newPercentStr);
-            if (!matchedOption) {
-                const ptVal = calc_scaled_font_size(newPercentStr, 10);
-                matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
-                fontSizeSelect.add(matchedOption);
+    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.initUIControls === 'function') {
+        PreviewManager.initUIControls({
+            preview: preview,
+            fontSelect: fontSelect,
+            fontSizeSelect: fontSizeSelect,
+            btnFontSizeUp: btnFontSizeUp,
+            btnFontSizeDown: btnFontSizeDown,
+            codeblockScrollCheckbox: codeblockScrollCheckbox,
+            codeblockScrollWrapper: codeblockScrollWrapper,
+            togglePreviewMaxWidthCheckbox: togglePreviewMaxWidthCheckbox,
+            previewMaxWidthWrapper: previewMaxWidthWrapper
+        }, {
+            onSettingChange: () => saveDocumentSession(),
+            onRefreshEditor: () => {
+                if (cm && typeof cm.refresh === 'function') cm.refresh();
             }
-            fontSizeSelect.value = newPercentStr;
-            fontSizeSelect.dispatchEvent(new Event('change'));
         });
-
-        btnFontSizeDown.addEventListener('click', () => {
-            const currentVal = fontSizeSelect.value;
-            let currentPercent = parseFloat(currentVal);
-            if (isNaN(currentPercent)) currentPercent = 120;
-            
-            // 10% (1pt) 감소 (최소 30%)
-            const newPercent = Math.max(30, Math.round(currentPercent - 10));
-            const newPercentStr = `${newPercent}%`;
-            
-            let matchedOption = Array.from(fontSizeSelect.options).find(opt => opt.value === newPercentStr);
-            if (!matchedOption) {
-                const ptVal = calc_scaled_font_size(newPercentStr, 10);
-                matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
-                fontSizeSelect.add(matchedOption);
-            }
-            fontSizeSelect.value = newPercentStr;
-            fontSizeSelect.dispatchEvent(new Event('change'));
-        });
-    }
-
-    // 2-3. Codeblock Scroll Toggle (보기 메뉴 -> 코드블록 스크롤 토글)
-    function updateCodeblockScroll(useScroll) {
-        const isScrollOn = (useScroll !== false && useScroll !== 'false');
-        const wsVal = isScrollOn ? 'pre' : 'pre-wrap';
-        const wbVal = isScrollOn ? 'normal' : 'break-word';
-        
-        if (preview) {
-            preview.style.setProperty('--preview-code-whitespace', wsVal);
-            preview.style.setProperty('--preview-code-word-break', wbVal);
-        }
-        document.documentElement.style.setProperty('--preview-code-whitespace', wsVal);
-        document.documentElement.style.setProperty('--preview-code-word-break', wbVal);
-    }
-
-    if (togglePreviewMaxWidthCheckbox) {
-        togglePreviewMaxWidthCheckbox.addEventListener('change', () => {
-            apply_preview_max_width_limit(togglePreviewMaxWidthCheckbox.checked);
-            saveDocumentSession();
-        });
-
-        if (previewMaxWidthWrapper) {
-            previewMaxWidthWrapper.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-        }
-    }
-
-    if (codeblockScrollCheckbox) {
-        const savedScroll = localStorage.getItem('markvi_codeblock_scroll');
-        const isScrollOn = (savedScroll !== 'false');
-        codeblockScrollCheckbox.checked = isScrollOn;
-        updateCodeblockScroll(isScrollOn);
-
-        codeblockScrollCheckbox.addEventListener('change', () => {
-            const isChecked = codeblockScrollCheckbox.checked;
-            localStorage.setItem('markvi_codeblock_scroll', isChecked ? 'true' : 'false');
-            updateCodeblockScroll(isChecked);
-        });
-
-        if (codeblockScrollWrapper) {
-            codeblockScrollWrapper.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-        }
     }
 
     // 3. Line Color Picker (Dynamic CSS Theme Variables)

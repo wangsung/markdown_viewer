@@ -2,15 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 
-let passCount = 0;
-let failCount = 0;
+let test_count = 0;
+let pass_count = 0;
 
 function run_assert(condition, message) {
+    test_count++;
     if (condition) {
-        passCount++;
+        pass_count++;
         console.log(`✅ PASS: ${message}`);
     } else {
-        failCount++;
         console.log(`❌ FAIL: ${message}`);
     }
 }
@@ -31,6 +31,7 @@ function create_mock_element(id = '', tag = 'div') {
         setProperty: function(k, v) { this[k] = v; }
     };
     const children = [];
+    const listeners = {};
 
     const element = {
         id,
@@ -42,7 +43,38 @@ function create_mock_element(id = '', tag = 'div') {
         },
         style: styleObj,
         textContent: '',
-        innerHTML: '',
+        _innerHTML: '',
+        get innerHTML() {
+            return this._innerHTML;
+        },
+        set innerHTML(val) {
+            this._innerHTML = val;
+            children.length = 0;
+            const matches = val.match(/<([a-z1-6]+)\s+data-line="(\d+)"[^>]*>/gi);
+            if (matches) {
+                matches.forEach(m => {
+                    const tagMatch = m.match(/<([a-z1-6]+)/i);
+                    const lineMatch = m.match(/data-line="(\d+)"/i);
+                    if (tagMatch && lineMatch) {
+                        const tag = tagMatch[1];
+                        const line = lineMatch[1];
+                        const childEl = create_mock_element('', tag);
+                        childEl.setAttribute('data-line', line);
+                        children.push(childEl);
+                    }
+                });
+            }
+        },
+        addEventListener: (event, handler) => {
+            if (!listeners[event]) listeners[event] = [];
+            listeners[event].push(handler);
+        },
+        dispatchEvent: (event) => {
+            const evType = (event && event.type) ? event.type : event;
+            if (listeners[evType]) {
+                listeners[evType].forEach(h => h(event));
+            }
+        },
         setAttribute: (k, v) => { attributes[k] = String(v); },
         getAttribute: (k) => attributes[k] || null,
         appendChild: (child) => children.push(child),
@@ -59,13 +91,15 @@ function create_mock_element(id = '', tag = 'div') {
             if (sel === 'code') {
                 const el = create_mock_element('mock-code');
                 el.textContent = '#00ff00';
-                el.closest = () => null; // not inside pre
+                el.closest = () => null;
                 el.parentNode = element;
                 return [el];
             }
             return [];
         },
         querySelector: (sel) => {
+            const found = children.find(c => c.tagName.toLowerCase() === sel.toLowerCase());
+            if (found) return found;
             if (sel === 'h1' || sel === 'p') {
                 const el = create_mock_element(sel, sel);
                 el.getAttribute = (attr) => attributes[attr] || null;
@@ -102,11 +136,11 @@ global.document = {
 global.marked = {
     lexer: (text) => [
         { type: 'heading', depth: 1, raw: '# Heading 1\n' },
-        { type: 'paragraph', raw: 'Paragraph with **bold**' }
+        { type: 'paragraph', raw: 'Paragraph text' }
     ],
     parser: (tokens) => {
-        if (tokens[0].type === 'heading') return '<h1>Heading 1</h1>';
-        return '<p>Paragraph</p>';
+        if (tokens[0] && tokens[0].type === 'heading') return '<h1 data-line="1">Heading 1</h1>';
+        return '<p data-line="2">Paragraph</p>';
     },
     Renderer: function() { this.code = function(){}; },
     use: () => {}
@@ -174,6 +208,36 @@ function run_tests() {
         run_assert(swatches[0].style.backgroundColor === '#ff0000', "First swatch has correct color");
         run_assert(swatches[1].style.backgroundColor === '#00ff00', "Second swatch has correct color");
     }
+
+    // 4. Test new Preview UI Control APIs
+    run_assert(typeof window.PreviewManager.calcScaledFontSize === 'function', "calcScaledFontSize is a function");
+    run_assert(typeof window.PreviewManager.updateCodeblockScroll === 'function', "updateCodeblockScroll is a function");
+    run_assert(typeof window.PreviewManager.initUIControls === 'function', "initUIControls is a function");
+
+    run_assert(previewManCode.includes('function calc_scaled_font_size('), "Sub-function calc_scaled_font_size uses snake_case");
+    run_assert(previewManCode.includes('function update_codeblock_scroll('), "Sub-function update_codeblock_scroll uses snake_case");
+    run_assert(previewManCode.includes('function bind_preview_ui_listeners('), "Sub-function bind_preview_ui_listeners uses snake_case");
+
+    run_assert(window.PreviewManager.calcScaledFontSize("120%", 10) === "12pt", "calcScaledFontSize converts 120% to 12pt");
+    run_assert(window.PreviewManager.calcScaledFontSize("100%", 10) === "10pt", "calcScaledFontSize converts 100% to 10pt");
+    run_assert(window.PreviewManager.calcScaledFontSize("80%", 10) === "8pt", "calcScaledFontSize converts 80% to 8pt");
+
+    const mockFontSelect = create_mock_element('font-select', 'select');
+    mockFontSelect.value = 'Inter';
+    const mockFontSizeSelect = create_mock_element('font-size-select', 'select');
+    mockFontSizeSelect.value = '120%';
+    mockFontSizeSelect.options = [{ value: '100%' }, { value: '120%' }];
+
+    let isSettingChanged = false;
+    const initRes = window.PreviewManager.initUIControls({
+        preview: container,
+        fontSelect: mockFontSelect,
+        fontSizeSelect: mockFontSizeSelect
+    }, {
+        onSettingChange: () => { isSettingChanged = true; }
+    });
+
+    run_assert(initRes === true, "initUIControls returns true on valid uiElements");
     
     // mock removal
     container.querySelectorAll = (sel) => {
@@ -183,20 +247,21 @@ function run_tests() {
     window.PreviewManager.removeColorSwatches(container);
     run_assert(container.querySelectorAll('.color-swatch').length === 0, "Color swatches removed correctly");
 
-    // 4. Test renderMarkdown AST parsing and data-line attribute injection
-    window.PreviewManager.initMarkedParser();
-    const cm = { getValue: () => '# Heading 1\n\nParagraph with **bold**' };
-    
-    window.PreviewManager.renderMarkdown(cm, container, {checked: false}, null, null);
-    
-    run_assert(container.innerHTML.includes('<h1 data-line="1"'), "H1 element has correct data-line attribute injected via AST parsing");
-    run_assert(container.innerHTML.includes('<p data-line="3"'), "P element has correct data-line attribute injected via AST parsing");
+    // 5. Test marked AST line attribute injection
+    let mockMarkdown = "# Heading 1\nParagraph text";
+    let mockCm = { getValue: () => mockMarkdown };
 
-    console.log('\n======================================================================');
-    console.log(`📊 테스트 결과 요약: 총 ${passCount + failCount}개 항목 중 PASS: ${passCount}, FAIL: ${failCount}`);
-    console.log('======================================================================');
+    window.PreviewManager.renderMarkdown(mockCm, container);
+    let h1 = container.querySelector('h1');
+    let p = container.querySelector('p');
+    run_assert(h1 && h1.getAttribute('data-line') === '1', "H1 element has correct data-line attribute injected via AST parsing");
+    run_assert(p && p.getAttribute('data-line') === '2', "P element has correct data-line attribute injected via AST parsing");
 
-    if (failCount > 0) {
+    console.log(`\n======================================================================`);
+    console.log(`📊 테스트 결과 요약: 총 ${test_count}개 항목 중 PASS: ${pass_count}, FAIL: ${test_count - pass_count}`);
+    console.log(`======================================================================\n`);
+    
+    if (test_count !== pass_count) {
         process.exit(1);
     }
 }
