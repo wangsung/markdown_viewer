@@ -219,22 +219,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveDocumentSession() {
         if (!cm) return;
         try {
-            const sessionData = {
-                content: cm.getValue(),
-                filename: currentFilename,
-                isDirty: isDirty,
-                editorWidthPercent: editorPanel ? editorPanel.style.width : '',
-                fontFamily: fontSelect ? fontSelect.value : '',
-                fontSize: fontSizeSelect ? fontSizeSelect.value : '',
-                lineColor: lineColorPicker ? lineColorPicker.value : '',
-                previewMaxWidthLimited: togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true,
-                colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true,
-                scrollSyncEnabled: scrollSyncCheckbox ? scrollSyncCheckbox.checked : true
-            };
-            if (SessionManagerInstance) {
-                SessionManagerInstance.saveData(sessionData);
+            if (SessionManagerInstance && typeof SessionManagerInstance.saveSession === 'function') {
+                SessionManagerInstance.saveSession(
+                    { cm: cm },
+                    { filename: currentFilename, isDirty: isDirty }
+                );
             } else if (typeof FrameManager !== 'undefined' && typeof FrameManager.saveSessionData === 'function') {
-                FrameManager.saveSessionData(sessionData);
+                FrameManager.saveSessionData({ content: cm.getValue(), filename: currentFilename, isDirty: isDirty });
             }
         } catch (e) {
             console.warn('Failed to save document session:', e);

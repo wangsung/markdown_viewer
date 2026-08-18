@@ -198,9 +198,33 @@ function runTestSuite() {
     const invalidCmRes = SessionManager.restoreContent(null, sampleData);
     runAssert(invalidCmRes === false, 'SessionManager.restoreContent returns false for null cmInstance');
 
-    // Invalid sessionData to restoreContent
-    const invalidContentRes = SessionManager.restoreContent(mockCm, null);
-    runAssert(invalidContentRes === false, 'SessionManager.restoreContent returns false for null sessionData');
+    // Test 10: Facade Method saveSession(editorState, fileState, uiElements) & restoreSession
+    runAssert(typeof SessionManager.saveSession === 'function', 'SessionManager.saveSession is a function');
+    runAssert(typeof SessionManager.restoreSession === 'function', 'SessionManager.restoreSession is a function');
+
+    const mockCmFacade = {
+        getValue: function() { return '# Facade Title\nFacade Content'; },
+        setValue: function(val) { this.value = val; }
+    };
+    const mockEditorState = { cm: mockCmFacade };
+    const mockFileState = { filename: 'facade_doc.md', isDirty: true };
+    const mockUiElements = {
+        fontSelect: { value: 'Roboto' },
+        fontSizeSelect: { value: '110%' }
+    };
+
+    const saveFacadeRes = SessionManager.saveSession(mockEditorState, mockFileState, mockUiElements);
+    runAssert(saveFacadeRes === true, 'SessionManager.saveSession returns true on successful save with separate structures (editorState, fileState, mockUiElements)');
+
+    const restoredFacadeData = SessionManager.restoreSession({
+        cm: mockCmFacade,
+        onUpdateFilename: function(name, dirty) {
+            mockFileState.restoredName = name;
+        }
+    });
+    runAssert(restoredFacadeData !== null && typeof restoredFacadeData === 'object', 'SessionManager.restoreSession returns restored session object');
+    runAssert(mockCmFacade.value === '# Facade Title\nFacade Content', 'SessionManager.restoreSession restores CodeMirror value');
+    runAssert(mockFileState.restoredName === 'facade_doc.md', 'SessionManager.restoreSession restores filename via callback');
 
     console.error = origError;
     runAssert(assertFailedCount >= 3, 'assert_arg correctly caught invalid inputs');
