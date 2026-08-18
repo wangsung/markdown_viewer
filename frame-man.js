@@ -1853,7 +1853,15 @@
     };
 
     const FrameManager = {
+        isInitialized: false,
+
         init: function(userOptions) {
+            assert_arg(
+                typeof document === 'undefined' || !document.readyState || document.readyState === 'interactive' || document.readyState === 'complete',
+                'FrameManager.init: DOM is not fully ready! Ensure initialization runs inside DOMContentLoaded event.',
+                { readyState: typeof document !== 'undefined' ? document.readyState : 'undefined' }
+            );
+
             const userOpts = userOptions || {};
             const defaultEls = get_default_elements();
             const userEls = (userOpts.elements && typeof userOpts.elements === 'object') ? userOpts.elements : {};
@@ -1870,6 +1878,11 @@
             setup_menu_toggles(els);
             setup_outside_click_dismissal(els);
             setup_button_actions(els, acts);
+
+            this.isInitialized = true;
+            if (typeof window !== 'undefined') {
+                window._frameManagerInitialized = true;
+            }
 
             return els;
         },

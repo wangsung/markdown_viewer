@@ -941,6 +941,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 🚨 상부 FrameManager 초기화 통과 여부 사전 단증 장치 (중도 스코프/문법 차단 검출)
+    window.assert_arg(
+        typeof FrameManager !== 'undefined' && FrameManager.isInitialized === true,
+        'Critical Initialization Error: FrameManager.init was skipped or interrupted prior to registering bottom listeners!',
+        { isInitialized: typeof FrameManager !== 'undefined' ? FrameManager.isInitialized : false }
+    );
+
     // 스크롤 동기화 토글 변경 시 이벤트 바인딩
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {

@@ -5,7 +5,7 @@
  */
 
 function assert_arg(condition, message, context = {}) {
-  if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+  if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
     return window.assert_arg(condition, message, context);
   }
   if (!condition) console.error(`[System Warning] ${message}`, context);
