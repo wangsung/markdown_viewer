@@ -1,7 +1,106 @@
 /**
- * settings-man.js
- * 설정 다이얼로그 모달 제어 및 브라우저 확장자 연결 레지스트리(.reg) 다운로드 전용 서브 모듈
+ * 기본 웰컴 템플릿 마크다운 텍스트 상수
  */
+const DEFAULT_WELCOME_TEXT = `# 마크다운 에디터에 오신 것을 환영합니다!
+(💡 내 컴퓨터의 마크다운 파일(.md)을 이 창에 드래그 앤 드롭하여 불러올 수 있습니다.)
+
+여기에 마크다운을 작성하시면 우측 뷰포트에 실시간으로 렌더링됩니다.
+
+## 주요 기능 안내:
+1. **상단 메뉴바**: 폰트 종류, 폰트 크기, 포인트 선 색상을 지정할 수 있습니다.
+2. **구분선**: 중앙의 구분선을 마우스로 잡고 끌어 좌우 창 크기를 조절할 수 있습니다.
+3. **도구 모음 (Toolbar)**: 좌측 상단의 버튼들을 사용하여 빠르게 굵게, 기울임, 목록, 이미지, 표 등을 삽입할 수 있습니다.
+4. **오프라인 동작**: 외부 네트워크 요청이 없는 독립형 동작을 수행합니다.
+
+### 코드 강조 (Syntax Highlighting) 지원:
+\`\`\`javascript
+// 자바스크립트 코드 구문 강조 확인
+function greet(user) {
+    console.log(\`안녕하세요, \${user}님!\`);
+}
+greet('사용자');
+\`\`\`
+
+### 표(Table) 지원:
+| 항목 | 설명 | 비고 |
+| :--- | :---: | ---: |
+| 사과 | 빨간색 | 맛있는 과일 |
+| 바나나 | 노란색 | 달콤한 과일 |
+
+인용구 사용 예시:
+> 마크다운은 텍스트 기반의 마크업언어로, 가독성이 높고 작성이 편리합니다.
+
+포인트 색상 설정으로 인용구 왼쪽 선 및 표의 헤더 테두리 색상 등이 유연하게 연동됩니다. 지금 테스트해 보세요!`;
+
+/**
+ * 기본 설정 다이얼로그 모달 HTML 템플릿 스트링 상수
+ */
+const DEFAULT_SETTINGS_TEMPLATE = `
+<div class="modal-content">
+    <div class="modal-header">
+        <h2>⚙️ 설정</h2>
+        <span class="close-btn" id="close-settings">&times;</span>
+    </div>
+    <div class="modal-body">
+        <!-- Windows 탐색기 연결 설정 -->
+        <div class="settings-section">
+            <h3>📂 Windows 탐색기 연결 설정</h3>
+            <p class="settings-description">탐색기에서 마크다운 파일(.md)을 더블 클릭했을 때, 웹 브라우저로 바로 실행되도록 연결을 설정합니다. (크롬/엣지 확장 프로그램이 감지하여 자동으로 프리뷰를 실행합니다.)</p>
+            
+            <div class="assoc-methods" style="margin-bottom: 12px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 1. 윈도우 우클릭으로 연결하기</h4>
+                <ol class="guide-steps" style="margin-bottom: 12px;">
+                    <li>마크다운 파일(.md)을 <strong>마우스 우클릭</strong>합니다.</li>
+                    <li><strong>[연결 프로그램]</strong> → <strong>[다른 앱 선택]</strong>을 클릭합니다.</li>
+                    <li>사용할 웹 브라우저(예: <strong>Google Chrome</strong> 또는 <strong>Microsoft Edge</strong>)를 선택합니다.</li>
+                    <li>하단의 <strong>'항상 .md 파일을 열 때 이 앱 사용'</strong> 체크박스를 활성화하고 확인을 누릅니다.</li>
+                </ol>
+            </div>
+
+            <div class="assoc-methods" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
+                <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 2. 레지스트리(.reg) 등록 파일 다운로드</h4>
+                <p class="settings-description" style="margin-bottom: 10px; font-size: 0.775rem;">원클릭으로 연결 확장자를 레지스트리에 자동 등록하는 설정 파일을 다운로드합니다.</p>
+                <div class="settings-action" style="flex-direction: row; gap: 8px;">
+                    <button id="btn-reg-chrome" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);">
+                        Chrome(크롬) 연결 등록
+                    </button>
+                    <button id="btn-reg-edge" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; background-color: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);">
+                        Edge(엣지) 연결 등록
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chrome Extension 설치 안내 -->
+        <div class="settings-section" style="margin-top: 16px;">
+            <h3>🔌 Chrome 확장 프로그램 설치 안내</h3>
+            <p class="settings-description">브라우저 빈 화면에 마크다운 파일(.md)을 드래그 앤 드롭했을 때 자동으로 본 뷰어가 구동되도록 연동합니다.</p>
+            
+            <div class="extension-guide-tabs">
+                <div class="guide-sub-section">
+                    <h4>방법 1. 크롬 웹 스토어 공식 설치 (권장)</h4>
+                    <ol class="guide-steps">
+                        <li>크롬 웹 스토어에서 뷰어를 검색하여 <strong>[Chrome에 추가]</strong>를 누릅니다.</li>
+                        <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
+                        <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
+                    </ol>
+                </div>
+                
+                <div class="guide-sub-section" style="margin-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
+                    <h4>방법 2. 수동 설치 (개발자 모드 배포)</h4>
+                    <ol class="guide-steps">
+                        <li>배포된 뷰어 소스 패키지(ZIP)의 압축을 풉니다.</li>
+                        <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
+                        <li>우측 상단 <strong>[개발자 모드]</strong> 스위치를 켭니다.</li>
+                        <li>왼쪽 상단 <strong>[압축해제된 확장 프로그램 로드]</strong>를 눌러 뷰어 폴더를 선택합니다.</li>
+                        <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`;
+
 window.SettingsManager = (function() {
 
     /**
@@ -38,76 +137,20 @@ window.SettingsManager = (function() {
     }
 
     /**
+     * pure sub-function: 기본 웰컴 템플릿 마크다운 텍스트를 반환하는 순수 함수.
+     * @returns {string} 마크다운 웰컴 텍스트
+     */
+    function get_default_welcome_text() {
+        return DEFAULT_WELCOME_TEXT;
+    }
+
+    /**
      * [Refactoring] Pure Sub-function: Settings 다이얼로그 모달 본문 HTML 컨텍스트 템플릿을 반환하는 순수 함수.
      * 리팩토링 목적: HTML 문서에 하드코딩되어 있던 설정 관련 안내 텍스트 및 레이아웃 컨텍스트를 서브 모듈 내 순수 템플릿으로 완전 캡슐화함.
      * @returns {string} Settings 모달 내부 HTML 템플릿 스트링
      */
     function get_settings_template() {
-        return `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>⚙️ 설정</h2>
-                <span class="close-btn" id="close-settings">&times;</span>
-            </div>
-            <div class="modal-body">
-                <!-- Windows 탐색기 연결 설정 -->
-                <div class="settings-section">
-                    <h3>📂 Windows 탐색기 연결 설정</h3>
-                    <p class="settings-description">탐색기에서 마크다운 파일(.md)을 더블 클릭했을 때, 웹 브라우저로 바로 실행되도록 연결을 설정합니다. (크롬/엣지 확장 프로그램이 감지하여 자동으로 프리뷰를 실행합니다.)</p>
-                    
-                    <div class="assoc-methods" style="margin-bottom: 12px;">
-                        <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 1. 윈도우 우클릭으로 연결하기</h4>
-                        <ol class="guide-steps" style="margin-bottom: 12px;">
-                            <li>마크다운 파일(.md)을 <strong>마우스 우클릭</strong>합니다.</li>
-                            <li><strong>[연결 프로그램]</strong> → <strong>[다른 앱 선택]</strong>을 클릭합니다.</li>
-                            <li>사용할 웹 브라우저(예: <strong>Google Chrome</strong> 또는 <strong>Microsoft Edge</strong>)를 선택합니다.</li>
-                            <li>하단의 <strong>'항상 .md 파일을 열 때 이 앱 사용'</strong> 체크박스를 활성화하고 확인을 누릅니다.</li>
-                        </ol>
-                    </div>
-
-                    <div class="assoc-methods" style="border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
-                        <h4 style="margin: 0 0 6px 0; font-size: 0.875rem; color: #f1f5f9; font-weight: 600;">방법 2. 레지스트리(.reg) 등록 파일 다운로드</h4>
-                        <p class="settings-description" style="margin-bottom: 10px; font-size: 0.775rem;">원클릭으로 연결 확장자를 레지스트리에 자동 등록하는 설정 파일을 다운로드합니다.</p>
-                        <div class="settings-action" style="flex-direction: row; gap: 8px;">
-                            <button id="btn-reg-chrome" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);">
-                                Chrome(크롬) 연결 등록
-                            </button>
-                            <button id="btn-reg-edge" class="btn btn-primary" style="flex: 1; padding: 8px 12px; font-size: 0.8rem; background-color: #10b981; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);">
-                                Edge(엣지) 연결 등록
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chrome Extension 설치 안내 -->
-                <div class="settings-section" style="margin-top: 16px;">
-                    <h3>🔌 Chrome 확장 프로그램 설치 안내</h3>
-                    <p class="settings-description">브라우저 빈 화면에 마크다운 파일(.md)을 드래그 앤 드롭했을 때 자동으로 본 뷰어가 구동되도록 연동합니다.</p>
-                    
-                    <div class="extension-guide-tabs">
-                        <div class="guide-sub-section">
-                            <h4>방법 1. 크롬 웹 스토어 공식 설치 (권장)</h4>
-                            <ol class="guide-steps">
-                                <li>크롬 웹 스토어에서 뷰어를 검색하여 <strong>[Chrome에 추가]</strong>를 누릅니다.</li>
-                                <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
-                                <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
-                            </ol>
-                        </div>
-                        
-                        <div class="guide-sub-section" style="margin-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 12px;">
-                            <h4>방법 2. 수동 설치 (개발자 모드 배포)</h4>
-                            <ol class="guide-steps">
-                                <li>배포된 뷰어 소스 패키지(ZIP)의 압축을 풉니다.</li>
-                                <li>주소창에 <code class="code-badge">chrome://extensions</code> 입력 후 이동합니다.</li>
-                                <li>우측 상단 <strong>[개발자 모드]</strong> 스위치를 켭니다.</li>
-                                <li>왼쪽 상단 <strong>[압축해제된 확장 프로그램 로드]</strong>를 눌러 뷰어 폴더를 선택합니다.</li>
-                                <li>뷰어 세부정보에서 <strong>[로컬 파일 URL에 대한 액세스 허용]</strong>을 켭니다.</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
+        return DEFAULT_SETTINGS_TEMPLATE;
     }
 
     /**
@@ -165,6 +208,10 @@ window.SettingsManager = (function() {
     }
 
     return {
+        DEFAULT_WELCOME_TEXT,
+        DEFAULT_SETTINGS_TEMPLATE,
+        get_default_welcome_text,
+        getDefaultWelcomeText: get_default_welcome_text,
         get_settings_template,
         generate_reg_content,
         download_reg_file,
