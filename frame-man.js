@@ -321,7 +321,9 @@
 
         // 검증: DOM 속성 확정 여부 단증 확인
         const currentAttr = (typeof document !== 'undefined' && document.documentElement) ? document.documentElement.getAttribute('data-editor-theme') : null;
-        assert_arg(currentAttr, 'Structural Theme Error! data-editor-theme attribute was not established prior to rendering!', { deterministicTheme });
+        assert_arg(currentAttr === deterministicTheme || typeof document === 'undefined', 'data-editor-theme attribute pre-determination verification failed!', { currentAttr, deterministicTheme });
+
+        return deterministicTheme;
     }
 
     function close_all_dropdowns(elements) {

@@ -286,58 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Line Color Picker (Dynamic CSS Theme Variables)
-    function updateThemeColors(colorHex) {
-        document.documentElement.style.setProperty('--theme-color', colorHex);
-        
-        // Darken for hover state (approx 15% darker)
-        const hoverColor = darkenColor(colorHex, 0.15);
-        document.documentElement.style.setProperty('--theme-color-hover', hoverColor);
-        
-        // Extract and set RGB components for focus box shadow alpha
-        const rgb = hexToRgb(colorHex);
-        document.documentElement.style.setProperty('--theme-color-rgb', rgb);
-    }
-
-    // Color conversion helpers
-    function hexToRgb(hex) {
-        hex = hex.replace(/^#/, '');
-        let r = 0, g = 0, b = 0;
-        if (hex.length === 3) {
-            r = parseInt(hex[0] + hex[0], 16);
-            g = parseInt(hex[1] + hex[1], 16);
-            b = parseInt(hex[2] + hex[2], 16);
-        } else if (hex.length === 6) {
-            r = parseInt(hex.substring(0, 2), 16);
-            g = parseInt(hex.substring(2, 4), 16);
-            b = parseInt(hex.substring(4, 6), 16);
-        }
-        return `${r}, ${g}, ${b}`;
-    }
-
-    function darkenColor(hex, percent) {
-        hex = hex.replace(/^#/, '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        
-        r = Math.max(0, Math.floor(r * (1 - percent)));
-        g = Math.max(0, Math.floor(g * (1 - percent)));
-        b = Math.max(0, Math.floor(b * (1 - percent)));
-        
-        const rHex = r.toString(16).padStart(2, '0');
-        const gHex = g.toString(16).padStart(2, '0');
-        const bHex = b.toString(16).padStart(2, '0');
-        return `#${rHex}${gHex}${bHex}`;
-    }
-
-    if (lineColorPicker) {
-        lineColorPicker.addEventListener('input', (e) => {
-            updateThemeColors(e.target.value);
-            saveDocumentSession();
-        });
-        updateThemeColors(lineColorPicker.value);
-    }
+    // Line color dynamic theme variables update delegated to FrameManager.applyThemeColors(color)
 
     // Attach Event Listeners to Toolbar buttons (Delegated to EditorManager)
     toolbarButtons.forEach(btn => {
@@ -383,9 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 onResizeComplete: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
                     saveDocumentSession();
-                },
-                onLineColorChange: (color) => {
-                    if (typeof updateThemeColors === 'function') updateThemeColors(color);
                 },
                 onColorSwatchToggle: (enabled) => {
                     if (typeof PreviewManager !== 'undefined') {
