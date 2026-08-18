@@ -1180,21 +1180,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePresetAdd(newId, newName) {
-        StylePresetManager.updateSelects();
-        StylePresetManager.applyPreset(newId);
         renderHeadingModalControls(newId);
         showToast(`'${newName}' 스타일이 생성되었습니다.`);
     }
 
     function handlePresetDelete(nextId, deletedName) {
-        StylePresetManager.updateSelects();
-        StylePresetManager.applyPreset(nextId);
         renderHeadingModalControls(nextId);
         showToast(`'${deletedName}' 스타일이 삭제되었습니다.`);
     }
 
     function handlePresetReset(presetId, presetName) {
-        StylePresetManager.applyPreset(presetId);
+        StylePresetManager.resetPreset(presetId);
         renderHeadingModalControls(presetId);
         showToast(`'${presetName}' 스타일이 초기 기본값으로 복원되었습니다.`);
     }

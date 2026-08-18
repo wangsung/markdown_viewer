@@ -238,6 +238,41 @@
         }
     }
 
+    function sync_preset_schema(storedPresets, defaultPresets = DEFAULT_HEADING_PRESETS) {
+        assert_arg(Array.isArray(storedPresets), 'sync_preset_schema: storedPresets must be an Array!', { storedPresets });
+        assert_arg(Array.isArray(defaultPresets), 'sync_preset_schema: defaultPresets must be an Array!', { defaultPresets });
+
+        let changed = false;
+        const parsed = JSON.parse(JSON.stringify(storedPresets));
+        const defaults = JSON.parse(JSON.stringify(defaultPresets));
+
+        parsed.forEach(p => {
+            if (p && p.styles) {
+                if (!p.styles.codeblock) {
+                    p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
+                    changed = true;
+                }
+                if (!p.styles.blockquote) {
+                    p.styles.blockquote = { colorLight: '#4b5563', colorDark: '#cbd5e1', borderLight: '#0969da', borderDark: '#38bdf8' };
+                    changed = true;
+                }
+                if (!p.styles.line) {
+                    p.styles.line = { colorLight: '#cbd5e1', colorDark: '#334155', border: '1px solid #334155' };
+                    changed = true;
+                }
+            }
+        });
+
+        defaults.forEach(defPreset => {
+            if (!parsed.some(p => p.id === defPreset.id)) {
+                parsed.push(defPreset);
+                changed = true;
+            }
+        });
+
+        return { presets: parsed, isChanged: changed };
+    }
+
     function sync_heading_presets_data() {
         try {
             if (typeof localStorage === 'undefined' || !localStorage) return;
@@ -245,24 +280,9 @@
             if (stored) {
                 const parsed = JSON.parse(stored);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    let changed = false;
-
-                    parsed.forEach(p => {
-                        if (p.styles && !p.styles.codeblock) {
-                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
-                            changed = true;
-                        }
-                    });
-
-                    const defaultPresets = JSON.parse(JSON.stringify(DEFAULT_HEADING_PRESETS));
-                    defaultPresets.forEach(defPreset => {
-                        if (!parsed.some(p => p.id === defPreset.id)) {
-                            parsed.push(defPreset);
-                            changed = true;
-                        }
-                    });
-                    if (changed) {
-                        save_heading_presets_data(parsed);
+                    const result = sync_preset_schema(parsed, DEFAULT_HEADING_PRESETS);
+                    if (result.isChanged) {
+                        save_heading_presets_data(result.presets);
                     }
                 }
             }
@@ -338,12 +358,63 @@
         });
     }
 
+    function add_heading_preset_entry(newPreset) {
+        assert_arg(!!newPreset && typeof newPreset.id === 'string' && typeof newPreset.name === 'string' && !!newPreset.styles, 'add_heading_preset_entry: newPreset must have id, name, and styles!', { newPreset });
+        const presets = get_heading_presets_data();
+        const existingIdx = presets.findIndex(p => p.id === newPreset.id);
+        if (existingIdx >= 0) {
+            presets[existingIdx] = newPreset;
+        } else {
+            presets.push(newPreset);
+        }
+        save_heading_presets_data(presets);
+        update_preset_select_options_ui();
+        apply_heading_preset_ui(newPreset.id);
+        return newPreset.id;
+    }
+
+    function delete_heading_preset_entry(presetId) {
+        assert_arg(typeof presetId === 'string' && presetId.trim().length > 0, 'delete_heading_preset_entry: presetId must be a non-empty string!', { presetId });
+        let presets = get_heading_presets_data();
+        presets = presets.filter(p => p.id !== presetId);
+        save_heading_presets_data(presets);
+        update_preset_select_options_ui();
+        const fallbackId = presets.length > 0 ? presets[0].id : 'github_classic';
+        apply_heading_preset_ui(fallbackId);
+        return fallbackId;
+    }
+
+    function reset_heading_preset_entry(presetId) {
+        assert_arg(typeof presetId === 'string' && presetId.trim().length > 0, 'reset_heading_preset_entry: presetId must be a non-empty string!', { presetId });
+        const presets = get_heading_presets_data();
+        const defaultPreset = DEFAULT_HEADING_PRESETS.find(p => p.id === presetId);
+        if (defaultPreset) {
+            const idx = presets.findIndex(p => p.id === presetId);
+            if (idx >= 0) {
+                presets[idx] = JSON.parse(JSON.stringify(defaultPreset));
+            } else {
+                presets.push(JSON.parse(JSON.stringify(defaultPreset)));
+            }
+            save_heading_presets_data(presets);
+        }
+        update_preset_select_options_ui();
+        apply_heading_preset_ui(presetId);
+        return presetId;
+    }
+
     const StylePresetManager = {
         getPresets: get_heading_presets_data,
         savePresets: save_heading_presets_data,
         syncPresets: sync_heading_presets_data,
+        sync_preset_schema: sync_preset_schema,
         applyPreset: apply_heading_preset_ui,
         updateSelects: update_preset_select_options_ui,
+        addPreset: add_heading_preset_entry,
+        deletePreset: delete_heading_preset_entry,
+        resetPreset: reset_heading_preset_entry,
+        getDefaultPresets: function() {
+            return JSON.parse(JSON.stringify(DEFAULT_HEADING_PRESETS));
+        },
         getPresetVars: function() {
             const styleSet = (typeof ExportStyleSet !== 'undefined' ? ExportStyleSet : ((typeof window !== 'undefined' && window.ExportStyleSet) || (typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet)));
             return styleSet ? styleSet.PRESET_VARS : [];
