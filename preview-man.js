@@ -1,4 +1,12 @@
 window.PreviewManager = (function() {
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
+
     let isMarkedInitialized = false;
 
     /**
@@ -393,8 +401,9 @@ window.PreviewManager = (function() {
             
             render_diagrams(previewEl);
             
-            if (scrollSync && typeof scrollSync.rebuildKeyframes === 'function') {
-                scrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
+            const activeScrollSync = scrollSync || (typeof window !== 'undefined' && typeof window.ScrollSyncManager !== 'undefined' ? window.ScrollSyncManager.getInstance() : null) || (typeof window !== 'undefined' ? window.scrollSync : null);
+            if (activeScrollSync && typeof activeScrollSync.rebuildKeyframes === 'function') {
+                activeScrollSync.rebuildKeyframes('Stage 1: renderMarkdown');
             }
 
             if (typeof buildTOC === 'function') {

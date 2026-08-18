@@ -4,20 +4,29 @@
  * between CodeMirror editor and rendered HTML preview container.
  */
 
+function assert_arg(condition, message, context = {}) {
+  if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+    return window.assert_arg(condition, message, context);
+  }
+  if (!condition) console.error(`[System Warning] ${message}`, context);
+  return !!condition;
+}
+
 class ScrollSync {
   /**
    * @param {Object} options
    * @param {Object} options.cm - CodeMirror editor instance
-   * @param {HTMLElement} options.previewViewport - Viewport container element (e.g. .preview-viewport)
-   * @param {HTMLElement} options.previewContainer - HTML render container element (e.g. #preview)
+   * @param {HTMLElement} [options.previewViewport] - Viewport container element (e.g. .preview-viewport)
+   * @param {HTMLElement} [options.previewContainer] - HTML render container element (e.g. #preview)
+   * @param {HTMLElement} [options.previewEl] - Alternative HTML render container element
    * @param {boolean} [options.enableScrollSync=true] - Initial enabled state
    * @param {function(number):void} [options.onActiveLineChange] - Callback when active line/heading changes
    * @param {function(Array, string):void} [options.onDebugUpdate] - Callback when keyframes or scroll source updates
    */
   constructor(options = {}) {
     this.cm = options.cm;
-    this.previewViewport = options.previewViewport;
-    this.previewContainer = options.previewContainer || options.previewViewport;
+    this.previewViewport = options.previewViewport || options.previewEl;
+    this.previewContainer = options.previewContainer || options.previewViewport || options.previewEl;
     this.isEnabled = options.enableScrollSync !== undefined ? !!options.enableScrollSync : true;
     this.onActiveLineChange = options.onActiveLineChange || null;
     this.onDebugUpdate = options.onDebugUpdate || null;
@@ -940,7 +949,65 @@ class ScrollSync {
   }
 }
 
-// Export to global window scope
+// ==========================================================================
+// ScrollSyncManager Singleton Sub-object Definition & Export
+// ==========================================================================
+
+const ScrollSyncManager = {
+    _instance: null,
+
+    /**
+     * ScrollSyncManager 초기화 서브 함수
+     * @param {Object} cmInstance - CodeMirror 인스턴스
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 엘리먼트
+     * @param {Object} [options={}] - 추가 설정 옵션
+     * @returns {ScrollSync|null} ScrollSync 인스턴스
+     */
+    init: function(cmInstance, previewEl, options = {}) {
+        if (!assert_arg(cmInstance && previewEl, 'ScrollSyncManager.init: cmInstance and previewEl are required!', { cmInstance, previewEl })) {
+            return null;
+        }
+        const enableScrollSync = typeof options.enableScrollSync === 'boolean' ? options.enableScrollSync : true;
+        this._instance = new ScrollSync({
+            cm: cmInstance,
+            previewEl: previewEl,
+            previewViewport: options.previewViewport || previewEl,
+            previewContainer: options.previewContainer || previewEl,
+            tocManager: typeof window !== 'undefined' && typeof window.TocManager !== 'undefined' ? window.TocManager : null,
+            enableScrollSync: enableScrollSync,
+            onActiveLineChange: options.onActiveLineChange || null,
+            onDebugUpdate: options.onDebugUpdate || null,
+            onToast: options.onToast || null,
+            onKeyframesRebuilt: options.onKeyframesRebuilt || null
+        });
+        this._instance.init();
+
+        if (typeof window !== 'undefined') {
+            setTimeout(() => {
+                if (this._instance) this._instance.rebuildKeyframes('Stage 2: setTimeout 100ms');
+            }, 100);
+            window.addEventListener('load', () => {
+                if (this._instance) this._instance.rebuildKeyframes('Stage 3: window.onload');
+            });
+        }
+        return this._instance;
+    },
+
+    getInstance: function() { return this._instance; },
+    setEnable: function(enabled) { if (this._instance) this._instance.setEnable(enabled); },
+    rebuildKeyframes: function(reason) { if (this._instance) this._instance.rebuildKeyframes(reason); },
+    scrollToLine: function(lineNum) { if (this._instance) this._instance.scrollToLine(lineNum); },
+    syncPreviewToCursor: function() { if (this._instance && typeof this._instance.syncPreviewToCursor === 'function') this._instance.syncPreviewToCursor(); }
+};
+
+ScrollSync.Manager = ScrollSyncManager;
+
 if (typeof window !== 'undefined') {
-  window.ScrollSync = ScrollSync;
+    window.ScrollSync = ScrollSync;
+    window.ScrollSyncManager = ScrollSyncManager;
+}
+
+if (typeof global !== 'undefined') {
+    global.ScrollSync = ScrollSync;
+    global.ScrollSyncManager = ScrollSyncManager;
 }

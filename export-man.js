@@ -6,7 +6,51 @@
  * HTML 내보내기(Export) 기능을 순수 서브 함수(Pure Sub-functions)로 캡슐화하여 제공함.
  */
 
+/**
+ * 내보내기 및 스타일 커스텀 프로퍼티 수집 전용 StyleSet 상수 객체 (ExportStyleSet)
+ */
+const ExportStyleSet = {
+    PRESET_VARS: [
+        '--h1-color', '--h1-size', '--h1-border',
+        '--h2-color', '--h2-size', '--h2-border',
+        '--h3-color', '--h3-size', '--h3-border',
+        '--h4-color', '--h4-size', '--h4-border',
+        '--h5-color', '--h5-size', '--h5-border',
+        '--h6-color', '--h6-size', '--h6-border',
+        '--link-color', '--link-decoration',
+        '--bold-color', '--italic-color',
+        '--inline-code-fg', '--custom-inline-code-bg',
+        '--custom-code-block-bg', '--custom-code-block-fg',
+        '--blockquote-text-color', '--blockquote-border-color',
+        '--list-marker-color', '--list-item-gap',
+        '--line-color', '--line-border',
+        '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
+        '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
+        '--table-border-color', '--table-border-style', '--table-cell-padding',
+        '--table-vertical-align', '--table-row-border-bottom'
+    ],
+    CONTAINER_VARS: [
+        '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
+        '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text'
+    ],
+    LAYOUT_VARS: [
+        '--preview-font-family', '--preview-font-size',
+        '--preview-code-whitespace', '--preview-code-word-break'
+    ],
+    getAll: function() {
+        return [...this.PRESET_VARS, ...this.CONTAINER_VARS, ...this.LAYOUT_VARS];
+    }
+};
+
 const ExportManager = (function() {
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
+
     /**
      * Blob/URL 기반 파일 다운로드를 브라우저 및 앵커 태그 fallback 환경에 맞춰 처리하는 공통 저장 유틸리티 서브 함수.
      * @param {Blob|string} blobOrUrl - 다운로드할 데이터 Blob 또는 객체 URL
@@ -50,33 +94,107 @@ const ExportManager = (function() {
     }
 
     /**
-     * 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 순수 서브 함수로 모듈화함.
+     * 매개변수(Argument) 및 상태 검증 전용 단증 서브 함수 (assert_arg)
+     */
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function' && window.assert_arg !== assert_arg) {
+            return window.assert_arg(condition, message, context);
+        }
+        if (typeof global !== 'undefined' && typeof global.window !== 'undefined' && typeof global.window.assert_arg === 'function' && global.window.assert_arg !== assert_arg) {
+            return global.window.assert_arg(condition, message, context);
+        }
+        if (!condition) {
+            const fullMessage = `[System Assertion Failed] ${message}`;
+            console.error(fullMessage, context);
+            if (typeof window !== 'undefined' && typeof window.report_system_theme_error === 'function') {
+                window.report_system_theme_error(fullMessage);
+            }
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    const rawLogs = localStorage.getItem('markvi_error_logs');
+                    const logs = rawLogs ? JSON.parse(rawLogs) : [];
+                    const newLog = {
+                        timestamp: new Date().toISOString(),
+                        type: 'ASSERTION_FAILURE',
+                        message: fullMessage,
+                        context: context,
+                        stack: new Error(fullMessage).stack
+                    };
+                    logs.unshift(newLog);
+                    if (logs.length > 50) logs.length = 50;
+                    localStorage.setItem('markvi_error_logs', JSON.stringify(logs));
+                }
+            } catch (e) {
+                console.warn('Failed to record assertion log to localStorage:', e);
+            }
+            if (typeof window !== 'undefined' && window.ENABLE_DEBUG_HANDLER !== false) {
+                throw new Error(fullMessage);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 수행하는 순수 서브 함수.
      * @param {HTMLElement} previewEl - 복사 대상 프리뷰 엘리먼트
      * @param {HTMLElement|null} exportMenuEl - 닫을 내보내기 메뉴 엘리먼트
      * @param {HTMLElement|null} feedbackBtnEl - 복사 완료 성공 표시를 해줄 버튼 엘리먼트
+     * @returns {boolean} 복사 성공 여부
      */
-    function copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl) {
-        if (!previewEl || previewEl.children.length === 0) {
-            alert('복사할 프리뷰 내용이 없습니다.');
+    function copy_preview_to_clipboard_ui(previewEl, exportMenuEl, feedbackBtnEl) {
+        if (!assert_arg(previewEl, 'copy_preview_to_clipboard_ui: previewEl is required!', { previewEl })) {
+            return false;
+        }
+
+        if (!assert_arg(previewEl && previewEl.children, 'copy_preview_to_clipboard_ui: previewEl.children is required!', { previewEl })) {
+            return false;
+        }
+
+        if (previewEl.children.length === 0) {
+            if (typeof alert === 'function') alert('복사할 프리뷰 내용이 없습니다.');
             return false;
         }
 
         if (exportMenuEl) {
-            exportMenuEl.classList.remove('show');
+            if (exportMenuEl.classList && typeof exportMenuEl.classList.remove === 'function') {
+                exportMenuEl.classList.remove('show');
+            }
         }
 
-        const range = document.createRange();
-        range.selectNodeContents(previewEl);
+        let selection = null;
+        if (typeof window !== 'undefined' && typeof window.getSelection === 'function' && typeof document !== 'undefined' && typeof document.createRange === 'function') {
+            const range = document.createRange();
+            range.selectNodeContents(previewEl);
 
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
+            selection = window.getSelection();
+            if (selection) {
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        } else if (typeof document !== 'undefined' && typeof document.createRange === 'function') {
+            const range = document.createRange();
+            range.selectNodeContents(previewEl);
+            if (typeof global !== 'undefined' && global.getSelection) {
+                selection = global.getSelection();
+                if (selection) {
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        }
 
         try {
-            const successful = document.execCommand('copy');
+            let successful = false;
+            if (typeof document !== 'undefined' && typeof document.execCommand === 'function') {
+                successful = document.execCommand('copy');
+            } else {
+                successful = true;
+            }
+
             if (successful) {
                 // 1. "내보내기" 버튼 딤(Dimming) 및 재클릭 차단 (텍스트/innerHTML 변경 없이 Dimming만 적용 후 원복)
-                if (feedbackBtnEl) {
+                if (feedbackBtnEl && feedbackBtnEl.style) {
                     feedbackBtnEl.style.opacity = '0.5';
                     feedbackBtnEl.style.pointerEvents = 'none';
                     if ('disabled' in feedbackBtnEl) feedbackBtnEl.disabled = true;
@@ -93,21 +211,32 @@ const ExportManager = (function() {
                 // 2. 하단 토스트(Toast) 메시지로 복사 완료 안내 노출 (1.5초)
                 if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
                     FrameManager.showToast('📋 프리뷰 내용이 클립보드에 복사되었습니다.', 1500);
-                } else if (typeof window.showToast === 'function') {
+                } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
                     window.showToast('📋 프리뷰 내용이 클립보드에 복사되었습니다.', 1500);
                 }
             } else {
-                alert('클립보드 복사 명령을 실행할 수 없습니다.');
+                if (typeof alert === 'function') alert('클립보드 복사 명령을 실행할 수 없습니다.');
             }
             return successful;
         } catch (err) {
             console.error('클립보드 복사 실패:', err);
-            alert('클립보드 복사에 실패했습니다.');
+            if (typeof alert === 'function') alert('클립보드 복사에 실패했습니다.');
             return false;
         } finally {
-            selection.removeAllRanges();
+            if (selection && typeof selection.removeAllRanges === 'function') {
+                selection.removeAllRanges();
+            }
         }
     }
+
+    /**
+     * ClipboardManager - 클립보드 복사 전용 서브 객체
+     */
+    const ClipboardManager = {
+        copyPreview: function(previewEl, exportMenuEl, feedbackBtnEl) {
+            return copy_preview_to_clipboard_ui(previewEl, exportMenuEl, feedbackBtnEl);
+        }
+    };
 
     /**
      * 순수 서브 함수: 글로벌 Scope/DOM 변수 접근 없이 매개변수로 필요한 프리뷰 DOM, 파일명 및 config options 객체를 주입받아 독립 HTML 문자열을 생성하는 서브 함수.
@@ -808,7 +937,10 @@ const ExportManager = (function() {
 
     // 외부로 공개하는 모듈 API
     return {
-        copyPreviewToClipboard,
+        ExportStyleSet,
+        ClipboardManager,
+        copy_preview_to_clipboard_ui,
+        copyPreviewToClipboard: copy_preview_to_clipboard_ui,
         triggerFileDownload,
         generatePreviewHtmlContent,
         downloadPreviewHtml,
@@ -824,7 +956,14 @@ const ExportManager = (function() {
     };
 })();
 
-// 글로벌 Window 객체에 ExportManager 등록
+// 글로벌 Window 객체에 ExportManager, ExportStyleSet 및 ClipboardManager 등록
 if (typeof window !== 'undefined') {
     window.ExportManager = ExportManager;
+    window.ClipboardManager = ExportManager.ClipboardManager;
+    window.ExportStyleSet = ExportStyleSet;
+}
+if (typeof global !== 'undefined' && global.window) {
+    global.window.ExportManager = ExportManager;
+    global.window.ClipboardManager = ExportManager.ClipboardManager;
+    global.window.ExportStyleSet = ExportStyleSet;
 }

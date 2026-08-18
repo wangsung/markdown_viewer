@@ -103,77 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 pure 서브 함수
-     */
-    function detect_browser_type() {
-        if (typeof navigator === 'undefined') return 'other';
 
-        const ua = navigator.userAgent || '';
-        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
-            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
-            if (isEdge) return 'edge';
-
-            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
-            if (isChrome) return 'chrome';
-        }
-
-        if (/Edg\//i.test(ua)) return 'edge';
-        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
-
-        return 'other';
-    }
-
-    /**
-     * 화면 최하단에 전역 알림/안내 배너를 노출하는 함수.
-     * @param {string} message - 표시할 안내 문구
-     * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
-     */
-    function showGlobalBottomBanner(message, showCloseBtn = false) {
-        let banner = document.getElementById('global-bottom-banner');
-        if (!banner) {
-            banner = document.createElement('div');
-            banner.id = 'global-bottom-banner';
-            document.body.appendChild(banner);
-        }
-
-        const bType = detect_browser_type();
-        banner.setAttribute('data-browser-type', bType);
-
-        let contentHtml = `<div class="banner-content">${message || ''}</div>`;
-        if (showCloseBtn) {
-            contentHtml += `<button type="button" class="banner-close-btn" aria-label="Close banner">✕</button>`;
-        }
-        banner.innerHTML = contentHtml;
-
-        if (showCloseBtn) {
-            const closeBtn = banner.querySelector('.banner-close-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => {
-                    hideGlobalBottomBanner();
-                });
-            }
-        }
-
-        banner.offsetHeight;
-        banner.classList.add('show');
-    }
-
-    /**
-     * 화면 최하단의 전역 안내 배너를 슬라이드 다운 후 숨기는 함수.
-     */
-    function hideGlobalBottomBanner() {
-        const banner = document.getElementById('global-bottom-banner');
-        if (banner) {
-            banner.classList.remove('show');
-        }
-    }
-
-    if (typeof window !== 'undefined') {
-        window.detect_browser_type = detect_browser_type;
-        window.showGlobalBottomBanner = showGlobalBottomBanner;
-        window.hideGlobalBottomBanner = hideGlobalBottomBanner;
-    }
 
     // DOM Elements
     const editor = document.getElementById('editor');
@@ -276,25 +206,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================================
-    // Session Auto-Save & Restore (Content, Filename, Split Width, Views)
+    // Session Auto-Save & Restore (Delegated to SessionManager in frame-man.js)
     // ==========================================================================
-    let SESSION_STORAGE_KEY = 'markvi_document_session';
-    let isNewSessionSkippedRestore = false;
+    const SessionManagerInstance = (typeof window !== 'undefined' && window.SessionManager)
+        ? window.SessionManager
+        : (typeof FrameManager !== 'undefined' ? FrameManager.SessionManager : null);
 
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('new') === '1') {
-            const sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
-            SESSION_STORAGE_KEY = 'markvi_document_session_' + sessionId;
-            urlParams.delete('new');
-            urlParams.set('session', sessionId);
-            window.history.replaceState(null, '', '?' + urlParams.toString());
-            isNewSessionSkippedRestore = true;
-        } else if (urlParams.has('session')) {
-            SESSION_STORAGE_KEY = 'markvi_document_session_' + urlParams.get('session');
-        }
-    } catch (e) {
-        console.warn('Failed to parse URL session params:', e);
+    if (SessionManagerInstance) {
+        SessionManagerInstance.init();
     }
 
     function saveDocumentSession() {
@@ -312,158 +231,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 colorSwatchEnabled: colorSwatchCheckbox ? colorSwatchCheckbox.checked : true,
                 scrollSyncEnabled: scrollSyncCheckbox ? scrollSyncCheckbox.checked : true
             };
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+            if (SessionManagerInstance) {
+                SessionManagerInstance.saveData(sessionData);
+            } else if (typeof FrameManager !== 'undefined' && typeof FrameManager.saveSessionData === 'function') {
+                FrameManager.saveSessionData(sessionData);
+            }
         } catch (e) {
             console.warn('Failed to save document session:', e);
         }
     }
 
-    /**
-     * 1단계 [Data Read Phase]: localStorage에서 세션 저장 데이터를 독립적으로 수집 및 파싱합니다.
-     */
-    function read_saved_document_session() {
-        try {
-            const rawData = localStorage.getItem(SESSION_STORAGE_KEY);
-            if (!rawData) return null;
-            return JSON.parse(rawData);
-        } catch (e) {
-            console.warn('Failed to read document session from localStorage:', e);
-            return null;
-        }
-    }
-
-    /**
-     * 2단계 [Content Restore Phase]: 문서 본문 내용 및 파일명/상태를 에디터에 반영합니다.
-     */
-    function restore_document_content(sessionData) {
-        if (!sessionData) return;
-        window.assert_arg(typeof cm !== 'undefined' && cm, 'CodeMirror instance cm must be initialized before restore_document_content!', { cm, sessionData });
-        if (!isNewSessionSkippedRestore && typeof sessionData.content === 'string' && sessionData.content.length > 0) {
-            cm.setValue(sessionData.content);
-        }
-        if (!isNewSessionSkippedRestore && sessionData.filename) {
-            updateFilenameDisplay(sessionData.filename, !!sessionData.isDirty);
-        }
-    }
-
-    /**
-     * 3단계 [Frame UI Restore Phase]: FrameManager 액션 준비 완료 후 프레임 및 시각적 레이아웃 설정을 복원합니다.
-     */
-    function restore_frame_ui_settings(sessionData) {
-        if (!sessionData) return;
-        window.assert_arg(typeof FrameManager !== 'undefined' && typeof FrameManager.restoreFrameSettings === 'function', 'FrameManager.restoreFrameSettings is required for restore_frame_ui_settings!', { FrameManager, sessionData });
-        FrameManager.restoreFrameSettings(sessionData);
-    }
-
     // ==========================================================================
-    // Heading Style Presets Multi-Set System (Minimum 5 Sets)
+    // Heading Style Presets Multi-Set System (StylePresetManager)
     // ==========================================================================
-    const DEFAULT_HEADING_PRESETS = [];
-
-    function getHeadingPresets() {
-        try {
-            const stored = localStorage.getItem('markvi_heading_presets');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-            }
-        } catch (e) {
-            console.warn('Failed to parse heading presets:', e);
-        }
-        return window.StyleEditor.getDefaultPresets();
-    }
-
-    function saveHeadingPresets(presets) {
-        try {
-            localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
-        } catch (e) {
-            console.warn('Failed to save heading presets:', e);
-        }
-    }
-
-    function syncNewHeadingPresets() {
-        try {
-            const stored = localStorage.getItem('markvi_heading_presets');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    let changed = false;
-                    
-                    parsed.forEach(p => {
-                        if (p.styles && !p.styles.codeblock) {
-                            p.styles.codeblock = { colorLight: '#24292e', colorDark: '#f8fafc', bgLight: '#f6f8fa', bgDark: '#0f172a' };
-                            changed = true;
-                        }
-                    });
-
-                    const defaultPresets = window.StyleEditor.getDefaultPresets();
-                    defaultPresets.forEach(defPreset => {
-                        if (!parsed.some(p => p.id === defPreset.id)) {
-                            parsed.push(defPreset);
-                            changed = true;
-                        }
-                    });
-                    if (changed) {
-                        saveHeadingPresets(parsed);
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('Failed to sync new heading presets:', e);
-        }
-    }
-
-    function applyHeadingPreset(presetId, tempStyles = null) {
-        const presets = getHeadingPresets();
-        const found = presets.find(p => p.id === presetId) || presets[0];
-        if (!found || !found.styles) return;
-
-        const styles = tempStyles || found.styles;
-        const root = document.documentElement;
-        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
-
-        // 순수 서브 함수 EditorManager.apply_heading_preset로 스타일 바인딩 호출
-        EditorManager.apply_heading_preset(root, styles, currentTheme);
-
-        if (!tempStyles) {
-            localStorage.setItem('markvi_active_heading_preset', presetId);
-        }
-
-        const headingSelect = document.getElementById('heading-preset-select');
-        const modalSelect = document.getElementById('modal-heading-preset-select');
-        if (headingSelect) headingSelect.value = presetId;
-        if (modalSelect) modalSelect.value = presetId;
-
-        // CodeMirror 에디터 인스턴스 레이아웃 및 스타일 강제 리프레시 (비동기 렌더 딜레이 보장)
-        if (typeof cm !== 'undefined' && cm) {
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    cm.refresh();
-                }, 50);
-            });
-        }
-    }
-
-    function updatePresetSelectOptions() {
-        const presets = getHeadingPresets();
-        const headingSelect = document.getElementById('heading-preset-select');
-        const modalSelect = document.getElementById('modal-heading-preset-select');
-
-        [headingSelect, modalSelect].forEach(selectEl => {
-            if (!selectEl) return;
-            const currentVal = selectEl.value;
-            selectEl.innerHTML = '';
-            presets.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                selectEl.appendChild(opt);
-            });
-            if (currentVal && presets.some(p => p.id === currentVal)) {
-                selectEl.value = currentVal;
-            }
-        });
-    }
 
     // ==========================================================================
     // Markdown & Syntax Highlight & Math Configuration
@@ -684,65 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Preview 복사 (프리뷰 화면 전체 선택 및 클립보드 복사 서브 함수)
     // ==========================================================================
 
-    /**
-     * [리팩토링 목적]: 글로벌 변수 의존성을 제거하고, 프리뷰 DOM 선택/복사 및 성공 피드백 UI 처리를 순수 서브 함수로 모듈화하여 재사용성과 가독성을 높임.
-     * @param {HTMLElement} previewEl - 복사 대상 프리뷰 엘리먼트
-     * @param {HTMLElement|null} exportMenuEl - 닫을 내보내기 메뉴 엘리먼트
-     * @param {HTMLElement|null} feedbackBtnEl - 복사 완료 성공 표시를 해줄 버튼 엘리먼트
-     */
-    function copyPreviewToClipboard(previewEl, exportMenuEl, feedbackBtnEl) {
-        // 프리뷰 영역의 내용이 없거나 자식이 없으면 중단
-        if (!previewEl || previewEl.children.length === 0) {
-            alert('복사할 프리뷰 내용이 없습니다.');
-            return;
-        }
-
-        // 드롭다운 메뉴 닫기
-        if (exportMenuEl) {
-            exportMenuEl.classList.remove('show');
-        }
-
-        // 범위(Range) 생성 및 프리뷰 요소의 콘텐츠 지정
-        const range = document.createRange();
-        range.selectNodeContents(previewEl);
-
-        // 이전 선택 범위를 지우고 새로운 범위 추가
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        try {
-            // 선택된 영역 복사 실행 (서식 있는 텍스트 복사)
-            const successful = document.execCommand('copy');
-            if (successful) {
-                // 내보내기 버튼에 복사 성공 피드백 표시
-                if (feedbackBtnEl) {
-                    const originalHTML = feedbackBtnEl.innerHTML;
-                    feedbackBtnEl.innerHTML = `
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        복사 완료!
-                    `;
-                    feedbackBtnEl.style.borderColor = '#10b981';
-                    feedbackBtnEl.style.color = '#10b981';
-                    
-                    setTimeout(() => {
-                        feedbackBtnEl.innerHTML = originalHTML;
-                        feedbackBtnEl.style.borderColor = '';
-                        feedbackBtnEl.style.color = '';
-                    }, 2000);
-                }
-            } else {
-                alert('클립보드 복사 명령을 실행할 수 없습니다.');
-            }
-        } catch (err) {
-            console.error('클립보드 복사 실패:', err);
-            alert('클립보드 복사에 실패했습니다.');
-        } finally {
-            // 복사 완료 후 선택 영역 해제 (시각적 잔상 제거 및 정리)
-            selection.removeAllRanges();
-        }
-    }
-
     // 💡 주: 복사 및 내보내기 버튼 이벤트는 FrameManager.init({ actions: { onCopy: ... } })를 통해 통합 처리됩니다.
 
     // ==========================================================================
@@ -755,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 onThemeChange: (theme) => {
                     apply_code_theme(theme);
                     const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-                    applyHeadingPreset(activePresetId);
+                    StylePresetManager.applyPreset(activePresetId);
                 },
                 onPanelResize: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
@@ -778,15 +499,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 onScrollSyncToggle: (enabled) => {
                     enableScrollSync = enabled;
-                    if (scrollSync) {
+                    if (typeof ScrollSyncManager !== 'undefined') {
+                        ScrollSyncManager.setEnable(enabled);
+                    } else if (scrollSync) {
                         scrollSync.setEnable(enabled);
                     }
                 },
                 onNewFile: () => handleNewFile(),
                 onOpenFile: () => trigger_open_file_dialog(),
                 onCopy: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        ExportManager.copyPreviewToClipboard(preview, exportMenu, btnExport);
+                    if (typeof ClipboardManager !== 'undefined') {
+                        ClipboardManager.copyPreview(preview, exportMenu, btnExport);
+                    } else if (typeof ExportManager !== 'undefined' && ExportManager.ClipboardManager) {
+                        ExportManager.ClipboardManager.copyPreview(preview, exportMenu, btnExport);
                     }
                 },
                 onSave: () => handleSaveDirect(),
@@ -800,12 +525,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof ExportManager !== 'undefined') {
                         window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
                         const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
-                        showGlobalBottomBanner(pdfBannerMsg, false);
+                        SysEnvManager.showBanner(pdfBannerMsg, false);
                         const exportOptions = collectExportOptions({ theme: 'light' });
                         try {
                             await ExportManager.printToPdf(preview, currentFilename, exportOptions);
                         } finally {
-                            hideGlobalBottomBanner();
+                            SysEnvManager.hideBanner();
                         }
                     }
                 },
@@ -874,29 +599,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
         const computedStyle = getComputedStyle(root);
         
-        // 프리뷰의 전체 테마 (배경, 글자색, 인용구, 코드 배경) + Heading Preset 변수 수집 목록
-        const cssVarList = [
-            '--preview-bg', '--preview-text', '--preview-heading', '--preview-border',
-            '--preview-code-bg', '--preview-code-text', '--preview-blockquote-bg', '--preview-blockquote-text',
-            '--h1-color', '--h1-size', '--h1-border',
-            '--h2-color', '--h2-size', '--h2-border',
-            '--h3-color', '--h3-size', '--h3-border',
-            '--h4-color', '--h4-size', '--h4-border',
-            '--h5-color', '--h5-size', '--h5-border',
-            '--h6-color', '--h6-size', '--h6-border',
-            '--link-color', '--link-decoration',
-            '--bold-color', '--italic-color', '--inline-code-fg', '--custom-inline-code-bg',
-            '--custom-code-block-bg', '--custom-code-block-fg',
-            '--blockquote-text-color', '--blockquote-border-color',
-            '--list-marker-color', '--list-item-gap',
-            '--line-color', '--line-border',
-            '--table-header-color', '--table-header-bg', '--table-header-border-bottom',
-            '--table-row-bg', '--table-stripe-bg', '--table-hover-bg',
-            '--table-border-color', '--table-border-style', '--table-cell-padding',
-            '--table-vertical-align', '--table-row-border-bottom',
-            '--preview-font-family', '--preview-font-size',
-            '--preview-code-whitespace', '--preview-code-word-break'
-        ];
+        // 프리뷰의 전체 테마 + Heading Preset + 레이아웃 변수 수집 목록 (ExportStyleSet 기반)
+        const exportStyleSetRef = (typeof ExportStyleSet !== 'undefined' && typeof ExportStyleSet.getAll === 'function')
+            ? ExportStyleSet
+            : ((typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet)
+                ? ExportManager.ExportStyleSet
+                : (typeof window !== 'undefined' && window.ExportStyleSet ? window.ExportStyleSet : null));
+        const cssVarList = exportStyleSetRef ? exportStyleSetRef.getAll() : [];
 
         const styleVars = {};
         const previewEl = document.getElementById('preview');
@@ -926,7 +635,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
         if (targetTheme !== currentTheme && typeof EditorManager !== 'undefined' && EditorManager.apply_heading_preset) {
             const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            const presets = typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []);
+            const presets = (typeof StylePresetManager !== 'undefined' && typeof StylePresetManager.getPresets === 'function')
+                ? StylePresetManager.getPresets()
+                : (typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []));
             const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
 
             if (foundPreset && foundPreset.styles) {
@@ -989,7 +700,8 @@ document.addEventListener('DOMContentLoaded', () => {
             editorContainerEl: editorContainer,
             callbacks: {
                 isFreshWindow: function() {
-                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 },
                 onFileExtracted: function(file, handle) {
                     if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
@@ -1012,7 +724,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         previewViewport.scrollTop = 0;
                         previewViewport.scrollLeft = 0;
                     }
-                    isNewSessionSkippedRestore = false;
+                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
+                        SessionManagerInstance.setNewSessionSkippedRestore(false);
+                    } else {
+                        window.isNewSessionSkippedRestore = false;
+                    }
                 },
                 onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
@@ -1080,16 +796,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggle_debug_panel() {
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.toggleDebugPanel === 'function') {
             FrameManager.toggleDebugPanel((isOpen) => {
-                if (isOpen && scrollSync) {
-                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                if (isOpen) {
+                    if (typeof ScrollSyncManager !== 'undefined') {
+                        ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
+                    } else if (scrollSync) {
+                        scrollSync.rebuildKeyframes('Keyframe Button Toggle');
+                    }
                 }
             });
         }
     }
 
     function updateDebugPanel() {
-        if (scrollSync) {
-            updateDebugPanelUI(scrollSync.keyframes, scrollSync.activeScrollSource);
+        const activeSync = (typeof ScrollSyncManager !== 'undefined' ? ScrollSyncManager.getInstance() : null) || scrollSync;
+        if (activeSync) {
+            updateDebugPanelUI(activeSync.keyframes, activeSync.activeScrollSource);
         }
     }
 
@@ -1105,7 +826,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 초기 렌더링 및 이벤트 등록 (Scroll Sync 초기화 지연 방지를 위해 가장 하단에 배치)
     // ==========================================================================
     // 탐색기 더블클릭 연동으로 로드되었는지 확인 및 적용
-    if (!isNewSessionSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
+    const isSkippedRestore = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+    if (!isSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
         cm.setValue(window.loadedFileContent.content);
         updateFilenameDisplay(window.loadedFileContent.name, false);
     }
@@ -1131,29 +853,41 @@ document.addEventListener('DOMContentLoaded', () => {
         cm.refresh();
     }
 
-    // 1단계 [Data Read Phase]: localStorage 세션 데이터 독립 수집
-    const savedSessionData = read_saved_document_session();
+    // 1단계 [Data Read Phase]: localStorage 세션 데이터 수집 (SessionManager)
+    const savedSessionData = SessionManagerInstance ? SessionManagerInstance.readData() : null;
     const hasSavedSession = !!savedSessionData;
 
-    // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원
-    restore_document_content(savedSessionData);
+    // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원 (SessionManager)
+    if (SessionManagerInstance && savedSessionData) {
+        SessionManagerInstance.restoreContent(cm, savedSessionData, {
+            onUpdateFilename: (name, isModified) => updateFilenameDisplay(name, isModified)
+        });
+    }
+
     if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.init === 'function') {
         RecentFileManager.init({
             actions: {
                 onLoadSingleFile: (file, handle) => {
                     currentFileHandle = handle || null;
                     loadSingleFile(file);
-                    isNewSessionSkippedRestore = false;
+                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
+                        SessionManagerInstance.setNewSessionSkippedRestore(false);
+                    } else {
+                        window.isNewSessionSkippedRestore = false;
+                    }
                 },
                 isFreshWindow: () => {
-                    return isNewSessionSkippedRestore || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 }
             }
         });
     }
 
-    // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원
-    restore_frame_ui_settings(savedSessionData);
+    // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원 (SessionManager)
+    if (SessionManagerInstance && savedSessionData) {
+        SessionManagerInstance.restoreUI(savedSessionData);
+    }
 
     // Trigger Initial Render
     renderMarkdown();
@@ -1207,11 +941,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 🚨 상부 FrameManager 초기화 통과 여부 사전 단증 장치 (중도 스코프/문법 차단 검출)
+    window.assert_arg(
+        typeof FrameManager !== 'undefined' && FrameManager.isInitialized === true,
+        'Critical Initialization Error: FrameManager.init was skipped or interrupted prior to registering bottom listeners!',
+        { isInitialized: typeof FrameManager !== 'undefined' ? FrameManager.isInitialized : false }
+    );
+
     // 스크롤 동기화 토글 변경 시 이벤트 바인딩
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {
             enableScrollSync = scrollSyncCheckbox.checked;
-            if (scrollSync) {
+            if (typeof ScrollSyncManager !== 'undefined') {
+                ScrollSyncManager.setEnable(enableScrollSync);
+                if (enableScrollSync) {
+                    ScrollSyncManager.syncPreviewToCursor();
+                }
+            } else if (scrollSync) {
                 scrollSync.setEnable(enableScrollSync);
                 if (enableScrollSync && typeof scrollSync.syncPreviewToCursor === 'function') {
                     scrollSync.syncPreviewToCursor();
@@ -1224,12 +970,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const SAVE_SECURITY_NOTICE = '[App] 브라우저 보안사항으로 파일 접근 권한에 대한 확인창이 뜰 수 있습니다. ';
 
     function triggerSaveSecurityNotice() {
-        showGlobalBottomBanner(SAVE_SECURITY_NOTICE, false);
+        SysEnvManager.showBanner(SAVE_SECURITY_NOTICE, false);
     }
 
     function dismissSaveSecurityNoticeDelayed(delayMs = 1000) {
         setTimeout(() => {
-            hideGlobalBottomBanner();
+            SysEnvManager.hideBanner();
         }, delayMs);
     }
 
@@ -1305,7 +1051,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof TocManager !== 'undefined' && typeof TocManager.init === 'function') {
         TocManager.init({
             onSelectHeading: (lineNum) => {
-                if (scrollSync) {
+                if (typeof ScrollSyncManager !== 'undefined') {
+                    ScrollSyncManager.scrollToLine(lineNum);
+                } else if (scrollSync) {
                     scrollSync.scrollToLine(lineNum);
                 }
             }
@@ -1337,9 +1085,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (headingStyleMenu) headingStyleMenu.classList.remove('show');
             
             // 스타일 편집 Dialog를 띄울 때 신규 프리셋이 누락되었는지 검사하여 추가
-            syncNewHeadingPresets();
+            StylePresetManager.syncPresets();
             
-            updatePresetSelectOptions();
+            StylePresetManager.updateSelects();
             const currentActive = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             if (modalHeadingSelect) modalHeadingSelect.value = currentActive;
             if (window.StyleEditor && typeof window.StyleEditor.openModal === 'function') {
@@ -1359,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (headingPresetSelect) {
         headingPresetSelect.addEventListener('change', (e) => {
-            applyHeadingPreset(e.target.value);
+            StylePresetManager.applyPreset(e.target.value);
             renderMarkdown();
         });
     }
@@ -1367,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalHeadingSelect) {
         modalHeadingSelect.addEventListener('change', (e) => {
             renderHeadingModalControls(e.target.value);
-            applyHeadingPreset(e.target.value);
+            StylePresetManager.applyPreset(e.target.value);
             renderMarkdown();
         });
     }
@@ -1382,13 +1130,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🎨 스타일 편집 다이얼로그 콜백 핸들러 리액티브 명명 함수 정의 (리팩토링)
     // ==========================================================================
     function handlePresetChange(presetId) {
-        applyHeadingPreset(presetId);
+        StylePresetManager.applyPreset(presetId);
     }
 
     function handleLivePreview() {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
         const tempStyles = window.StyleEditor ? window.StyleEditor.collectCurrentInputs() : null;
-        applyHeadingPreset(currentId, tempStyles);
+        StylePresetManager.applyPreset(currentId, tempStyles);
     }
 
     function handleModalScroll(clientX, deltaY) {
@@ -1411,14 +1159,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handlePresetSave(presetName) {
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-        applyHeadingPreset(currentId);
+        StylePresetManager.applyPreset(currentId);
         showToast(`'${presetName}' 스타일이 저장되었습니다.`);
     }
 
     function handlePresetSaveAndClose(presetName) {
         closeHeadingStyleModal();
         const currentId = modalHeadingSelect ? modalHeadingSelect.value : 'github_classic';
-        applyHeadingPreset(currentId);
+        StylePresetManager.applyPreset(currentId);
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
         if (typeof cm !== 'undefined' && cm) {
@@ -1432,29 +1180,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handlePresetAdd(newId, newName) {
-        updatePresetSelectOptions();
-        applyHeadingPreset(newId);
+        StylePresetManager.updateSelects();
+        StylePresetManager.applyPreset(newId);
         renderHeadingModalControls(newId);
         showToast(`'${newName}' 스타일이 생성되었습니다.`);
     }
 
     function handlePresetDelete(nextId, deletedName) {
-        updatePresetSelectOptions();
-        applyHeadingPreset(nextId);
+        StylePresetManager.updateSelects();
+        StylePresetManager.applyPreset(nextId);
         renderHeadingModalControls(nextId);
         showToast(`'${deletedName}' 스타일이 삭제되었습니다.`);
     }
 
     function handlePresetReset(presetId, presetName) {
-        applyHeadingPreset(presetId);
+        StylePresetManager.applyPreset(presetId);
         renderHeadingModalControls(presetId);
         showToast(`'${presetName}' 스타일이 초기 기본값으로 복원되었습니다.`);
     }
 
     if (window.StyleEditor) {
         window.StyleEditor.init({
-            getPresetsData: getHeadingPresets,      // ◄ 1:1 함수 참조 매핑
-            savePresetsData: saveHeadingPresets,    // ◄ 1:1 함수 참조 매핑
+            getPresetsData: StylePresetManager.getPresets,      // ◄ 1:1 함수 참조 매핑
+            savePresetsData: StylePresetManager.savePresets,    // ◄ 1:1 함수 참조 매핑
             onPresetChange: handlePresetChange,
             onLivePreview: handleLivePreview,
             onScroll: handleModalScroll,
@@ -1468,15 +1216,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 문서 시작 시 Heading Preset 초기화
-    updatePresetSelectOptions();
+    StylePresetManager.updateSelects();
     const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-    applyHeadingPreset(activePreset);
+    StylePresetManager.applyPreset(activePreset);
 
-    // ScrollSync 인스턴스 생성 및 초기화 (최하단 배치)
-    scrollSync = new ScrollSync({
-        cm: cm,
+    // ScrollSync 인스턴스 생성 및 초기화 (ScrollSyncManager 위임)
+    scrollSync = ScrollSyncManager.init(cm, preview, {
         previewViewport: document.querySelector('.preview-viewport'),
-        previewContainer: preview,
         enableScrollSync: enableScrollSync,
         onActiveLineChange: (lineNum) => {
             if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
@@ -1492,24 +1238,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-    scrollSync.init();
+    if (typeof window !== 'undefined') {
+        window.scrollSync = scrollSync;
+    }
     if (cm && typeof cm.refresh === 'function') {
         cm.refresh();
     }
-
-    // 폰트, 이미지 등 전역 렌더링 완료 후 키프레임 보장 재구축 (load 트리거 Stage 3)
-    window.addEventListener('load', () => {
-        if (scrollSync) {
-            scrollSync.rebuildKeyframes('Stage 3: window.onload');
-        }
-    });
-
-    // 100ms 비동기 페인트 후 안전 재구축 (Stage 2)
-    setTimeout(() => {
-        if (scrollSync) {
-            scrollSync.rebuildKeyframes('Stage 2: setTimeout 100ms');
-        }
-    }, 100);
 });
 
 

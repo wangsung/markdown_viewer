@@ -11,6 +11,14 @@
 (function(window) {
     'use strict';
 
+    function assert_arg(condition, message, context = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            return window.assert_arg(condition, message, context);
+        }
+        if (!condition) console.error(`[System Warning] ${message}`, context);
+        return !!condition;
+    }
+
     const RECENT_FILES_KEY = 'markvi_recent_files';
     const IDB_NAME = 'markvi_recent_db';
     const IDB_STORE = 'handles';
@@ -88,6 +96,91 @@
         }
         banner.innerHTML = `<span>🚨 ${message}</span><button style="background:transparent;border:none;color:#fff;font-weight:bold;cursor:pointer;padding:0 8px;" onclick="this.parentElement.remove()">✕</button>`;
     }
+
+    /**
+     * 현재 런타임 브라우저 종류('edge' | 'chrome' | 'other')를 명확히 구별하는 순수 서브 함수
+     * @returns {'edge' | 'chrome' | 'other'}
+     */
+    function detect_browser_type() {
+        if (typeof navigator === 'undefined') return 'other';
+
+        const ua = navigator.userAgent || '';
+        if (navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)) {
+            const isEdge = navigator.userAgentData.brands.some(b => /Microsoft Edge|Edg/i.test(b.brand));
+            if (isEdge) return 'edge';
+
+            const isChrome = navigator.userAgentData.brands.some(b => /Google Chrome|Chromium/i.test(b.brand));
+            if (isChrome) return 'chrome';
+        }
+
+        if (/Edg\//i.test(ua)) return 'edge';
+        if (/Chrome\//i.test(ua) && !/Edg\//i.test(ua)) return 'chrome';
+
+        return 'other';
+    }
+
+    /**
+     * 화면 최하단에 전역 알림/안내 배너를 노출하는 순수 서브 함수
+     * @param {string} message - 표시할 안내 문구 (필수, 비어있지 않은 문자열)
+     * @param {boolean} [showCloseBtn=false] - 닫기(X) 버튼 노출 여부 (기본값: false)
+     */
+    function show_global_bottom_banner_ui(message, showCloseBtn = false) {
+        if (!assert_arg(typeof message === 'string' && message.trim().length > 0, 'show_global_bottom_banner_ui requires a valid non-empty string message', { message })) {
+            return;
+        }
+
+        if (typeof document === 'undefined') return;
+
+        let banner = document.getElementById('global-bottom-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'global-bottom-banner';
+            document.body.appendChild(banner);
+        }
+
+        const bType = detect_browser_type();
+        banner.setAttribute('data-browser-type', bType);
+
+        let contentHtml = `<div class="banner-content">${message}</div>`;
+        if (showCloseBtn) {
+            contentHtml += `<button type="button" class="banner-close-btn" aria-label="Close banner">✕</button>`;
+        }
+        banner.innerHTML = contentHtml;
+
+        if (showCloseBtn) {
+            const closeBtn = banner.querySelector('.banner-close-btn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    hide_global_bottom_banner_ui();
+                });
+            }
+        }
+
+        banner.offsetHeight;
+        banner.classList.add('show');
+    }
+
+    /**
+     * 화면 최하단의 전역 안내 배너를 슬라이드 다운 후 숨기는 순수 서브 함수
+     */
+    function hide_global_bottom_banner_ui() {
+        if (typeof document === 'undefined') return;
+        const banner = document.getElementById('global-bottom-banner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+    }
+
+    // ==========================================================================
+    // SysEnvManager 서브 객체 (시스템 환경 감지 및 전역 배너 제어 전용)
+    // ==========================================================================
+    const SysEnvManager = {
+        detectBrowser: detect_browser_type,
+        showBanner: show_global_bottom_banner_ui,
+        hideBanner: hide_global_bottom_banner_ui,
+        getBrowserType: detect_browser_type
+    };
+
 
     /**
      * 순수 하위 서브 함수: DOM 프레임 및 메뉴 UI 엘리먼트들을 자율 탐색 및 쿼리합니다.
@@ -692,7 +785,7 @@
                 return options.actions.isFreshWindow();
             }
             if (typeof window !== 'undefined') {
-                const isNewSessionSkippedRestore = !!window.isNewSessionSkippedRestore;
+                const isNewSessionSkippedRestore = typeof SessionManager !== 'undefined' ? SessionManager.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
                 const isDirty = !!window.isDirty;
                 const cm = window.cm;
                 const currentFileHandle = window.currentFileHandle;
@@ -714,7 +807,11 @@
                         if (typeof window.loadSingleFile === 'function') {
                             window.loadSingleFile(file);
                         }
-                        window.isNewSessionSkippedRestore = false;
+                        if (typeof SessionManager !== 'undefined' && typeof SessionManager.setNewSessionSkippedRestore === 'function') {
+                            SessionManager.setNewSessionSkippedRestore(false);
+                        } else {
+                            window.isNewSessionSkippedRestore = false;
+                        }
                     }
                     return;
                 } catch (err) {
@@ -1275,6 +1372,138 @@
     }
 
     // ==========================================================================
+    // Session Storage & Autosave Sub-functions (snake_case)
+    // ==========================================================================
+
+    /**
+     * pure sub-function: URL 쿼리 스트링(searchString)을 해석하여 세션 스토리지 키 및 복원 건너뜀 여부를 결정합니다.
+     * 
+     * @param {string} [searchString] - 해석할 URL 쿼리 스트링 (예: "?new=1" 또는 "?session=abc")
+     * @returns {{ key: string, isNewSessionSkippedRestore: boolean, sessionId: string|null }}
+     */
+    function resolve_session_storage_key(searchString) {
+        let queryStr = typeof searchString === 'string' ? searchString : '';
+        if (!queryStr && typeof window !== 'undefined' && window.location && window.location.search) {
+            queryStr = window.location.search;
+        }
+
+        let key = 'markvi_document_session';
+        let isNewSessionSkippedRestore = false;
+        let sessionId = null;
+
+        try {
+            const urlParams = new URLSearchParams(queryStr);
+            if (urlParams.get('new') === '1') {
+                sessionId = Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+                key = 'markvi_document_session_' + sessionId;
+                isNewSessionSkippedRestore = true;
+
+                if (typeof window !== 'undefined' && window.history && typeof window.history.replaceState === 'function' && window.location) {
+                    try {
+                        const currentParams = new URLSearchParams(window.location.search);
+                        currentParams.delete('new');
+                        currentParams.set('session', sessionId);
+                        const cleanQuery = currentParams.toString();
+                        const newUrl = window.location.pathname + (cleanQuery ? '?' + cleanQuery : '');
+                        window.history.replaceState(null, '', newUrl);
+                    } catch (e) {
+                        console.warn('URL 히스토리 세션 파라미터 교체 실패:', e);
+                    }
+                }
+            } else if (urlParams.has('session') && urlParams.get('session')) {
+                sessionId = urlParams.get('session');
+                key = 'markvi_document_session_' + sessionId;
+                isNewSessionSkippedRestore = false;
+            }
+        } catch (e) {
+            console.warn('URL 세션 파라미터 해석 실패:', e);
+        }
+
+        return { key, isNewSessionSkippedRestore, sessionId };
+    }
+
+    /**
+     * pure sub-function: 문서 세션 객체를 localStorage에 JSON 문자열로 저장합니다.
+     * 
+     * @param {string} storageKey - localStorage에 저장할 스토리지 키
+     * @param {Object} sessionData - 저장할 세션 데이터 객체
+     * @returns {boolean}
+     */
+    function save_document_session_data(storageKey, sessionData) {
+        if (!assert_arg(typeof storageKey === 'string' && storageKey.trim().length > 0, 'save_document_session_data: storageKey must be a non-empty string', { storageKey })) {
+            return false;
+        }
+        if (!assert_arg(sessionData && typeof sessionData === 'object', 'save_document_session_data: sessionData must be a valid object', { sessionData })) {
+            return false;
+        }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(storageKey, JSON.stringify(sessionData));
+                return true;
+            }
+        } catch (e) {
+            console.warn('localStorage 문서 세션 저장 실패:', e);
+        }
+        return false;
+    }
+
+    /**
+     * pure sub-function: localStorage에서 지정된 키의 세션 데이터를 읽어와 파싱합니다.
+     * 
+     * @param {string} storageKey - localStorage 스토리지 키
+     * @returns {Object|null}
+     */
+    function read_saved_document_session_data(storageKey) {
+        if (!assert_arg(typeof storageKey === 'string' && storageKey.trim().length > 0, 'read_saved_document_session_data: storageKey must be a non-empty string', { storageKey })) {
+            return null;
+        }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const rawData = localStorage.getItem(storageKey);
+                if (!rawData) return null;
+                return JSON.parse(rawData);
+            }
+        } catch (e) {
+            console.warn('localStorage 문서 세션 읽기 실패:', e);
+        }
+        return null;
+    }
+
+    /**
+     * pure sub-function: 저장된 세션 데이터 본문 및 파일명을 에디터(cmInstance)에 복원 반영합니다.
+     * 
+     * @param {Object} cmInstance - CodeMirror 에디터 인스턴스 (setValue 메서드 보유 필수)
+     * @param {Object} sessionData - 복원할 세션 데이터 객체
+     * @param {Object} [options={}] - 복원 옵션 (isNewSessionSkippedRestore, onUpdateFilename)
+     * @returns {boolean}
+     */
+    function restore_document_content_to_editor(cmInstance, sessionData, options = {}) {
+        if (!assert_arg(cmInstance && typeof cmInstance.setValue === 'function', 'restore_document_content_to_editor: CodeMirror instance cmInstance with setValue is required!', { cmInstance, sessionData })) {
+            return false;
+        }
+        if (!assert_arg(sessionData && typeof sessionData === 'object', 'restore_document_content_to_editor: sessionData must be a valid object', { sessionData })) {
+            return false;
+        }
+
+        const isSkipped = !!(options && options.isNewSessionSkippedRestore);
+        const onUpdateFilename = options && options.onUpdateFilename;
+
+        if (!isSkipped && typeof sessionData.content === 'string' && sessionData.content.length > 0) {
+            cmInstance.setValue(sessionData.content);
+        }
+
+        if (!isSkipped && sessionData.filename) {
+            if (typeof onUpdateFilename === 'function') {
+                onUpdateFilename(sessionData.filename, !!sessionData.isDirty);
+            } else if (typeof window !== 'undefined' && typeof window.updateFilenameDisplay === 'function') {
+                window.updateFilenameDisplay(sessionData.filename, !!sessionData.isDirty);
+            }
+        }
+
+        return true;
+    }
+
+    // ==========================================================================
     // Public API (camelCase)
     // ==========================================================================
 
@@ -1389,7 +1618,9 @@
                     this.options.onSelectHeading(line);
                 } else if (cmInstance && typeof cmInstance.scrollToLine === 'function') {
                     cmInstance.scrollToLine(line);
-                } else if (window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
+                } else if (typeof window !== 'undefined' && typeof window.ScrollSyncManager !== 'undefined' && typeof window.ScrollSyncManager.scrollToLine === 'function') {
+                    window.ScrollSyncManager.scrollToLine(line);
+                } else if (typeof window !== 'undefined' && window.scrollSync && typeof window.scrollSync.scrollToLine === 'function') {
                     window.scrollSync.scrollToLine(line);
                 }
             };
@@ -1538,8 +1769,99 @@
         }
     };
 
+    let currentSessionStorageKey = 'markvi_document_session';
+    let currentIsNewSessionSkippedRestore = false;
+
+    const SessionManager = {
+        init: function(userOpts = {}) {
+            if (userOpts !== undefined && userOpts !== null) {
+                if (!assert_arg(typeof userOpts === 'object', 'SessionManager.init: userOpts must be an object if provided', { userOpts })) {
+                    return { key: currentSessionStorageKey, isNewSessionSkippedRestore: currentIsNewSessionSkippedRestore };
+                }
+            }
+            const searchStr = (userOpts && typeof userOpts.searchString === 'string')
+                ? userOpts.searchString
+                : (typeof window !== 'undefined' && window.location ? window.location.search : '');
+
+            const resolved = resolve_session_storage_key(searchStr);
+            currentSessionStorageKey = resolved.key;
+            currentIsNewSessionSkippedRestore = resolved.isNewSessionSkippedRestore;
+
+            if (typeof window !== 'undefined') {
+                window.isNewSessionSkippedRestore = currentIsNewSessionSkippedRestore;
+            }
+
+            return resolved;
+        },
+
+        getKey: function() {
+            return currentSessionStorageKey;
+        },
+
+        isNewSessionSkippedRestore: function() {
+            return currentIsNewSessionSkippedRestore;
+        },
+
+        setNewSessionSkippedRestore: function(val) {
+            currentIsNewSessionSkippedRestore = !!val;
+            if (typeof window !== 'undefined') {
+                window.isNewSessionSkippedRestore = currentIsNewSessionSkippedRestore;
+            }
+        },
+
+        saveData: function(sessionData) {
+            if (!assert_arg(sessionData && typeof sessionData === 'object', 'SessionManager.saveData: sessionData must be a valid object', { sessionData })) {
+                return false;
+            }
+            return save_document_session_data(currentSessionStorageKey, sessionData);
+        },
+
+        readData: function() {
+            return read_saved_document_session_data(currentSessionStorageKey);
+        },
+
+        restoreContent: function(cmInstance, sessionData, callbacks = {}) {
+            if (!assert_arg(cmInstance && typeof cmInstance.setValue === 'function', 'SessionManager.restoreContent: cmInstance must be a valid CodeMirror instance', { cmInstance })) {
+                return false;
+            }
+            if (!assert_arg(sessionData && typeof sessionData === 'object', 'SessionManager.restoreContent: sessionData must be a valid object', { sessionData })) {
+                return false;
+            }
+
+            const cb = typeof callbacks === 'function' ? { onUpdateFilename: callbacks } : (callbacks || {});
+            const opts = {
+                isNewSessionSkippedRestore: this.isNewSessionSkippedRestore(),
+                onUpdateFilename: cb.onUpdateFilename
+            };
+
+            return restore_document_content_to_editor(cmInstance, sessionData, opts);
+        },
+
+        restoreUI: function(sessionData) {
+            if (!sessionData) return false;
+            if (!assert_arg(typeof sessionData === 'object', 'SessionManager.restoreUI: sessionData must be a valid object', { sessionData })) {
+                return false;
+            }
+            restore_frame_settings_ui(sessionData, options.elements, {
+                onPanelResize: options.actions.onPanelResize,
+                onLineColorChange: options.actions.onLineColorChange,
+                onColorSwatchToggle: options.actions.onColorSwatchToggle,
+                onScrollSyncToggle: options.actions.onScrollSyncToggle
+            });
+            return true;
+        }
+    };
+
     const FrameManager = {
+        isInitialized: false,
+
         init: function(userOptions) {
+            assert_arg(
+                typeof document === 'undefined' || !document.readyState || document.readyState === 'interactive' || document.readyState === 'complete',
+                'FrameManager.init: DOM is not fully ready! Ensure initialization runs inside DOMContentLoaded event.',
+                { readyState: typeof document !== 'undefined' ? document.readyState : 'undefined' }
+            );
+
             const userOpts = userOptions || {};
             const defaultEls = get_default_elements();
             const userEls = (userOpts.elements && typeof userOpts.elements === 'object') ? userOpts.elements : {};
@@ -1556,6 +1878,11 @@
             setup_menu_toggles(els);
             setup_outside_click_dismissal(els);
             setup_button_actions(els, acts);
+
+            this.isInitialized = true;
+            if (typeof window !== 'undefined') {
+                window._frameManagerInitialized = true;
+            }
 
             return els;
         },
@@ -1624,6 +1951,11 @@
         formatFileSize: format_file_size,
         formatRecentTime: format_recent_time,
 
+        SysEnvManager: SysEnvManager,
+        detectBrowserType: detect_browser_type,
+        showGlobalBottomBanner: show_global_bottom_banner_ui,
+        hideGlobalBottomBanner: hide_global_bottom_banner_ui,
+
         RecentFileManager: RecentFileManager,
 
         initRecentFiles: function(userOpts) {
@@ -1676,17 +2008,49 @@
 
         loadSingleFile: function(file, callbacks, handle) {
             return FileDropManager.loadSingleFile(file, callbacks, handle);
+        },
+
+        SessionManager: SessionManager,
+
+        initSession: function(userOpts) {
+            return SessionManager.init(userOpts);
+        },
+
+        saveSessionData: function(sessionData) {
+            return SessionManager.saveData(sessionData);
+        },
+
+        readSessionData: function() {
+            return SessionManager.readData();
+        },
+
+        restoreSessionContent: function(cmInstance, sessionData, callbacks) {
+            return SessionManager.restoreContent(cmInstance, sessionData, callbacks);
+        },
+
+        restoreSessionUI: function(sessionData) {
+            return SessionManager.restoreUI(sessionData);
         }
     };
 
     if (typeof window !== 'undefined') {
+        window.SysEnvManager = SysEnvManager;
+        window.detect_browser_type = detect_browser_type;
+        window.showGlobalBottomBanner = show_global_bottom_banner_ui;
+        window.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
         window.RecentFileManager = RecentFileManager;
         window.TocManager = TocManager;
         window.FileDropManager = FileDropManager;
+        window.SessionManager = SessionManager;
     }
+    FrameManager.SysEnvManager = SysEnvManager;
+    FrameManager.detectBrowserType = detect_browser_type;
+    FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
+    FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
     FrameManager.RecentFileManager = RecentFileManager;
     FrameManager.TocManager = TocManager;
     FrameManager.FileDropManager = FileDropManager;
+    FrameManager.SessionManager = SessionManager;
 
     window.FrameManager = FrameManager;
 
