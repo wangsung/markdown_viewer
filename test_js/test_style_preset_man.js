@@ -133,7 +133,27 @@ StylePresetManager.updateSelects([testSelect]);
 assert(testSelect.children.length >= 5, 'updateSelects populates option elements corresponding to presets');
 assert(testSelect.children[0].value === 'github_classic', 'Option element value set correctly');
 
-// Test Case 6: assert_arg Parameter Validation
+// Test Case 6: Pure Sub-function sync_preset_schema & CRUD Methods (addPreset, deletePreset, resetPreset)
+assert(typeof StylePresetManager.sync_preset_schema === 'function', 'sync_preset_schema pure sub-function exists');
+
+const unmergedData = [{ id: 'test_p1', name: 'Test P1', styles: { h1: { colorLight: '#000' } } }];
+const schemaSyncResult = StylePresetManager.sync_preset_schema(unmergedData);
+assert(schemaSyncResult.isChanged === true, 'sync_preset_schema detects missing properties and flags isChanged');
+assert(schemaSyncResult.presets.some(p => p.id === 'test_p1' && p.styles.codeblock && p.styles.blockquote && p.styles.line), 'sync_preset_schema injects missing codeblock, blockquote, line properties');
+
+const newPresetData = { id: 'added_preset', name: '7. Added Preset', styles: { h1: { colorLight: '#111' } } };
+const addedId = StylePresetManager.addPreset(newPresetData);
+assert(addedId === 'added_preset', 'addPreset adds and returns new preset ID');
+assert(StylePresetManager.getPresets().some(p => p.id === 'added_preset'), 'addPreset persists new preset to storage');
+
+const deletedFallbackId = StylePresetManager.deletePreset('added_preset');
+assert(deletedFallbackId !== 'added_preset', 'deletePreset removes target preset and returns fallback ID');
+assert(!StylePresetManager.getPresets().some(p => p.id === 'added_preset'), 'deletePreset removes target preset from storage');
+
+const resetId = StylePresetManager.resetPreset('github_classic');
+assert(resetId === 'github_classic', 'resetPreset restores target default preset');
+
+// Test Case 7: assert_arg Parameter Validation
 let saveAssertionFailed = false;
 try {
     StylePresetManager.savePresets('not_an_array');

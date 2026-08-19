@@ -479,6 +479,178 @@ window.PreviewManager = (function() {
         return !!window._enableMathSupport;
     }
 
+    /**
+     * 순수 하위 서브 함수: 폰트 비율(% 문자열)을 basePt 기준 pt 단위 변환 문자열로 환산합니다.
+     * @param {string} percentStr - 예: "120%"
+     * @param {number} [basePt=10] - 디폴트 10pt (100% == 10pt 기준)
+     * @returns {string} 예: "12pt"
+     */
+    function calc_scaled_font_size(percentStr, basePt = 10) {
+        if (!percentStr || typeof percentStr !== 'string') return `${basePt}pt`;
+        const val = parseFloat(percentStr);
+        if (isNaN(val)) return `${basePt}pt`;
+        const pt = Math.round((val / 100) * basePt);
+        return `${pt}pt`;
+    }
+
+    /**
+     * 순수 하위 서브 함수: 프리뷰 내 코드블록 스크롤(pre vs pre-wrap) 스타일을 적용합니다.
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 요소
+     * @param {boolean|string} useScroll - 스크롤 사용 여부
+     */
+    function update_codeblock_scroll(previewEl, useScroll) {
+        const isScrollOn = (useScroll !== false && useScroll !== 'false');
+        const wsVal = isScrollOn ? 'pre' : 'pre-wrap';
+        const wbVal = isScrollOn ? 'break-word' : 'normal';
+
+        if (previewEl) {
+            previewEl.style.setProperty('--preview-code-whitespace', wsVal);
+            previewEl.style.setProperty('--preview-code-word-break', wbVal);
+        }
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.style.setProperty('--preview-code-whitespace', wsVal);
+            document.documentElement.style.setProperty('--preview-code-word-break', wbVal);
+        }
+    }
+
+    /**
+     * 순수 하위 서브 함수: Preview UI 컨트롤 엘리먼트 묶음(uiElements)에 이벤트 리스너를 일괄 바인딩합니다.
+     * @param {HTMLElement} previewEl - 프리뷰 DOM 요소
+     * @param {Object} uiElements - Preview UI 엘리먼트 통 구조체 ({ fontSelect, fontSizeSelect, btnFontSizeUp, btnFontSizeDown, codeblockScrollCheckbox, togglePreviewMaxWidthCheckbox })
+     * @param {Object} [callbacks={}] - 설정 변경 통지 콜백 ({ onSettingChange, onRefreshEditor })
+     */
+    function bind_preview_ui_listeners(previewEl, uiElements = {}, callbacks = {}) {
+        if (!uiElements || typeof uiElements !== 'object') return false;
+
+        const { fontSelect, fontSizeSelect, btnFontSizeUp, btnFontSizeDown, codeblockScrollCheckbox, codeblockScrollWrapper, togglePreviewMaxWidthCheckbox, previewMaxWidthWrapper } = uiElements;
+
+        const notifyChange = () => {
+            if (typeof callbacks.onSettingChange === 'function') callbacks.onSettingChange();
+        };
+
+        // 1. 폰트 선택 리스너
+        if (fontSelect && typeof fontSelect.addEventListener === 'function') {
+            fontSelect.addEventListener('change', () => {
+                apply_preview_font_family(previewEl, fontSelect.value);
+                if (typeof document !== 'undefined' && document.documentElement) {
+                    document.documentElement.style.setProperty('--preview-font-family', fontSelect.value);
+                }
+                notifyChange();
+            });
+        }
+
+        // 2. 폰트 크기 선택 리스너
+        if (fontSizeSelect && typeof fontSizeSelect.addEventListener === 'function') {
+            fontSizeSelect.addEventListener('change', () => {
+                const computedPt = calc_scaled_font_size(fontSizeSelect.value, 10);
+                apply_preview_font_size(previewEl, computedPt);
+                if (typeof document !== 'undefined' && document.documentElement) {
+                    document.documentElement.style.setProperty('--preview-font-size', computedPt);
+                    document.documentElement.style.setProperty('--editor-font-size', computedPt);
+                }
+                if (typeof callbacks.onRefreshEditor === 'function') callbacks.onRefreshEditor();
+                notifyChange();
+            });
+        }
+
+        // 3. 폰트 크기 Up/Down 스핀 버튼
+        if (btnFontSizeUp && btnFontSizeDown && fontSizeSelect && typeof btnFontSizeUp.addEventListener === 'function' && typeof btnFontSizeDown.addEventListener === 'function') {
+            btnFontSizeUp.addEventListener('click', () => {
+                const currentVal = fontSizeSelect.value;
+                let currentPercent = parseFloat(currentVal);
+                if (isNaN(currentPercent)) currentPercent = 120;
+
+                const newPercent = Math.min(300, Math.round(currentPercent + 10));
+                const newPercentStr = `${newPercent}%`;
+
+                let matchedOption = Array.from(fontSizeSelect.options || []).find(opt => opt.value === newPercentStr);
+                if (!matchedOption) {
+                    const ptVal = calc_scaled_font_size(newPercentStr, 10);
+                    matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
+                    if (typeof fontSizeSelect.add === 'function') fontSizeSelect.add(matchedOption);
+                }
+                fontSizeSelect.value = newPercentStr;
+                if (typeof fontSizeSelect.dispatchEvent === 'function') {
+                    fontSizeSelect.dispatchEvent(new Event('change'));
+                }
+            });
+
+            btnFontSizeDown.addEventListener('click', () => {
+                const currentVal = fontSizeSelect.value;
+                let currentPercent = parseFloat(currentVal);
+                if (isNaN(currentPercent)) currentPercent = 120;
+
+                const newPercent = Math.max(30, Math.round(currentPercent - 10));
+                const newPercentStr = `${newPercent}%`;
+
+                let matchedOption = Array.from(fontSizeSelect.options || []).find(opt => opt.value === newPercentStr);
+                if (!matchedOption) {
+                    const ptVal = calc_scaled_font_size(newPercentStr, 10);
+                    matchedOption = new Option(`${newPercentStr} (${ptVal})`, newPercentStr);
+                    if (typeof fontSizeSelect.add === 'function') fontSizeSelect.add(matchedOption);
+                }
+                fontSizeSelect.value = newPercentStr;
+                if (typeof fontSizeSelect.dispatchEvent === 'function') {
+                    fontSizeSelect.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        // 4. 코드블록 스크롤 토글
+        if (codeblockScrollCheckbox && typeof codeblockScrollCheckbox.addEventListener === 'function') {
+            const savedScroll = (typeof localStorage !== 'undefined') ? localStorage.getItem('markvi_codeblock_scroll') : null;
+            const isScrollOn = (savedScroll !== 'false');
+            codeblockScrollCheckbox.checked = isScrollOn;
+            update_codeblock_scroll(previewEl, isScrollOn);
+
+            codeblockScrollCheckbox.addEventListener('change', () => {
+                const isChecked = codeblockScrollCheckbox.checked;
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('markvi_codeblock_scroll', isChecked ? 'true' : 'false');
+                }
+                update_codeblock_scroll(previewEl, isChecked);
+                notifyChange();
+            });
+
+            if (codeblockScrollWrapper && typeof codeblockScrollWrapper.addEventListener === 'function') {
+                codeblockScrollWrapper.addEventListener('click', (e) => {
+                    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                });
+            }
+        }
+
+        // 5. 프리뷰 최대 폭 제한 토글
+        if (togglePreviewMaxWidthCheckbox && typeof togglePreviewMaxWidthCheckbox.addEventListener === 'function') {
+            togglePreviewMaxWidthCheckbox.addEventListener('change', () => {
+                apply_preview_max_width_limit(previewEl, togglePreviewMaxWidthCheckbox.checked);
+                notifyChange();
+            });
+
+            if (previewMaxWidthWrapper && typeof previewMaxWidthWrapper.addEventListener === 'function') {
+                previewMaxWidthWrapper.addEventListener('click', (e) => {
+                    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                });
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Preview 전용 UI 컨트롤을 단일 uiElements 통 구조체로 받아 초기화 및 리스너를 일괄 바인딩합니다.
+     * @param {Object} uiElements - Preview UI 엘리먼트 단일 구조체
+     * @param {Object} [callbacks={}] - 설정 변경 시 호출할 콜백 객체
+     * @returns {boolean} 성공 여부
+     */
+    function init_ui_controls(uiElements = {}, callbacks = {}) {
+        if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+            window.assert_arg(uiElements && typeof uiElements === 'object', 'init_ui_controls: uiElements must be an object', { uiElements });
+        }
+
+        const previewEl = (uiElements && uiElements.preview) || (typeof document !== 'undefined' ? document.getElementById('markdown-body') : null);
+        return bind_preview_ui_listeners(previewEl, uiElements, callbacks);
+    }
+
     return {
         injectColorSwatches: inject_color_swatches,
         removeColorSwatches: remove_color_swatches,
@@ -489,6 +661,9 @@ window.PreviewManager = (function() {
         applyPreviewFontFamily: apply_preview_font_family,
         applyPreviewFontSize: apply_preview_font_size,
         applyPreviewMaxWidthLimit: apply_preview_max_width_limit,
+        calcScaledFontSize: calc_scaled_font_size,
+        updateCodeblockScroll: update_codeblock_scroll,
+        initUIControls: init_ui_controls,
         setDiagramSupport: set_diagram_support,
         getDiagramSupport: get_diagram_support,
         setMathSupport: set_math_support,

@@ -321,7 +321,9 @@
 
         // 검증: DOM 속성 확정 여부 단증 확인
         const currentAttr = (typeof document !== 'undefined' && document.documentElement) ? document.documentElement.getAttribute('data-editor-theme') : null;
-        assert_arg(currentAttr, 'Structural Theme Error! data-editor-theme attribute was not established prior to rendering!', { deterministicTheme });
+        assert_arg(currentAttr === deterministicTheme || typeof document === 'undefined', 'data-editor-theme attribute pre-determination verification failed!', { currentAttr, deterministicTheme });
+
+        return deterministicTheme;
     }
 
     function close_all_dropdowns(elements) {
@@ -1772,6 +1774,62 @@
     let currentSessionStorageKey = 'markvi_document_session';
     let currentIsNewSessionSkippedRestore = false;
 
+    /**
+     * pure sub-function: 지정된 키에 세션 데이터를 JSON 직렬화하여 localStorage에 저장합니다.
+     * 
+     * @param {string} storageKey - localStorage 스토리지 키
+     * @param {Object} data - 세션 데이터 객체
+     * @returns {boolean}
+     */
+    function save_session_data_to_storage(storageKey, data) {
+        if (!assert_arg(typeof storageKey === 'string' && storageKey.trim().length > 0, 'save_session_data_to_storage: storageKey must be a non-empty string', { storageKey })) {
+            return false;
+        }
+        if (!assert_arg(data && typeof data === 'object', 'save_session_data_to_storage: data must be a valid object', { data })) {
+            return false;
+        }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(storageKey, JSON.stringify(data));
+                return true;
+            }
+        } catch (e) {
+            console.warn('localStorage 문서 세션 저장 실패:', e);
+        }
+        return false;
+    }
+
+    /**
+     * pure sub-function: editorState, fileState, uiElements를 받아 세션 저장용 직렬화 sessionData DTO를 빌드합니다.
+     * uiElements가 생략된 경우 options.elements / FrameManager.getElements()를 자동 참조합니다.
+     * 
+     * @param {Object} editorState - 에디터 상태 구조체 ({ cm })
+     * @param {Object} fileState - 파일 문서 상태 구조체 ({ filename, isDirty })
+     * @param {Object} [uiElements=null] - UI 엘리먼트 구조체
+     * @returns {Object|null}
+     */
+    function build_session_context(editorState, fileState, uiElements = null) {
+        if (!assert_arg(editorState && editorState.cm && typeof editorState.cm.getValue === 'function', 'build_session_context: editorState with cm instance is required', { editorState })) {
+            return null;
+        }
+
+        const resolvedUiElements = uiElements || options.elements || (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function' ? FrameManager.getElements() : {});
+        const fileObj = fileState || {};
+
+        return {
+            content: editorState.cm.getValue(),
+            filename: fileObj.filename || (typeof window !== 'undefined' ? window.currentFilename : ''),
+            isDirty: fileObj.isDirty !== undefined ? !!fileObj.isDirty : (typeof window !== 'undefined' ? !!window.isDirty : false),
+            editorWidthPercent: resolvedUiElements.editorPanel ? resolvedUiElements.editorPanel.style.width : '',
+            fontFamily: resolvedUiElements.fontSelect ? resolvedUiElements.fontSelect.value : '',
+            fontSize: resolvedUiElements.fontSizeSelect ? resolvedUiElements.fontSizeSelect.value : '',
+            lineColor: resolvedUiElements.lineColorPicker ? resolvedUiElements.lineColorPicker.value : '',
+            previewMaxWidthLimited: resolvedUiElements.togglePreviewMaxWidthCheckbox ? resolvedUiElements.togglePreviewMaxWidthCheckbox.checked : true,
+            colorSwatchEnabled: resolvedUiElements.colorSwatchCheckbox ? resolvedUiElements.colorSwatchCheckbox.checked : true,
+            scrollSyncEnabled: resolvedUiElements.scrollSyncCheckbox ? resolvedUiElements.scrollSyncCheckbox.checked : true
+        };
+    }
+
     const SessionManager = {
         init: function(userOpts = {}) {
             if (userOpts !== undefined && userOpts !== null) {
@@ -1813,7 +1871,25 @@
             if (!assert_arg(sessionData && typeof sessionData === 'object', 'SessionManager.saveData: sessionData must be a valid object', { sessionData })) {
                 return false;
             }
-            return save_document_session_data(currentSessionStorageKey, sessionData);
+            return save_session_data_to_storage(currentSessionStorageKey, sessionData);
+        },
+
+        saveSession: function(editorState, fileState, uiElements = null) {
+            // 구조체 형태(단일 객체)로 넘어온 경우의 호환성 보정
+            if (editorState && !editorState.cm && editorState.editorState) {
+                const combined = editorState;
+                editorState = combined.editorState;
+                fileState = combined.fileState;
+                uiElements = combined.uiElements || combined.elements;
+            } else if (editorState && editorState.cm && editorState.fileState) {
+                fileState = editorState.fileState;
+                uiElements = editorState.uiElements || editorState.elements;
+            }
+
+            const sessionData = build_session_context(editorState, fileState, uiElements);
+            if (!sessionData) return false;
+
+            return this.saveData(sessionData);
         },
 
         readData: function() {
@@ -1849,6 +1925,21 @@
                 onScrollSyncToggle: options.actions.onScrollSyncToggle
             });
             return true;
+        },
+
+        restoreSession: function(appContext = {}) {
+            const sessionData = this.readData();
+            if (!sessionData) return null;
+
+            const cm = appContext.cm || (typeof window !== 'undefined' ? window.cm : null);
+            if (cm) {
+                this.restoreContent(cm, sessionData, {
+                    onUpdateFilename: appContext.onUpdateFilename || (typeof window !== 'undefined' ? window.updateFilenameDisplay : null)
+                });
+            }
+
+            this.restoreUI(sessionData);
+            return sessionData;
         }
     };
 
