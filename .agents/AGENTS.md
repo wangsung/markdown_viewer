@@ -91,6 +91,8 @@
     1. 최상단 붉은색 **System Warning 디버깅 배너**를 시각적으로 즉시 노출합니다.
     2. 에러 트러블슈팅을 위한 상세 스택 및 컨텍스트 정보를 **`localStorage` (`markvi_error_logs`) 및 에러 로그 기록 체계에 누적 저장**합니다.
     3. 디버그 환경 시 **Fail-Fast** 원칙에 따라 Error를 throw하여 오염된 상태가 시스템 하부로 전파되는 것을 즉시 차단합니다.
+- **버그 분석 시 `assert_arg` 로그 우선 참조 지침 (Pre-diagnosis Assert Log Reference Policy)**:
+  - 런타임 장애, UI 동작 불능 또는 테스트 실패 현상을 분석할 때에는 짐작이나 추측에 의존하지 않고, 반드시 **직전 동작 시 시스템에 기록된 `assert_arg` 단증 실패 로그(`console.error` 및 `localStorage('markvi_error_logs')`)를 최우선으로 조회 및 참고하여 근본 원인을 진단**해야 합니다.
 
 ## UI 레이아웃 및 렌더링 세부 지침 (UI Layout & Rendering Detailed Policy)
 - **서브픽셀 떨림 방지를 위한 정수 픽셀(Integer Pixel) 배치 원칙**:
@@ -103,6 +105,8 @@
 ## UI 컴포넌트 캡슐화 및 폼 헬퍼 설계 지침 (UI Component Encapsulation & Form Helper Policy)
 - **UI 마크업 및 아이콘 상수화 규칙 (UI Markup & Icon Centralization Rule)**:
   - SVG 아이콘, CSS 뱃지, 태그 라벨 등 시각적 HTML 마크업은 렌더링 함수 내에 하드코딩하지 않고, 모듈 상단 대문자 상수 객체(`TABLE_ICONS`, `TEXT_TAG_LABELS`)로 추출하여 일원화 참조한다.
+- **멀티라인 HTML/MD 텍스트 상수 전역 선언 수칙 (Multiline HTML/MD Text Constant Rule)**:
+  - 여러 줄의 HTML 템플릿 스트링이나 마크다운(MD) 텍스트 데이터(`DEFAULT_WELCOME_TEXT`, `DEFAULT_SETTINGS_TEMPLATE` 등)는 함수 내부(`function`)에 인라인으로 포함하지 않으며, 반드시 **모듈 상단 파일 스코프(Top-level Scope)에 대문자 상수(`const DEFAULT_*`)로 독립 선언하고 함수 내부에서는 해당 상수를 인용/반환**하여 사용한다.
 - **UI 폼 헬퍼 옵션 객체 규칙 (Form Helper Options Object Rule)**:
   - 피커 쌍 및 복합 폼 생성 서브 함수는 옵션 객체(`opts = {}`) 패턴을 적용하여(`build_color_pair_html`), 라벨·여백·툴팁 오버라이드를 유연하게 지원하고 호출 코드를 1줄로 단축한다.
 - **단위 테스트 동기 검증 규칙 (Unit Test Synchronization Rule)**:
