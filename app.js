@@ -240,14 +240,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
-    window.assert_arg(typeof PreviewManager !== 'undefined', 'PreviewManager module is required!');
-    PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
-    PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
+    if (typeof PreviewManager !== 'undefined') {
+        if (typeof PreviewManager.initMath === 'function') {
+            PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
+        }
+        if (typeof PreviewManager.initDiagrams === 'function') {
+            PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
+        }
+    }
 
     // Main Render Function with Line Mapping
     function renderMarkdown() {
-        window.assert_arg(typeof window.PreviewManager !== 'undefined', 'PreviewManager module is required!');
-        PreviewManager.renderMarkdown(cm, preview, colorSwatchCheckbox, scrollSync, typeof buildTOC === 'function' ? buildTOC : null);
+        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.renderMarkdown === 'function') {
+            PreviewManager.renderMarkdown(cm, preview, colorSwatchCheckbox, scrollSync, typeof buildTOC === 'function' ? buildTOC : null);
+        }
     }
 
     // (초기 렌더링 및 입력 이벤트 리스너는 변수 TDZ 참조 오류를 방지하기 위해 스크롤 싱크 로직이 완료된 파일 최하단으로 이동 배치되었습니다)

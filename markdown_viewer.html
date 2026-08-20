@@ -442,13 +442,19 @@
     <script src="libs/codemirror/codemirror.min.js"></script>
     <script src="libs/codemirror/mode/xml/xml.min.js"></script>
     <script src="libs/codemirror/mode/markdown/markdown.min.js"></script>
+    <!-- 6-Layer Script Loading Structure -->
+    <!-- Layer 1: Frame Infrastructure -->
     <script src="frame-man.js"></script>
+    <!-- Layer 2: Export & Assets -->
     <script src="export-man.js"></script>
+    <!-- Layer 3: Renderer & Editor Engines -->
+    <script src="preview-man.js"></script>
     <script src="editor-man.js"></script>
+    <!-- Layer 4: Interactive Dialogs & Helpers -->
     <script src="style-editor.js"></script>
     <script src="scroll-sync.js"></script>
     <script src="settings-man.js"></script>
-    <script src="preview-man.js"></script>
+    <!-- Layer 5: Main Orchestrator -->
     <script src="app.js"></script>
 </body>
 </html>
