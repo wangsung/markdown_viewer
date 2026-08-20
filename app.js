@@ -36,66 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    // 디버그용 전역 에러 핸들러 (localStorage 로그 기록 및 상단 경고창 기능 포함)
-    // 활성화 플래그 (기본값: true / enable)
-    window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
-
-    window.onerror = function(message, source, lineno, colno, error) {
-        // 플래그가 false 이거나 localStorage에 'markvi_debug_enabled'가 'false'이면 핸들러 비활성화
-        if (window.ENABLE_DEBUG_HANDLER === false || localStorage.getItem('markvi_debug_enabled') === 'false') {
-            return false;
-        }
-
-        // 브라우저의 CORS 및 로컬 파일보안 정책에 의한 무의미한 'Script error.' 필터링
-        if (message === "Script error." || !source) {
-            console.warn('Cross-Origin/Local 보안 제한으로 상세 디버그 정보 수집 제한 (무시 처리)');
-            return false;
-        }
-
-        let errBox = document.getElementById('debug-error-banner');
-        if (!errBox) {
-            errBox = document.createElement('div');
-            errBox.id = 'debug-error-banner';
-            errBox.style.position = 'fixed';
-            errBox.style.top = '0';
-            errBox.style.left = '0';
-            errBox.style.width = '100%';
-            errBox.style.background = '#ef4444';
-            errBox.style.color = '#ffffff';
-            errBox.style.zIndex = '999999';
-            errBox.style.padding = '8px 12px';
-            errBox.style.fontSize = '12px';
-            errBox.style.fontFamily = 'monospace';
-            errBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-            errBox.style.wordBreak = 'break-all';
-            document.body.appendChild(errBox);
-        }
-        errBox.textContent = `[JS Runtime Error] ${message} at ${source}:${lineno}:${colno}`;
-        
-        // localStorage에 에러 로그 누적 저장 (최대 50개 제한)
-        try {
-            const rawLogs = localStorage.getItem('markvi_error_logs');
-            const logs = rawLogs ? JSON.parse(rawLogs) : [];
-            const newLog = {
-                timestamp: new Date().toISOString(),
-                message: message,
-                source: source,
-                line: lineno,
-                column: colno,
-                stack: error && error.stack ? error.stack : null
-            };
-            logs.unshift(newLog); // 최신 에러가 맨 위로 오도록 추가
-            if (logs.length > 50) {
-                logs.length = 50; // 최대 50개까지 보관하여 용량 낭비 방지
-            }
-            localStorage.setItem('markvi_error_logs', JSON.stringify(logs));
-        } catch (e) {
-            console.warn('Failed to save error log to localStorage:', e);
-        }
-
-        console.error(error);
-        return false;
-    };
+    // 전역 디버그 에러 핸들러 수립 (SysEnvManager 위임)
+    if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.installGlobalErrorHandler === 'function') {
+        SysEnvManager.installGlobalErrorHandler();
+    }
 
     // HTML Escape helper
     function escapeHtml(text) {

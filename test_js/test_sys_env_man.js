@@ -103,6 +103,8 @@ runAssert(typeof SysEnvManager === 'object', 'SysEnvManager object exists global
 runAssert(typeof SysEnvManager.detectBrowser === 'function', 'SysEnvManager.detectBrowser exists');
 runAssert(typeof SysEnvManager.showBanner === 'function', 'SysEnvManager.showBanner exists');
 runAssert(typeof SysEnvManager.hideBanner === 'function', 'SysEnvManager.hideBanner exists');
+runAssert(typeof SysEnvManager.showToast === 'function', 'SysEnvManager.showToast exists');
+runAssert(typeof SysEnvManager.installGlobalErrorHandler === 'function', 'SysEnvManager.installGlobalErrorHandler exists');
 runAssert(typeof SysEnvManager.getBrowserType === 'function', 'SysEnvManager.getBrowserType exists');
 runAssert(typeof SysEnvManager.capturePendingExtensionFile === 'function', 'SysEnvManager.capturePendingExtensionFile exists');
 runAssert(typeof SysEnvManager.getPendingExtensionFile === 'function', 'SysEnvManager.getPendingExtensionFile exists');

@@ -171,6 +171,106 @@
         }
     }
 
+    /**
+     * pure sub-function: 전역 window.onerror 핸들러를 등록하고 런타임 에러를 디버그 배너 및 localStorage에 누적 저장합니다.
+     */
+    function install_global_error_handler() {
+        if (typeof window === 'undefined') return;
+        window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            if (window.ENABLE_DEBUG_HANDLER === false) return false;
+            try {
+                if (typeof localStorage !== 'undefined' && localStorage.getItem('markvi_debug_enabled') === 'false') {
+                    return false;
+                }
+            } catch (e) {}
+
+            if (message === "Script error." || !source) {
+                console.warn('Cross-Origin/Local 보안 제한으로 상세 디버그 정보 수집 제한 (무시 처리)');
+                return false;
+            }
+
+            let errBox = document.getElementById('debug-error-banner');
+            if (!errBox && typeof document !== 'undefined' && document.body) {
+                errBox = document.createElement('div');
+                errBox.id = 'debug-error-banner';
+                errBox.style.position = 'fixed';
+                errBox.style.top = '0';
+                errBox.style.left = '0';
+                errBox.style.width = '100%';
+                errBox.style.background = '#ef4444';
+                errBox.style.color = '#ffffff';
+                errBox.style.zIndex = '999999';
+                errBox.style.padding = '8px 12px';
+                errBox.style.fontSize = '12px';
+                errBox.style.fontFamily = 'monospace';
+                errBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+                errBox.style.wordBreak = 'break-all';
+                document.body.appendChild(errBox);
+            }
+            if (errBox) {
+                errBox.textContent = `[JS Runtime Error] ${message} at ${source}:${lineno}:${colno}`;
+            }
+
+            try {
+                const rawLogs = safe_get_storage_item('markvi_error_logs', '[]');
+                const logs = typeof rawLogs === 'string' ? JSON.parse(rawLogs) : [];
+                const newLog = {
+                    timestamp: new Date().toISOString(),
+                    message: message,
+                    source: source,
+                    line: lineno,
+                    column: colno,
+                    stack: error && error.stack ? error.stack : null
+                };
+                logs.unshift(newLog);
+                if (logs.length > 50) logs.length = 50;
+                safe_set_storage_item('markvi_error_logs', JSON.stringify(logs));
+            } catch (e) {}
+
+            console.error(error);
+            return false;
+        };
+    }
+
+    /**
+     * pure sub-function: 화면 중앙 하단 일시적 토스트 메시지를 표시하는 안전 헬퍼
+     * @param {string} message - 토스트 문구
+     * @param {number} [duration=3000] - 지속 시간 (ms)
+     */
+    function show_toast_ui(message, duration = 3000) {
+        if (typeof document === 'undefined') return;
+        let toastBox = document.getElementById('global-toast-message');
+        if (!toastBox && document.body) {
+            toastBox = document.createElement('div');
+            toastBox.id = 'global-toast-message';
+            toastBox.style.position = 'fixed';
+            toastBox.style.bottom = '24px';
+            toastBox.style.left = '50%';
+            toastBox.style.transform = 'translateX(-50%)';
+            toastBox.style.background = '#1e293b';
+            toastBox.style.color = '#f8fafc';
+            toastBox.style.padding = '8px 16px';
+            toastBox.style.borderRadius = '6px';
+            toastBox.style.fontSize = '13px';
+            toastBox.style.zIndex = '99999';
+            toastBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            toastBox.style.transition = 'opacity 0.2s ease-in-out';
+            toastBox.style.opacity = '0';
+            document.body.appendChild(toastBox);
+        }
+
+        if (toastBox) {
+            toastBox.textContent = message;
+            toastBox.style.opacity = '1';
+            clearTimeout(toastBox._timer);
+            toastBox._timer = setTimeout(() => {
+                toastBox.style.opacity = '0';
+            }, duration);
+        }
+    }
+
     let pendingExtensionFilePath = null;
 
     /**
@@ -295,6 +395,8 @@
         detectBrowser: detect_browser_type,
         showBanner: show_global_bottom_banner_ui,
         hideBanner: hide_global_bottom_banner_ui,
+        showToast: show_toast_ui,
+        installGlobalErrorHandler: install_global_error_handler,
         getBrowserType: detect_browser_type,
         capturePendingExtensionFile: capture_pending_extension_file,
         getPendingExtensionFile: get_pending_extension_file,
@@ -303,6 +405,9 @@
         getStorageItem: safe_get_storage_item,
         setStorageItem: safe_set_storage_item
     };
+
+    // Layer 1 인프라 모듈 로드 직후 전역 에러 감시자 조기 수립 (DOMContentLoaded 전 로딩 장애 감지)
+    install_global_error_handler();
 
 
     /**
@@ -2280,7 +2385,9 @@
             return SessionManager.restoreUI(sessionData);
         },
 
-        initializePanelWidths: initialize_panel_widths
+        initializePanelWidths: initialize_panel_widths,
+        showToast: show_toast_ui,
+        installGlobalErrorHandler: install_global_error_handler
     };
 
     if (typeof window !== 'undefined') {
@@ -2297,6 +2404,8 @@
     FrameManager.detectBrowserType = detect_browser_type;
     FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
     FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
+    FrameManager.showToast = show_toast_ui;
+    FrameManager.installGlobalErrorHandler = install_global_error_handler;
     FrameManager.initializePanelWidths = initialize_panel_widths;
     FrameManager.RecentFileManager = RecentFileManager;
     FrameManager.TocManager = TocManager;
