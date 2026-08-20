@@ -1038,14 +1038,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Step 3. 오픈 준비 완비 보장 & 모듈/파일 렌더링 게이트웨이
     // ==========================================================================
     const initExtensionModulesAndPendingOpen = () => {
-        // 문서 시작 시 Heading Preset 초기화
+        // 1. 문서 시작 시 Heading Preset 초기화 및 적용
         if (typeof StylePresetManager !== 'undefined') {
             if (typeof StylePresetManager.updateSelects === 'function') StylePresetManager.updateSelects();
             const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             if (typeof StylePresetManager.applyPreset === 'function') StylePresetManager.applyPreset(activePreset);
         }
 
-        // ScrollSync 인스턴스 생성 및 초기화 (ScrollSyncManager 위임)
+        // 2. 프리뷰 마크다운 HTML 및 DOM 1차 렌더링 완성 (프리뷰 요소 화면 형성)
+        if (typeof renderMarkdown === 'function') {
+            renderMarkdown();
+        }
+
+        // 3. 프리뷰 DOM 생성이 완료된 후 ScrollSync 인스턴스 초기화 (cm, preview 인자 명시 전달)
         if (typeof ScrollSyncManager !== 'undefined' && typeof ScrollSyncManager.init === 'function') {
             scrollSync = ScrollSyncManager.init(cm, preview, {
                 previewViewport: document.querySelector('.preview-viewport'),
@@ -1056,7 +1061,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 onDebugUpdate: (keyframes, activeSource) => {
-                    updateDebugPanelUI(keyframes, activeSource);
+                    if (typeof updateDebugPanelUI === 'function') {
+                        updateDebugPanelUI(keyframes, activeSource);
+                    }
                 },
                 onToast: (msg) => {
                     if (typeof showToast === 'function') {
@@ -1073,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cm.refresh();
         }
 
-        // Step 3. Pending 파일이 존재하는 경우 표준 파일 로더 및 renderMarkdown() 구동
+        // 4. Pending 파일이 존재하는 경우 표준 파일 로더 및 renderMarkdown() 2차 구동
         if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.getPendingExtensionFile === 'function') {
             const pendingPath = SysEnvManager.getPendingExtensionFile();
             if (pendingPath) {
