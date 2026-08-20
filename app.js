@@ -4,33 +4,35 @@ document.addEventListener('DOMContentLoaded', () => {
         SysEnvManager.capturePendingExtensionFile();
     }
 
-    // 💡 Extension 환경 감지 및 필수 모듈 사전 단증 (Fail-Fast Policy)
-    if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
-        const isExtensionEnv = (typeof chrome !== 'undefined' && chrome && chrome.runtime && typeof chrome.runtime.id === 'string');
+    // 💡 Extension 환경 감지 및 비확장 모드 동기 사전 단증 (Fail-Fast Policy)
+    // 확장 모드에서는 게이트 B(ensureExtensionOpenReady)의 5초 비동기 유예 정책에 전적으로 위임합니다.
+    const isExtensionEnv = (typeof chrome !== 'undefined' && chrome && chrome.runtime && typeof chrome.runtime.id === 'string');
 
+    if (!isExtensionEnv && typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
         const isCoreReady = (
             typeof FrameManager !== 'undefined' &&
+            typeof ExportManager !== 'undefined' &&
             typeof PreviewManager !== 'undefined' &&
-            typeof EditorManager !== 'undefined'
+            typeof EditorManager !== 'undefined' &&
+            typeof StylePresetManager !== 'undefined' &&
+            typeof ScrollSyncManager !== 'undefined' &&
+            typeof SettingsManager !== 'undefined'
         );
-
-        const assertMessage = isExtensionEnv
-            ? '[Chrome Extension Error] 필수 모듈 로드 실패! content.js 정규식 및 manifest.json의 web_accessible_resources 화이트리스트 등록 상태를 점검하세요.'
-            : '[Web/File Standard Error] 필수 모듈 로드 실패! markdown_viewer.html의 6단계 스크립트 로딩 태그 순서를 점검하세요.';
 
         window.assert_arg(
             isCoreReady,
-            assertMessage,
+            '[Web/File Standard Error] 필수 모듈 로드 실패! markdown_viewer.html의 6단계 스크립트 로딩 태그 순서를 점검하세요.',
             {
-                isExtensionEnv: isExtensionEnv,
-                extensionId: isExtensionEnv ? chrome.runtime.id : null,
+                isExtensionEnv: false,
                 location: window.location.href,
                 modulesStatus: {
                     FrameManager: typeof FrameManager,
+                    ExportManager: typeof ExportManager,
                     PreviewManager: typeof PreviewManager,
                     EditorManager: typeof EditorManager,
                     StylePresetManager: typeof StylePresetManager,
-                    ScrollSyncManager: typeof ScrollSyncManager
+                    ScrollSyncManager: typeof ScrollSyncManager,
+                    SettingsManager: typeof SettingsManager
                 }
             }
         );

@@ -346,9 +346,13 @@
         const check_modules = () => {
             attempts++;
             const missingModules = [];
+            if (typeof window === 'undefined' || typeof window.FrameManager === 'undefined') missingModules.push('FrameManager');
+            if (typeof window === 'undefined' || typeof window.ExportManager === 'undefined') missingModules.push('ExportManager');
             if (typeof window === 'undefined' || typeof window.PreviewManager === 'undefined') missingModules.push('PreviewManager');
+            if (typeof window === 'undefined' || typeof window.EditorManager === 'undefined') missingModules.push('EditorManager');
             if (typeof window === 'undefined' || typeof window.StylePresetManager === 'undefined') missingModules.push('StylePresetManager');
             if (typeof window === 'undefined' || typeof window.ScrollSyncManager === 'undefined') missingModules.push('ScrollSyncManager');
+            if (typeof window === 'undefined' || typeof window.SettingsManager === 'undefined') missingModules.push('SettingsManager');
 
             // 1. 모든 필수 모듈이 100% 안착된 경우: 배너 숨기고 즉시 성공 통지
             if (missingModules.length === 0) {
