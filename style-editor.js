@@ -214,12 +214,14 @@
     // ==========================================================================
     function get_heading_presets_data() {
         try {
-            if (typeof localStorage !== 'undefined' && localStorage) {
-                const stored = localStorage.getItem('markvi_heading_presets');
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-                }
+            const getStorage = (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.getStorageItem === 'function')
+                ? SysEnvManager.getStorageItem
+                : (key) => (typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null);
+
+            const stored = getStorage('markvi_heading_presets');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
             }
         } catch (e) {
             console.warn('Failed to parse heading presets:', e);
@@ -230,7 +232,9 @@
     function save_heading_presets_data(presets) {
         assert_arg(Array.isArray(presets), 'save_heading_presets_data: presets must be an Array!', { presets });
         try {
-            if (typeof localStorage !== 'undefined' && localStorage) {
+            if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.setStorageItem === 'function') {
+                SysEnvManager.setStorageItem('markvi_heading_presets', JSON.stringify(presets));
+            } else if (typeof localStorage !== 'undefined' && localStorage) {
                 localStorage.setItem('markvi_heading_presets', JSON.stringify(presets));
             }
         } catch (e) {
@@ -307,8 +311,12 @@
             window.EditorManager.apply_heading_preset(root, styles, currentTheme);
         }
 
-        if (!tempStyles && typeof localStorage !== 'undefined' && localStorage) {
-            localStorage.setItem('markvi_active_heading_preset', presetId);
+        if (!tempStyles) {
+            if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.setStorageItem === 'function') {
+                SysEnvManager.setStorageItem('markvi_active_heading_preset', presetId);
+            } else if (typeof localStorage !== 'undefined' && localStorage) {
+                try { localStorage.setItem('markvi_active_heading_preset', presetId); } catch(e) {}
+            }
         }
 
         if (typeof document !== 'undefined' && document) {

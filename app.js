@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 💡 Step 1. 극초기 전처리: URL 쿼리 파라미터(?file=...) 더블클릭 파일 경로 캡처
+    if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.capturePendingExtensionFile === 'function') {
+        SysEnvManager.capturePendingExtensionFile();
+    }
+
+    // 💡 Extension 환경 감지 및 필수 모듈 사전 단증 (Fail-Fast Policy)
+    if (typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+        const isExtensionEnv = (typeof chrome !== 'undefined' && chrome && chrome.runtime && typeof chrome.runtime.id === 'string');
+
+        const isCoreReady = (
+            typeof FrameManager !== 'undefined' &&
+            typeof PreviewManager !== 'undefined' &&
+            typeof EditorManager !== 'undefined'
+        );
+
+        const assertMessage = isExtensionEnv
+            ? '[Chrome Extension Error] 필수 모듈 로드 실패! content.js 정규식 및 manifest.json의 web_accessible_resources 화이트리스트 등록 상태를 점검하세요.'
+            : '[Web/File Standard Error] 필수 모듈 로드 실패! markdown_viewer.html의 6단계 스크립트 로딩 태그 순서를 점검하세요.';
+
+        window.assert_arg(
+            isCoreReady,
+            assertMessage,
+            {
+                isExtensionEnv: isExtensionEnv,
+                extensionId: isExtensionEnv ? chrome.runtime.id : null,
+                location: window.location.href,
+                modulesStatus: {
+                    FrameManager: typeof FrameManager,
+                    PreviewManager: typeof PreviewManager,
+                    EditorManager: typeof EditorManager,
+                    StylePresetManager: typeof StylePresetManager,
+                    ScrollSyncManager: typeof ScrollSyncManager
+                }
+            }
+        );
+    }
+
     // 디버그용 전역 에러 핸들러 (localStorage 로그 기록 및 상단 경고창 기능 포함)
     // 활성화 플래그 (기본값: true / enable)
     window.ENABLE_DEBUG_HANDLER = (typeof window.ENABLE_DEBUG_HANDLER !== 'undefined') ? window.ENABLE_DEBUG_HANDLER : true;
@@ -330,7 +367,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 onThemeChange: (theme) => {
                     apply_code_theme(theme);
                     const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-                    StylePresetManager.applyPreset(activePresetId);
+                    if (typeof StylePresetManager !== 'undefined' && typeof StylePresetManager.applyPreset === 'function') {
+                        StylePresetManager.applyPreset(activePresetId);
+                    }
                 },
                 onPanelResize: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
@@ -1062,34 +1101,75 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 문서 시작 시 Heading Preset 초기화
-    StylePresetManager.updateSelects();
-    const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-    StylePresetManager.applyPreset(activePreset);
+    // ==========================================================================
+    // Step 3. 오픈 준비 완비 보장 & 모듈/파일 렌더링 게이트웨이
+    // ==========================================================================
+    const initExtensionModulesAndPendingOpen = () => {
+        // 문서 시작 시 Heading Preset 초기화
+        if (typeof StylePresetManager !== 'undefined') {
+            if (typeof StylePresetManager.updateSelects === 'function') StylePresetManager.updateSelects();
+            const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+            if (typeof StylePresetManager.applyPreset === 'function') StylePresetManager.applyPreset(activePreset);
+        }
 
-    // ScrollSync 인스턴스 생성 및 초기화 (ScrollSyncManager 위임)
-    scrollSync = ScrollSyncManager.init(cm, preview, {
-        previewViewport: document.querySelector('.preview-viewport'),
-        enableScrollSync: enableScrollSync,
-        onActiveLineChange: (lineNum) => {
-            if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
-                TocManager.highlightActive(lineNum);
-            }
-        },
-        onDebugUpdate: (keyframes, activeSource) => {
-            updateDebugPanelUI(keyframes, activeSource);
-        },
-        onToast: (msg) => {
-            if (typeof showToast === 'function') {
-                showToast(msg, 2000);
+        // ScrollSync 인스턴스 생성 및 초기화 (ScrollSyncManager 위임)
+        if (typeof ScrollSyncManager !== 'undefined' && typeof ScrollSyncManager.init === 'function') {
+            scrollSync = ScrollSyncManager.init(cm, preview, {
+                previewViewport: document.querySelector('.preview-viewport'),
+                enableScrollSync: enableScrollSync,
+                onActiveLineChange: (lineNum) => {
+                    if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
+                        TocManager.highlightActive(lineNum);
+                    }
+                },
+                onDebugUpdate: (keyframes, activeSource) => {
+                    updateDebugPanelUI(keyframes, activeSource);
+                },
+                onToast: (msg) => {
+                    if (typeof showToast === 'function') {
+                        showToast(msg, 2000);
+                    }
+                }
+            });
+            if (typeof window !== 'undefined') {
+                window.scrollSync = scrollSync;
             }
         }
-    });
-    if (typeof window !== 'undefined') {
-        window.scrollSync = scrollSync;
-    }
-    if (cm && typeof cm.refresh === 'function') {
-        cm.refresh();
+
+        if (cm && typeof cm.refresh === 'function') {
+            cm.refresh();
+        }
+
+        // Step 3. Pending 파일이 존재하는 경우 표준 파일 로더 및 renderMarkdown() 구동
+        if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.getPendingExtensionFile === 'function') {
+            const pendingPath = SysEnvManager.getPendingExtensionFile();
+            if (pendingPath) {
+                const path = SysEnvManager.clearPendingExtensionFile() || pendingPath;
+                const fileName = path.split(/[/\\]/).pop() || path;
+                if (typeof updateFilenameDisplay === 'function') {
+                    updateFilenameDisplay(fileName, false);
+                }
+                if (typeof renderMarkdown === 'function') {
+                    renderMarkdown();
+                }
+                console.log('🔗 Step 3: Standard file loader & renderMarkdown safely executed for pending path:', path);
+            }
+        }
+    };
+
+    // 중앙 게이트웨이를 통해 모듈 완비 대기 후 정돈된 바인딩 실행!
+    if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.ensureExtensionOpenReady === 'function') {
+        SysEnvManager.ensureExtensionOpenReady(
+            initExtensionModulesAndPendingOpen,
+            (missing) => {
+                console.error('🚨 Extension Entry Module Error: Failed to load modules in time:', missing);
+                if (typeof SysEnvManager.showBanner === 'function') {
+                    SysEnvManager.showBanner(`[Module Load Warning] 일부 필수 모듈(${missing.join(', ')}) 로딩이 지연되었습니다. 페이지를 새로고침(F5) 해주세요.`);
+                }
+            }
+        );
+    } else {
+        initExtensionModulesAndPendingOpen();
     }
 });
 

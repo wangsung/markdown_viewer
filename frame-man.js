@@ -171,14 +171,137 @@
         }
     }
 
+    let pendingExtensionFilePath = null;
+
+    /**
+     * Step 1. 극초기 전처리: URL 쿼리 파라미터(?file=...)에서 탐색기 더블클릭 파일 경로만 캡처하는 순수 서브 함수.
+     * @returns {string|null} 캡처된 파일 경로
+     */
+    function capture_pending_extension_file() {
+        if (typeof window === 'undefined' || !window.location || !window.location.search) {
+            pendingExtensionFilePath = null;
+            return null;
+        }
+
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const filePath = urlParams.get('file');
+            if (filePath && typeof filePath === 'string' && filePath.trim().length > 0) {
+                pendingExtensionFilePath = filePath.trim();
+                return pendingExtensionFilePath;
+            }
+        } catch (e) {
+            console.warn('Failed to parse URLSearchParams for extension file capture:', e);
+        }
+
+        pendingExtensionFilePath = null;
+        return null;
+    }
+
+    function get_pending_extension_file() {
+        return pendingExtensionFilePath;
+    }
+
+    function clear_pending_extension_file() {
+        const temp = pendingExtensionFilePath;
+        pendingExtensionFilePath = null;
+        return temp;
+    }
+
+    /**
+     * pure sub-function: localStorage 읽기 시 발생할 수 있는 SecurityError 및 null 파싱 예외를 try-catch로 완전 격리하는 안전 헬퍼.
+     * @param {string} key - 스토리지 키
+     * @param {any} [fallbackValue=null] - 실패 시 반환할 안전 기본값
+     * @returns {string|any}
+     */
+    function safe_get_storage_item(key, fallbackValue = null) {
+        if (typeof window === 'undefined' || typeof localStorage === 'undefined') return fallbackValue;
+        try {
+            const val = localStorage.getItem(key);
+            return val !== null ? val : fallbackValue;
+        } catch (e) {
+            console.warn(`[SysEnvManager] Failed to read ${key} from storage:`, e);
+            return fallbackValue;
+        }
+    }
+
+    /**
+     * pure sub-function: localStorage 쓰기 시 발생할 수 있는 SecurityError 예외를 try-catch로 완전 격리하는 안전 헬퍼.
+     * @param {string} key - 스토리지 키
+     * @param {any} value - 저장할 값
+     * @returns {boolean} 저장 성공 여부
+     */
+    function safe_set_storage_item(key, value) {
+        if (typeof window === 'undefined' || typeof localStorage === 'undefined') return false;
+        try {
+            localStorage.setItem(key, String(value));
+            return true;
+        } catch (e) {
+            console.warn(`[SysEnvManager] Failed to write ${key} to storage:`, e);
+            return false;
+        }
+    }
+
+    /**
+     * pure sub-function: 크롬 확장 프로그램 및 더블클릭 환경 시 필수 전역 모듈의 오픈 준비 완비(Open-Ready) 상태를 대기/검증하고, 지연 대기 또는 명확한 에러를 방출하는 안전 게이트웨이.
+     * @param {Function} onReady - 오픈 준비 완비 시 실행할 콜백
+     * @param {Function} [onError] - 타임아웃 발생 시 실행할 에러 콜백
+     */
+    function ensure_extension_open_ready(onReady, onError) {
+        if (typeof onReady !== 'function') return;
+
+        let attempts = 0;
+        const maxAttempts = 250; // 20ms 간격으로 최대 5초간 넉넉하게 대기 (20ms * 250)
+
+        const check_modules = () => {
+            attempts++;
+            const missingModules = [];
+            if (typeof window === 'undefined' || typeof window.PreviewManager === 'undefined') missingModules.push('PreviewManager');
+            if (typeof window === 'undefined' || typeof window.StylePresetManager === 'undefined') missingModules.push('StylePresetManager');
+            if (typeof window === 'undefined' || typeof window.ScrollSyncManager === 'undefined') missingModules.push('ScrollSyncManager');
+
+            // 1. 모든 필수 모듈이 100% 안착된 경우: 배너 숨기고 즉시 성공 통지
+            if (missingModules.length === 0) {
+                if (typeof hide_global_bottom_banner_ui === 'function') {
+                    hide_global_bottom_banner_ui();
+                }
+                onReady();
+                return;
+            }
+
+            // 2. 미완비되었으나 5초 대기 시간이 남아있는 경우: 20ms 지연 대기 후 재검사
+            if (attempts < maxAttempts) {
+                setTimeout(check_modules, 20);
+            } else {
+                // 3. 5초 타임아웃 초과 시: 명확한 System Warning 메시지 및 배너 방출
+                const errorMsg = `[Module Gate Error] 필수 모듈 로딩 지연: ${missingModules.join(', ')}`;
+                console.error(errorMsg);
+                if (typeof show_global_bottom_banner_ui === 'function') {
+                    show_global_bottom_banner_ui(errorMsg);
+                }
+                if (typeof onError === 'function') {
+                    onError(missingModules);
+                }
+            }
+        };
+
+        check_modules();
+    }
+
     // ==========================================================================
-    // SysEnvManager 서브 객체 (시스템 환경 감지 및 전역 배너 제어 전용)
+    // SysEnvManager 서브 객체 (시스템 환경 감지 및 전역 배너/더블클릭 캡처 전용)
     // ==========================================================================
     const SysEnvManager = {
         detectBrowser: detect_browser_type,
         showBanner: show_global_bottom_banner_ui,
         hideBanner: hide_global_bottom_banner_ui,
-        getBrowserType: detect_browser_type
+        getBrowserType: detect_browser_type,
+        capturePendingExtensionFile: capture_pending_extension_file,
+        getPendingExtensionFile: get_pending_extension_file,
+        clearPendingExtensionFile: clear_pending_extension_file,
+        ensureExtensionOpenReady: ensure_extension_open_ready,
+        getStorageItem: safe_get_storage_item,
+        setStorageItem: safe_set_storage_item
     };
 
 
@@ -275,13 +398,7 @@
             document.documentElement.setAttribute('data-editor-theme', targetTheme);
         }
 
-        try {
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem('markvi_editor_theme', targetTheme);
-            }
-        } catch (e) {
-            console.warn('Failed to save theme to localStorage:', e);
-        }
+        safe_set_storage_item('markvi_editor_theme', targetTheme);
 
         if (targetTheme === 'dark') {
             if (elements && elements.themeIconSun) elements.themeIconSun.style.display = 'none';
@@ -299,14 +416,7 @@
     }
 
     function init_theme_ui(elements, onThemeChange) {
-        let savedTheme = null;
-        try {
-            if (typeof localStorage !== 'undefined') {
-                savedTheme = localStorage.getItem('markvi_editor_theme');
-            }
-        } catch (e) {
-            console.warn('Failed to read theme from localStorage:', e);
-        }
+        let savedTheme = safe_get_storage_item('markvi_editor_theme', 'dark');
 
         // 테마 확정 (Pre-determination before Frame/Editor/Preview rendering)
         // 저장된 테마가 없으면 초기 기본값 'dark'로 명시적 확정
@@ -2046,6 +2156,10 @@
         detectBrowserType: detect_browser_type,
         showGlobalBottomBanner: show_global_bottom_banner_ui,
         hideGlobalBottomBanner: hide_global_bottom_banner_ui,
+        capturePendingExtensionFile: capture_pending_extension_file,
+        getPendingExtensionFile: get_pending_extension_file,
+        clearPendingExtensionFile: clear_pending_extension_file,
+        ensureExtensionOpenReady: ensure_extension_open_ready,
 
         RecentFileManager: RecentFileManager,
 

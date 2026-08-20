@@ -104,10 +104,27 @@ runAssert(typeof SysEnvManager.detectBrowser === 'function', 'SysEnvManager.dete
 runAssert(typeof SysEnvManager.showBanner === 'function', 'SysEnvManager.showBanner exists');
 runAssert(typeof SysEnvManager.hideBanner === 'function', 'SysEnvManager.hideBanner exists');
 runAssert(typeof SysEnvManager.getBrowserType === 'function', 'SysEnvManager.getBrowserType exists');
+runAssert(typeof SysEnvManager.capturePendingExtensionFile === 'function', 'SysEnvManager.capturePendingExtensionFile exists');
+runAssert(typeof SysEnvManager.getPendingExtensionFile === 'function', 'SysEnvManager.getPendingExtensionFile exists');
+runAssert(typeof SysEnvManager.clearPendingExtensionFile === 'function', 'SysEnvManager.clearPendingExtensionFile exists');
+runAssert(typeof SysEnvManager.ensureExtensionOpenReady === 'function', 'SysEnvManager.ensureExtensionOpenReady exists');
+runAssert(typeof SysEnvManager.getStorageItem === 'function', 'SysEnvManager.getStorageItem exists');
+runAssert(typeof SysEnvManager.setStorageItem === 'function', 'SysEnvManager.setStorageItem exists');
+runAssert(SysEnvManager.setStorageItem('test_key', 'test_val') === true, 'SysEnvManager.setStorageItem writes to storage safely');
+runAssert(SysEnvManager.getStorageItem('test_key') === 'test_val', 'SysEnvManager.getStorageItem reads from storage safely');
+runAssert(SysEnvManager.getStorageItem('non_existent_key', 'fallback') === 'fallback', 'SysEnvManager.getStorageItem returns fallback when key is null');
+runAssert(typeof FrameManager.ensureExtensionOpenReady === 'function', 'FrameManager.ensureExtensionOpenReady exists');
 runAssert(typeof FrameManager.SysEnvManager === 'object', 'FrameManager.SysEnvManager exists');
 runAssert(typeof window.detect_browser_type === 'function', 'Backward compatible window.detect_browser_type exists');
 runAssert(typeof window.showGlobalBottomBanner === 'function', 'Backward compatible window.showGlobalBottomBanner exists');
 runAssert(typeof window.hideGlobalBottomBanner === 'function', 'Backward compatible window.hideGlobalBottomBanner exists');
+
+// Test 1-B: Verify Step 1 Pending File Capture Functionality
+global.window.location = { search: '?file=C%3A%2Fpath%2Fto%2Fsample.md' };
+runAssert(SysEnvManager.capturePendingExtensionFile() === 'C:/path/to/sample.md', 'capturePendingExtensionFile correctly captures ?file= path');
+runAssert(SysEnvManager.getPendingExtensionFile() === 'C:/path/to/sample.md', 'getPendingExtensionFile returns captured path');
+runAssert(SysEnvManager.clearPendingExtensionFile() === 'C:/path/to/sample.md', 'clearPendingExtensionFile returns and clears captured path');
+runAssert(SysEnvManager.getPendingExtensionFile() === null, 'getPendingExtensionFile is null after clear');
 
 // Test 2: Browser Detection Validation
 // Test 2-A: Edge browser detection via userAgentData
