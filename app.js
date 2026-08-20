@@ -722,25 +722,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFilenameDisplay(window.loadedFileContent.name, false);
     }
 
-    // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수
+    // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수 (FrameManager 위임 & Flicker-Free)
     function initializePanelWidths() {
-        const containerRect = container.getBoundingClientRect();
-        if (containerRect.width === 0) return;
-        
-        // TOC 사이드바의 실제 점유 폭 계산
-        const tocSidebarEl = document.getElementById('toc-sidebar');
-        const tocWidth = tocSidebarEl && !tocSidebarEl.classList.contains('collapsed') ? tocSidebarEl.getBoundingClientRect().width : 0;
-        const dividerWidth = 6;
-        const availableWidth = containerRect.width - tocWidth - dividerWidth;
-        
-        if (availableWidth <= 0) return;
-        
-        // 에디터와 프리뷰가 동일한 너비를 갖도록 설정
-        const targetEditorWidth = availableWidth / 2;
-        const percentage = (targetEditorWidth / containerRect.width) * 100;
-        
-        editorPanel.style.width = `${percentage}%`;
-        cm.refresh();
+        if (typeof FrameManager !== 'undefined' && typeof FrameManager.initializePanelWidths === 'function') {
+            const savedWidth = (typeof savedSessionData !== 'undefined' && savedSessionData && savedSessionData.editorPanelWidth) ? savedSessionData.editorPanelWidth : null;
+            return FrameManager.initializePanelWidths(container, editorPanel, cm, savedWidth);
+        }
     }
 
     // 1단계 [Data Read Phase]: localStorage 세션 데이터 수집 (SessionManager)

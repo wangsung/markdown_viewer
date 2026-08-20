@@ -494,6 +494,49 @@
         return percentage;
     }
 
+    /**
+     * pure sub-function: 에디터와 프리뷰 패널 너비를 동일하게(50:50) 계산하여 정밀 조정하는 레이아웃 서브 함수.
+     * @param {HTMLElement} [containerEl] - 전체 메인 컨테이너
+     * @param {HTMLElement} [editorPanelEl] - 좌측 에디터 패널
+     * @param {Object} [cmInstance] - CodeMirror 에디터 인스턴스 (cm.refresh()용)
+     * @returns {number|null} 계산된 에디터 백분율 (%)
+     */
+    function initialize_panel_widths(containerEl, editorPanelEl, cmInstance, savedWidth) {
+        const containerNode = containerEl || (typeof document !== 'undefined' ? document.getElementById('main-container') : null);
+        const editorNode = editorPanelEl || (typeof document !== 'undefined' ? document.getElementById('editor-panel') : null);
+        if (!containerNode || !editorNode) return null;
+
+        // 세션에 저장된 사용자 커스텀 너비가 명시된 경우 최우선 존중 수립 (Flicker-Free Restoration)
+        if (savedWidth && typeof savedWidth === 'string' && savedWidth.trim().length > 0) {
+            editorNode.style.width = savedWidth;
+            if (cmInstance && typeof cmInstance.refresh === 'function') {
+                cmInstance.refresh();
+            }
+            return parseFloat(savedWidth) || null;
+        }
+
+        const containerRect = containerNode.getBoundingClientRect();
+        if (containerRect.width === 0) return null;
+
+        const tocSidebarEl = typeof document !== 'undefined' ? document.getElementById('toc-sidebar') : null;
+        const tocWidth = tocSidebarEl && !tocSidebarEl.classList.contains('collapsed') ? tocSidebarEl.getBoundingClientRect().width : 0;
+        const dividerWidth = 6;
+        const availableWidth = containerRect.width - tocWidth - dividerWidth;
+
+        if (availableWidth <= 0) return null;
+
+        const targetEditorWidth = availableWidth / 2;
+        const percentage = (targetEditorWidth / containerRect.width) * 100;
+
+        editorNode.style.width = `${percentage}%`;
+
+        if (cmInstance && typeof cmInstance.refresh === 'function') {
+            cmInstance.refresh();
+        }
+
+        return percentage;
+    }
+
     function start_drag(e, dragDividerEl) {
         isDragging = true;
         if (dragDividerEl) dragDividerEl.classList.add('dragging');
@@ -2235,7 +2278,9 @@
 
         restoreSessionUI: function(sessionData) {
             return SessionManager.restoreUI(sessionData);
-        }
+        },
+
+        initializePanelWidths: initialize_panel_widths
     };
 
     if (typeof window !== 'undefined') {
@@ -2252,6 +2297,7 @@
     FrameManager.detectBrowserType = detect_browser_type;
     FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
     FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
+    FrameManager.initializePanelWidths = initialize_panel_widths;
     FrameManager.RecentFileManager = RecentFileManager;
     FrameManager.TocManager = TocManager;
     FrameManager.FileDropManager = FileDropManager;

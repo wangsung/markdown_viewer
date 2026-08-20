@@ -93,9 +93,11 @@ function runTestSuite() {
     runAssert(typeof FrameManager === 'object', 'FrameManager module exists globally');
     runAssert(typeof FrameManager.init === 'function', 'FrameManager.init function exists');
     runAssert(typeof FrameManager.applyTheme === 'function', 'FrameManager.applyTheme function exists');
+    runAssert(typeof FrameManager.initializePanelWidths === 'function', 'FrameManager.initializePanelWidths function exists');
 
     // Test 2: Naming Convention check for pure sub-functions (snake_case)
     const pureSubFuncNames = [
+        'initialize_panel_widths',
         'apply_theme_ui',
         'init_theme_ui',
         'close_all_dropdowns',

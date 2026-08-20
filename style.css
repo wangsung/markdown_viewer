@@ -356,7 +356,7 @@ body {
 }
 
 .panel.left {
-    width: 50%; /* JS로 동적 조절 가능 */
+    width: calc((100% - 250px - 6px) / 2); /* TOC 250px 감안 초기 50:50 정비율 수립 (Layout Shift 방지) */
     min-width: 300px;
     border-right: 1px solid transparent; /* Divider가 그 자리를 대체 */
 }
