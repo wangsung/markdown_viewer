@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`"${savedName}" 파일이 저장되었습니다.`, 1500);
             });
         } finally {
-            hideGlobalBottomBanner(); // 저장 기능 종료 즉시 배너 닫기
+            SysEnvManager.hideBanner();
         }
     }
 
@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. 파일 핸들이 없거나(새 파일 등) 덮어쓰기 실패 시 SaveAs 다이얼로그로 fallback
             await handleSaveCurrentDocument();
         } finally {
-            hideGlobalBottomBanner(); // 저장 기능 종료 즉시 배너 닫기
+            SysEnvManager.hideBanner();
         }
     }
 
@@ -1094,8 +1094,8 @@ document.addEventListener('DOMContentLoaded', () => {
             initExtensionModulesAndPendingOpen,
             (missing) => {
                 console.error('🚨 Extension Entry Module Error: Failed to load modules in time:', missing);
-                if (typeof SysEnvManager.showBanner === 'function') {
-                    SysEnvManager.showBanner(`[Module Load Warning] 일부 필수 모듈(${missing.join(', ')}) 로딩이 지연되었습니다. 페이지를 새로고침(F5) 해주세요.`);
+                if (typeof SysEnvManager.showSystemError === 'function') {
+                    SysEnvManager.showSystemError(`[Module Load Error] 일부 필수 모듈(${missing.join(', ')}) 로딩이 지연되었습니다. 페이지를 새로고침(F5) 해주세요.`);
                 }
             }
         );

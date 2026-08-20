@@ -48,8 +48,8 @@
             const fullMessage = `[System Assertion Failed] ${message}`;
             console.error(fullMessage, context);
 
-            // 1. 최상단 System Warning 디버깅 배너 출력
-            report_system_theme_error(fullMessage);
+            // 1. 최상단 System Error 배너 통합 출력
+            show_system_error_ui(fullMessage, context);
 
             // 2. Error Log 스토리지 및 누적 기록 (로그 파일 연동용)
             try {
@@ -84,17 +84,26 @@
         window.assert_arg = assert_arg;
     }
 
-    function report_system_theme_error(message) {
-        console.error('[FrameManager System Error]', message);
+    /**
+     * pure sub-function: 최상단 단일 System Error 경고 배너를 노출하는 단일화 서브 함수.
+     * @param {string} message - 에러 메시지
+     * @param {Object} [context={}] - 트러블슈팅 컨텍스트
+     */
+    function show_system_error_ui(message, context = {}) {
+        console.error('[SysEnvManager System Error]', message, context);
         if (typeof document === 'undefined') return;
-        let banner = document.getElementById('system-theme-warning-banner');
-        if (!banner) {
+
+        let banner = document.getElementById('system-error-banner');
+        if (!banner && document.body) {
             banner = document.createElement('div');
-            banner.id = 'system-theme-warning-banner';
-            banner.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; background: #dc2626; color: #ffffff; z-index: 999999; padding: 10px 16px; font-size: 13px; font-weight: 700; font-family: monospace; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between;';
+            banner.id = 'system-error-banner';
+            banner.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; background: #ef4444; color: #ffffff; z-index: 999999; padding: 10px 16px; font-size: 13px; font-weight: 700; font-family: monospace; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: space-between; word-break: break-all;';
             document.body.appendChild(banner);
         }
-        banner.innerHTML = `<span>🚨 ${message}</span><button style="background:transparent;border:none;color:#fff;font-weight:bold;cursor:pointer;padding:0 8px;" onclick="this.parentElement.remove()">✕</button>`;
+
+        if (banner) {
+            banner.innerHTML = `<span>🚨 ${message}</span><button style="background:transparent;border:none;color:#fff;font-weight:bold;cursor:pointer;padding:0 8px;" onclick="this.parentElement.remove()">✕</button>`;
+        }
     }
 
     /**
@@ -191,27 +200,8 @@
                 return false;
             }
 
-            let errBox = document.getElementById('debug-error-banner');
-            if (!errBox && typeof document !== 'undefined' && document.body) {
-                errBox = document.createElement('div');
-                errBox.id = 'debug-error-banner';
-                errBox.style.position = 'fixed';
-                errBox.style.top = '0';
-                errBox.style.left = '0';
-                errBox.style.width = '100%';
-                errBox.style.background = '#ef4444';
-                errBox.style.color = '#ffffff';
-                errBox.style.zIndex = '999999';
-                errBox.style.padding = '8px 12px';
-                errBox.style.fontSize = '12px';
-                errBox.style.fontFamily = 'monospace';
-                errBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-                errBox.style.wordBreak = 'break-all';
-                document.body.appendChild(errBox);
-            }
-            if (errBox) {
-                errBox.textContent = `[JS Runtime Error] ${message} at ${source}:${lineno}:${colno}`;
-            }
+            const errText = `[JS Runtime Error] ${message} at ${source}:${lineno}:${colno}`;
+            show_system_error_ui(errText, { source, lineno, colno });
 
             try {
                 const rawLogs = safe_get_storage_item('markvi_error_logs', '[]');
@@ -395,6 +385,7 @@
         detectBrowser: detect_browser_type,
         showBanner: show_global_bottom_banner_ui,
         hideBanner: hide_global_bottom_banner_ui,
+        showSystemError: show_system_error_ui,
         showToast: show_toast_ui,
         installGlobalErrorHandler: install_global_error_handler,
         getBrowserType: detect_browser_type,
@@ -2386,6 +2377,7 @@
         },
 
         initializePanelWidths: initialize_panel_widths,
+        showSystemError: show_system_error_ui,
         showToast: show_toast_ui,
         installGlobalErrorHandler: install_global_error_handler
     };
@@ -2404,6 +2396,7 @@
     FrameManager.detectBrowserType = detect_browser_type;
     FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
     FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
+    FrameManager.showSystemError = show_system_error_ui;
     FrameManager.showToast = show_toast_ui;
     FrameManager.installGlobalErrorHandler = install_global_error_handler;
     FrameManager.initializePanelWidths = initialize_panel_widths;
