@@ -38,10 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    // 전역 디버그 에러 핸들러 수립 (SysEnvManager 위임)
-    if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.installGlobalErrorHandler === 'function') {
-        SysEnvManager.installGlobalErrorHandler();
-    }
+    // 전역 디버그 에러 핸들러는 frame-man.js 로드 직후 자체 수립되므로 여기서 재호출하지 않음
 
     // HTML Escape helper
     function escapeHtml(text) {
@@ -361,12 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (typeof ExportManager !== 'undefined') {
                         window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
                         const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
-                        SysEnvManager.showBanner(pdfBannerMsg, false);
+                        SysEnvManager.showNotice(pdfBannerMsg, false);
                         const exportOptions = collectExportOptions({ theme: 'light' });
                         try {
                             await ExportManager.printToPdf(preview, currentFilename, exportOptions);
                         } finally {
-                            SysEnvManager.hideBanner();
+                            SysEnvManager.hideNotice();
                         }
                     }
                 },
@@ -793,12 +790,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const SAVE_SECURITY_NOTICE = '[App] 브라우저 보안사항으로 파일 접근 권한에 대한 확인창이 뜰 수 있습니다. ';
 
     function triggerSaveSecurityNotice() {
-        SysEnvManager.showBanner(SAVE_SECURITY_NOTICE, false);
+        SysEnvManager.showNotice(SAVE_SECURITY_NOTICE, false);
     }
 
     function dismissSaveSecurityNoticeDelayed(delayMs = 1000) {
         setTimeout(() => {
-            SysEnvManager.hideBanner();
+            SysEnvManager.hideNotice();
         }, delayMs);
     }
 
@@ -817,7 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`"${savedName}" 파일이 저장되었습니다.`, 1500);
             });
         } finally {
-            SysEnvManager.hideBanner();
+            SysEnvManager.hideNotice();
         }
     }
 
@@ -859,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. 파일 핸들이 없거나(새 파일 등) 덮어쓰기 실패 시 SaveAs 다이얼로그로 fallback
             await handleSaveCurrentDocument();
         } finally {
-            SysEnvManager.hideBanner();
+            SysEnvManager.hideNotice();
         }
     }
 

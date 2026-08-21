@@ -85,16 +85,16 @@ eval(frameManCode);
 
 assert(typeof SysEnvManager === 'object', 'PASS: SysEnvManager defined in frame-man.js');
 assert(typeof detect_browser_type === 'function', 'PASS: detect_browser_type function bound globally');
-assert(typeof showGlobalBottomBanner === 'function', 'PASS: showGlobalBottomBanner function bound globally');
-assert(typeof hideGlobalBottomBanner === 'function', 'PASS: hideGlobalBottomBanner function bound globally');
+assert(typeof SysEnvManager.showNotice === 'function', 'PASS: SysEnvManager.showNotice exists');
+assert(typeof SysEnvManager.hideNotice === 'function', 'PASS: SysEnvManager.hideNotice exists');
 
 // Test Case A: Test detect_browser_type
 const detectedType = detect_browser_type();
 assert(detectedType === 'chrome', 'PASS: detect_browser_type returns "chrome" for Chrome userAgent');
 
-// Test Case B: Call showGlobalBottomBanner without close button (PDF Print mode)
+// Test Case B: Call SysEnvManager.showNotice without close button (PDF Print mode)
 const pdfGuideMsg = '💡 <span class="banner-badge">인쇄 안내</span> - (프린터) [대상]: <strong class="banner-highlight">"PDF로 저장"</strong>  |  [여백]: <strong class="banner-highlight">"맞춤"</strong> 권장';
-showGlobalBottomBanner(pdfGuideMsg, false);
+SysEnvManager.showNotice(pdfGuideMsg, false);
 
 assert(bannerElem !== null, 'PASS: Banner element dynamically created');
 assert(bannerElem.id === 'global-bottom-banner', 'PASS: Banner ID matches global-bottom-banner');
@@ -104,11 +104,11 @@ assert(!bannerElem.innerHTML.includes('banner-close-btn'), 'PASS: Banner exclude
 assert(bannerElem.classList.contains('show'), 'PASS: Banner has "show" class applied');
 
 // Test Case C: Hide banner
-hideGlobalBottomBanner();
-assert(!bannerElem.classList.contains('show'), 'PASS: hideGlobalBottomBanner removes "show" class');
+SysEnvManager.hideNotice();
+assert(!bannerElem.classList.contains('show'), 'PASS: hideNotice removes "show" class');
 
-// Test Case D: Call showGlobalBottomBanner with close button
-showGlobalBottomBanner('General Announcement', true);
+// Test Case D: Call SysEnvManager.showNotice with close button
+SysEnvManager.showNotice('General Announcement', true);
 assert(bannerElem.innerHTML.includes('banner-close-btn'), 'PASS: Banner includes close button when showCloseBtn is true');
 
 console.log('\n========================================');

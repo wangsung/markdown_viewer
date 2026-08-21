@@ -224,43 +224,6 @@
         };
     }
 
-    /**
-     * pure sub-function: 화면 중앙 하단 일시적 토스트 메시지를 표시하는 안전 헬퍼
-     * @param {string} message - 토스트 문구
-     * @param {number} [duration=3000] - 지속 시간 (ms)
-     */
-    function show_toast_ui(message, duration = 3000) {
-        if (typeof document === 'undefined') return;
-        let toastBox = document.getElementById('global-toast-message');
-        if (!toastBox && document.body) {
-            toastBox = document.createElement('div');
-            toastBox.id = 'global-toast-message';
-            toastBox.style.position = 'fixed';
-            toastBox.style.bottom = '24px';
-            toastBox.style.left = '50%';
-            toastBox.style.transform = 'translateX(-50%)';
-            toastBox.style.background = '#1e293b';
-            toastBox.style.color = '#f8fafc';
-            toastBox.style.padding = '8px 16px';
-            toastBox.style.borderRadius = '6px';
-            toastBox.style.fontSize = '13px';
-            toastBox.style.zIndex = '99999';
-            toastBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            toastBox.style.transition = 'opacity 0.2s ease-in-out';
-            toastBox.style.opacity = '0';
-            document.body.appendChild(toastBox);
-        }
-
-        if (toastBox) {
-            toastBox.textContent = message;
-            toastBox.style.opacity = '1';
-            clearTimeout(toastBox._timer);
-            toastBox._timer = setTimeout(() => {
-                toastBox.style.opacity = '0';
-            }, duration);
-        }
-    }
-
     let pendingExtensionFilePath = null;
 
     /**
@@ -387,8 +350,6 @@
     // ==========================================================================
     const SysEnvManager = {
         detectBrowser: detect_browser_type,
-        showBanner: show_global_bottom_banner_ui,
-        hideBanner: hide_global_bottom_banner_ui,
         showNotice: show_global_bottom_banner_ui,
         hideNotice: hide_global_bottom_banner_ui,
         showSystemError: show_system_error_ui,
@@ -2299,8 +2260,8 @@
 
         SysEnvManager: SysEnvManager,
         detectBrowserType: detect_browser_type,
-        showGlobalBottomBanner: show_global_bottom_banner_ui,
-        hideGlobalBottomBanner: hide_global_bottom_banner_ui,
+        showNotice: show_global_bottom_banner_ui,
+        hideNotice: hide_global_bottom_banner_ui,
         capturePendingExtensionFile: capture_pending_extension_file,
         getPendingExtensionFile: get_pending_extension_file,
         clearPendingExtensionFile: clear_pending_extension_file,
@@ -2391,8 +2352,6 @@
     if (typeof window !== 'undefined') {
         window.SysEnvManager = SysEnvManager;
         window.detect_browser_type = detect_browser_type;
-        window.showGlobalBottomBanner = show_global_bottom_banner_ui;
-        window.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
         window.RecentFileManager = RecentFileManager;
         window.TocManager = TocManager;
         window.FileDropManager = FileDropManager;
@@ -2400,8 +2359,8 @@
     }
     FrameManager.SysEnvManager = SysEnvManager;
     FrameManager.detectBrowserType = detect_browser_type;
-    FrameManager.showGlobalBottomBanner = show_global_bottom_banner_ui;
-    FrameManager.hideGlobalBottomBanner = hide_global_bottom_banner_ui;
+    FrameManager.showNotice = show_global_bottom_banner_ui;
+    FrameManager.hideNotice = hide_global_bottom_banner_ui;
     FrameManager.showSystemError = show_system_error_ui;
     FrameManager.showToast = show_toast_ui;
     FrameManager.installGlobalErrorHandler = install_global_error_handler;

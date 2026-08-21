@@ -101,10 +101,8 @@ eval(frameManCode);
 // Test 1: Verify SysEnvManager module presence & exposures
 runAssert(typeof SysEnvManager === 'object', 'SysEnvManager object exists globally');
 runAssert(typeof SysEnvManager.detectBrowser === 'function', 'SysEnvManager.detectBrowser exists');
-runAssert(typeof SysEnvManager.showBanner === 'function', 'SysEnvManager.showBanner exists');
-runAssert(typeof SysEnvManager.hideBanner === 'function', 'SysEnvManager.hideBanner exists');
-runAssert(typeof SysEnvManager.showNotice === 'function', 'SysEnvManager.showNotice alias exists');
-runAssert(typeof SysEnvManager.hideNotice === 'function', 'SysEnvManager.hideNotice alias exists');
+runAssert(typeof SysEnvManager.showNotice === 'function', 'SysEnvManager.showNotice exists');
+runAssert(typeof SysEnvManager.hideNotice === 'function', 'SysEnvManager.hideNotice exists');
 runAssert(typeof SysEnvManager.showToast === 'function', 'SysEnvManager.showToast exists');
 runAssert(typeof SysEnvManager.showSystemError === 'function', 'SysEnvManager.showSystemError exists');
 runAssert(typeof SysEnvManager.installGlobalErrorHandler === 'function', 'SysEnvManager.installGlobalErrorHandler exists');
@@ -121,8 +119,6 @@ runAssert(SysEnvManager.getStorageItem('non_existent_key', 'fallback') === 'fall
 runAssert(typeof FrameManager.ensureExtensionOpenReady === 'function', 'FrameManager.ensureExtensionOpenReady exists');
 runAssert(typeof FrameManager.SysEnvManager === 'object', 'FrameManager.SysEnvManager exists');
 runAssert(typeof window.detect_browser_type === 'function', 'Backward compatible window.detect_browser_type exists');
-runAssert(typeof window.showGlobalBottomBanner === 'function', 'Backward compatible window.showGlobalBottomBanner exists');
-runAssert(typeof window.hideGlobalBottomBanner === 'function', 'Backward compatible window.hideGlobalBottomBanner exists');
 
 // Test 1-B: Verify Step 1 Pending File Capture Functionality
 global.window.location = { search: '?file=C%3A%2Fpath%2Fto%2Fsample.md' };
@@ -163,24 +159,24 @@ setMockNavigator({
 });
 runAssert(SysEnvManager.detectBrowser() === 'other', 'detectBrowser detects "other" for Firefox');
 
-// Test 3: Banner DOM creation, show and hide
+// Test 3: Notice banner DOM creation, show and hide
 bannerElem = null;
 const sampleMsg = 'Hello, SysEnvManager Banner!';
-SysEnvManager.showBanner(sampleMsg, false);
+SysEnvManager.showNotice(sampleMsg, false);
 
-runAssert(bannerElem !== null, 'Banner DOM element created on showBanner');
+runAssert(bannerElem !== null, 'Banner DOM element created on showNotice');
 runAssert(bannerElem.id === 'global-bottom-banner', 'Banner element has correct ID');
 runAssert(bannerElem.getAttribute('data-browser-type') === 'other', 'Banner has data-browser-type attribute set');
 runAssert(bannerElem.innerHTML.includes(sampleMsg), 'Banner content includes message');
 runAssert(bannerElem.classList.contains('show'), 'Banner has "show" class applied');
 runAssert(!bannerElem.innerHTML.includes('banner-close-btn'), 'Banner excludes close button when showCloseBtn is false');
 
-// Test 3-B: Hide Banner
-SysEnvManager.hideBanner();
-runAssert(!bannerElem.classList.contains('show'), 'hideBanner removes "show" class');
+// Test 3-B: Hide Notice
+SysEnvManager.hideNotice();
+runAssert(!bannerElem.classList.contains('show'), 'hideNotice removes "show" class');
 
 // Test 4: Close Button Event Handling
-SysEnvManager.showBanner('Banner with Close Button', true);
+SysEnvManager.showNotice('Banner with Close Button', true);
 runAssert(bannerElem.innerHTML.includes('banner-close-btn'), 'Banner includes close button when showCloseBtn is true');
 runAssert(bannerElem.classList.contains('show'), 'Banner has "show" class applied');
 
@@ -192,8 +188,8 @@ runAssert(!bannerElem.classList.contains('show'), 'Clicking close button hides t
 // Test 5: assert_arg failure validation for invalid message parameter
 let assertFailed = false;
 try {
-    // Calling showBanner with invalid message (null or empty string)
-    SysEnvManager.showBanner('', false);
+    // Calling showNotice with invalid message (null or empty string)
+    SysEnvManager.showNotice('', false);
 } catch (e) {
     assertFailed = true;
     runAssert(e.message.includes('[System Assertion Failed]'), 'assert_arg throws Error on empty string message in debug mode');

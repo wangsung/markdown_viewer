@@ -155,8 +155,8 @@ function runTestSuite() {
     runAssert(typeof window.SysEnvManager === 'object', 'window.SysEnvManager object exists');
     runAssert(typeof FrameManager.SysEnvManager === 'object', 'FrameManager.SysEnvManager sub-object exists');
     runAssert(typeof FrameManager.SysEnvManager.detectBrowser === 'function', 'FrameManager.SysEnvManager.detectBrowser function exists');
-    runAssert(typeof FrameManager.SysEnvManager.showBanner === 'function', 'FrameManager.SysEnvManager.showBanner function exists');
-    runAssert(typeof FrameManager.SysEnvManager.hideBanner === 'function', 'FrameManager.SysEnvManager.hideBanner function exists');
+    runAssert(typeof FrameManager.SysEnvManager.showNotice === 'function', 'FrameManager.SysEnvManager.showNotice function exists');
+    runAssert(typeof FrameManager.SysEnvManager.hideNotice === 'function', 'FrameManager.SysEnvManager.hideNotice function exists');
 
     runAssert(typeof window.RecentFileManager === 'object', 'window.RecentFileManager object exists');
     runAssert(typeof FrameManager.RecentFileManager === 'object', 'FrameManager.RecentFileManager sub-object exists');
