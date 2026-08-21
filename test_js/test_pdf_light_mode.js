@@ -38,7 +38,16 @@ global.getComputedStyle = () => ({
 global.togglePreviewMaxWidthCheckbox = null;
 global.colorSwatchCheckbox = null;
 
-// 2. Read app.js code to test collectExportOptions behavior
+// 2. Load export-man.js FIRST — collectExportOptions() reads its CSS var list from
+//    ExportStyleSet (defined here), and in the real app export-man.js (Layer 2) always
+//    loads before app.js (Layer 5), so the mock must respect that same order.
+global.chrome = undefined;
+global.fetch = async () => ({ text: async () => '' });
+
+const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
+eval(exportManCode);
+
+// 3. Read app.js code to test collectExportOptions behavior
 const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
 // Mock EditorManager for cross-theme preset calculation
@@ -50,7 +59,9 @@ global.EditorManager = {
 global.localStorage = {
     getItem: (key) => key === 'markvi_active_heading_preset' ? 'github_classic' : null
 };
-global.getHeadingPresets = () => [{ id: 'github_classic', styles: { h1: {} } }];
+global.StylePresetManager = {
+    getPresets: () => [{ id: 'github_classic', styles: { h1: {} } }]
+};
 
 // Extract collectExportOptions function
 const collectOptMatch = appCode.match(/function collectExportOptions[\s\S]*?^    \}/m);
@@ -72,13 +83,7 @@ assert.strictEqual(lightOpts.styleVars['--h1-color'], '#00875a', 'PASS: --h1-col
 assert.strictEqual(lightOpts.styleVars['--preview-blockquote-bg'], '#f9fafb', 'PASS: --preview-blockquote-bg recalculated to Light Mode light gray (#f9fafb)');
 assert.strictEqual(lightOpts.styleVars['--blockquote-text-color'], '#475569', 'PASS: --blockquote-text-color recalculated to Light Mode slate text (#475569)');
 
-// 3. Load ExportManager and test generatePreviewHtmlContent with light mode
-global.chrome = undefined;
-global.fetch = async () => ({ text: async () => '' });
-
-const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
-eval(exportManCode);
-
+// 4. Test generatePreviewHtmlContent with light mode (ExportManager already loaded above)
 const mockPreview = {
     children: [{}],
     cloneNode: () => ({

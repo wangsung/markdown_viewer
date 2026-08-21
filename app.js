@@ -310,9 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 onThemeChange: (theme) => {
                     apply_code_theme(theme);
                     const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-                    if (typeof StylePresetManager !== 'undefined' && typeof StylePresetManager.applyPreset === 'function') {
-                        StylePresetManager.applyPreset(activePresetId);
-                    }
+                    StylePresetManager.applyPreset(activePresetId);
                 },
                 onPanelResize: () => {
                     if (cm && typeof cm.refresh === 'function') cm.refresh();
@@ -468,9 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
         if (targetTheme !== currentTheme && typeof EditorManager !== 'undefined' && EditorManager.apply_heading_preset) {
             const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            const presets = (typeof StylePresetManager !== 'undefined' && typeof StylePresetManager.getPresets === 'function')
-                ? StylePresetManager.getPresets()
-                : (typeof getHeadingPresets === 'function' ? getHeadingPresets() : (window.StyleEditor ? window.StyleEditor.getDefaultPresets() : []));
+            const presets = StylePresetManager.getPresets();
             const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
 
             if (foundPreset && foundPreset.styles) {
@@ -1036,11 +1032,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     const initExtensionModulesAndPendingOpen = () => {
         // 1. 문서 시작 시 Heading Preset 초기화 및 적용
-        if (typeof StylePresetManager !== 'undefined') {
-            if (typeof StylePresetManager.updateSelects === 'function') StylePresetManager.updateSelects();
-            const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            if (typeof StylePresetManager.applyPreset === 'function') StylePresetManager.applyPreset(activePreset);
-        }
+        StylePresetManager.updateSelects();
+        const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+        StylePresetManager.applyPreset(activePreset);
 
         // 2. 프리뷰 마크다운 HTML 및 DOM 1차 렌더링 완성 (프리뷰 요소 화면 형성)
         if (typeof renderMarkdown === 'function') {
