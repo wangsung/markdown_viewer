@@ -5,7 +5,7 @@ const assert = require('assert');
 (async () => {
     console.log('🚀 Running Codeblock Scroll Toggle Unit Test Suite...\n');
 
-    const htmlPath = path.join(__dirname, '..', '');
+    const htmlPath = path.join(__dirname, '..', 'markdown_viewer.html');
     const html = fs.readFileSync(htmlPath, 'utf8');
 
     // 1. Verify view-menu contains #codeblock-scroll checkbox as first toggle item
@@ -21,14 +21,8 @@ const assert = require('assert');
     assert(firstItemIndex < mathIndex, 'PASS: #codeblock-scroll is placed BEFORE #math-render');
     assert(mathIndex < diagramIndex, 'PASS: #math-render is placed BEFORE #diagram-render');
 
-    // 2. Extract collectExportOptions function from app.js and test styleVars collection
-    const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
-    const collectOptMatch = appCode.match(/function collectExportOptions[\s\S]*?^    \}/m);
-    assert(collectOptMatch, 'PASS: collectExportOptions function found in app.js');
-
-    let lineColorPicker = null;
-    eval(collectOptMatch[0]);
-
+    // 2. Load export-man.js and test ExportManager.collectOptions styleVars collection
+    // (collectExportOptions는 export-man.js의 ExportManager.collectOptions로 이전됨)
     global.window = global;
     global.currentFilename = 'untitled.md';
     global.document = {
@@ -62,27 +56,35 @@ const assert = require('assert');
         }
     });
 
+    global.chrome = undefined;
+    global.fetch = async () => ({ text: async () => '' });
+
+    const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
+    eval(exportManCode);
+
+    const mockExportUiElements = {
+        lineColorPicker: null,
+        fontSizeSelect: null,
+        fontSelect: null,
+        togglePreviewMaxWidthCheckbox: null,
+        colorSwatchCheckbox: null
+    };
+
     // Test ON mode
     global.mockWs = 'pre';
     global.mockWb = 'normal';
-    const optsON = collectExportOptions();
-    assert.strictEqual(optsON.styleVars['--preview-code-whitespace'], 'pre', 'PASS: collectExportOptions collects --preview-code-whitespace: pre when ON');
-    assert.strictEqual(optsON.styleVars['--preview-code-word-break'], 'normal', 'PASS: collectExportOptions collects --preview-code-word-break: normal when ON');
+    const optsON = ExportManager.collectOptions(mockExportUiElements);
+    assert.strictEqual(optsON.styleVars['--preview-code-whitespace'], 'pre', 'PASS: ExportManager.collectOptions collects --preview-code-whitespace: pre when ON');
+    assert.strictEqual(optsON.styleVars['--preview-code-word-break'], 'normal', 'PASS: ExportManager.collectOptions collects --preview-code-word-break: normal when ON');
 
     // Test OFF mode
     global.mockWs = 'pre-wrap';
     global.mockWb = 'break-word';
-    const optsOFF = collectExportOptions();
-    assert.strictEqual(optsOFF.styleVars['--preview-code-whitespace'], 'pre-wrap', 'PASS: collectExportOptions collects --preview-code-whitespace: pre-wrap when OFF');
-    assert.strictEqual(optsOFF.styleVars['--preview-code-word-break'], 'break-word', 'PASS: collectExportOptions collects --preview-code-word-break: break-word when OFF');
+    const optsOFF = ExportManager.collectOptions(mockExportUiElements);
+    assert.strictEqual(optsOFF.styleVars['--preview-code-whitespace'], 'pre-wrap', 'PASS: ExportManager.collectOptions collects --preview-code-whitespace: pre-wrap when OFF');
+    assert.strictEqual(optsOFF.styleVars['--preview-code-word-break'], 'break-word', 'PASS: ExportManager.collectOptions collects --preview-code-word-break: break-word when OFF');
 
-    // 3. Load ExportManager and test HTML template generation
-    global.chrome = undefined;
-    global.fetch = async () => ({ text: async () => '' });
-
-    const exportManCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
-    eval(exportManCode);
-
+    // 3. Test HTML template generation (ExportManager already loaded above)
     const mockPreviewEl = {
         id: 'preview',
         children: [{}],

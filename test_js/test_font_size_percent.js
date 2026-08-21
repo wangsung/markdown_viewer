@@ -10,7 +10,7 @@ const assert = require('assert');
 console.log('🚀 Running Percentage Font Scaling Unit Test Suite...\n');
 
 // 1. Read app.js code to test calc_scaled_font_size function
-const appCode = fs.readFileSync(path.join(__dirname, '..', ''), 'utf8');
+const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
 // Extract calc_scaled_font_size function
 const calcFuncMatch = appCode.match(/function calc_scaled_font_size[\s\S]*?^    \}/m);
@@ -28,7 +28,8 @@ assert.strictEqual(calc_scaled_font_size('120%', 10), '12pt', 'PASS: 120% conver
 assert.strictEqual(calc_scaled_font_size('140%', 10), '14pt', 'PASS: 140% converts to 14pt');
 assert.strictEqual(calc_scaled_font_size('160%', 10), '16pt', 'PASS: 160% converts to 16pt');
 
-// 2. Test collectExportOptions integration with font percentage selection
+// 2. Test ExportManager.collectOptions integration with font percentage selection
+// (collectExportOptions는 export-man.js의 ExportManager.collectOptions로 이전됨)
 global.window = global;
 global.document = {
     documentElement: {
@@ -44,17 +45,21 @@ global.document = {
 global.getComputedStyle = () => ({
     getPropertyValue: () => ''
 });
+// PreviewManager.calcScaledFontSize를 ExportManager.collectOptions 내부에서 재사용하므로,
+// 위에서 이미 eval된 calc_scaled_font_size를 그대로 위임 모킹한다.
+global.PreviewManager = { calcScaledFontSize: calc_scaled_font_size };
 
-global.fontSizeSelect = { value: '120%' };
-global.fontSelect = { value: 'Inter, sans-serif' };
+const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
+eval(exportManCode);
 
-const collectOptMatch = appCode.match(/function collectExportOptions[\s\S]*?^    \}/m);
-assert(collectOptMatch, 'PASS: collectExportOptions function found in app.js');
-
-let lineColorPicker = null;
-eval(collectOptMatch[0]);
-
-const exportOpts = collectExportOptions();
+const mockExportUiElements = {
+    lineColorPicker: null,
+    fontSizeSelect: { value: '120%' },
+    fontSelect: { value: 'Inter, sans-serif' },
+    togglePreviewMaxWidthCheckbox: null,
+    colorSwatchCheckbox: null
+};
+const exportOpts = ExportManager.collectOptions(mockExportUiElements);
 assert.strictEqual(exportOpts.styleVars['--preview-font-size'], '12pt', 'PASS: Default 120% font selection collects 12pt for export');
 assert.strictEqual(exportOpts.styleVars['--preview-font-family'], 'Inter, sans-serif', 'PASS: Font family collected properly');
 

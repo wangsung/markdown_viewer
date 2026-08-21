@@ -10,14 +10,14 @@ const assert = require('assert');
 console.log('🚀 Running Preview Max-Width Toggle & Export Integration Unit Test Suite...\n');
 
 // 1. HTML 구조 검증
-const htmlPath = path.join(__dirname, '..', '');
+const htmlPath = path.join(__dirname, '..', 'markdown_viewer.html');
 const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
 
 assert(htmlContent.includes('id="toggle-preview-max-width"'), 'PASS: toggle-preview-max-width checkbox defined in HTML');
 assert(htmlContent.includes('최대폭 제한 (800px)'), 'PASS: Toggle label "최대폭 제한 (800px)" included in HTML');
 
 // 2. CSS 레이아웃 및 여백 보존 규격 검증
-const cssPath = path.join(__dirname, '..', '');
+const cssPath = path.join(__dirname, '..', 'style.css');
 const cssContent = fs.readFileSync(cssPath, 'utf-8');
 
 assert(cssContent.includes('.preview-viewport.full-width .markdown-body'), 'PASS: .preview-viewport.full-width .markdown-body selector defined in style.css');
@@ -25,7 +25,7 @@ assert(cssContent.includes('max-width: 100%;'), 'PASS: Full-width style sets max
 assert(cssContent.includes('padding: 40px 48px;'), 'PASS: Minimum padding (40px 48px) preserved in full-width mode');
 
 // 3. export-man.js 템플릿 내보내기 연동 검증 (Preview HTML 저장 / 새창 띄우기)
-const exportManPath = path.join(__dirname, '..', '');
+const exportManPath = path.join(__dirname, '..', 'export-man.js');
 const exportManContent = fs.readFileSync(exportManPath, 'utf-8');
 
 assert(exportManContent.includes('.markdown-body.full-width'), 'PASS: export-man.js coreMarkdownCss contains .markdown-body.full-width selector');
