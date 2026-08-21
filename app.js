@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 💡 Step 1. 극초기 전처리: URL 쿼리 파라미터(?file=...) 더블클릭 파일 경로 캡처
+    // [GATE-EXCEPTION] 게이트(11-39줄)보다 먼저 실행되는 부트스트랩 가드 — 제거 금지
     if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.capturePendingExtensionFile === 'function') {
         SysEnvManager.capturePendingExtensionFile();
     }
@@ -9,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const isExtensionEnv = (typeof chrome !== 'undefined' && chrome && chrome.runtime && typeof chrome.runtime.id === 'string');
 
     if (!isExtensionEnv && typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
+        // [GATE-EXCEPTION] 이 블록이 게이트 자체 — 이후 "가드 없이 직접 호출 안전" 전제의
+        // 근거이므로 정책 적용 대상이 아니라 출처. 제거 금지
         const isCoreReady = (
             typeof FrameManager !== 'undefined' &&
             typeof ExportManager !== 'undefined' &&
@@ -678,6 +681,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 🚨 상부 FrameManager 초기화 통과 여부 사전 단증 장치 (중도 스코프/문법 차단 검출)
+    // [GATE-EXCEPTION] 크로스 스크립트 로딩이 아닌 FrameManager.init() 완료 여부를
+    // 확인하는 별개 관심사 — 게이트 정책과 무관
     window.assert_arg(
         typeof FrameManager !== 'undefined' && FrameManager.isInitialized === true,
         'Critical Initialization Error: FrameManager.init was skipped or interrupted prior to registering bottom listeners!',
@@ -972,23 +977,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 4. Pending 파일이 존재하는 경우 표준 파일 로더 및 renderMarkdown() 2차 구동
-        if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.getPendingExtensionFile === 'function') {
-            const pendingPath = SysEnvManager.getPendingExtensionFile();
-            if (pendingPath) {
-                const path = SysEnvManager.clearPendingExtensionFile() || pendingPath;
-                const fileName = path.split(/[/\\]/).pop() || path;
-                if (typeof updateFilenameDisplay === 'function') {
-                    updateFilenameDisplay(fileName, false);
-                }
-                if (typeof renderMarkdown === 'function') {
-                    renderMarkdown();
-                }
-                console.log('🔗 Step 3: Standard file loader & renderMarkdown safely executed for pending path:', path);
+        const pendingPath = SysEnvManager.getPendingExtensionFile();
+        if (pendingPath) {
+            const path = SysEnvManager.clearPendingExtensionFile() || pendingPath;
+            const fileName = path.split(/[/\\]/).pop() || path;
+            if (typeof updateFilenameDisplay === 'function') {
+                updateFilenameDisplay(fileName, false);
             }
+            if (typeof renderMarkdown === 'function') {
+                renderMarkdown();
+            }
+            console.log('🔗 Step 3: Standard file loader & renderMarkdown safely executed for pending path:', path);
         }
     };
 
     // 중앙 게이트웨이를 통해 모듈 완비 대기 후 정돈된 바인딩 실행!
+    // [GATE-EXCEPTION] 게이트 자체를 호출 가능한지 확인하는 부트스트랩 지점 — 제거 금지
     if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.ensureExtensionOpenReady === 'function') {
         SysEnvManager.ensureExtensionOpenReady(
             initExtensionModulesAndPendingOpen,
