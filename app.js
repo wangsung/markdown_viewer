@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수 (FrameManager 위임 & Flicker-Free)
     function initializePanelWidths() {
-        const savedWidth = (typeof savedSessionData !== 'undefined' && savedSessionData && savedSessionData.editorPanelWidth) ? savedSessionData.editorPanelWidth : null;
+        const savedWidth = (savedSessionData && savedSessionData.editorPanelWidth) ? savedSessionData.editorPanelWidth : null;
         return FrameManager.initializePanelWidths(container, editorPanel, cm, savedWidth);
     }
 
@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             : window.innerWidth / 2;
             
         if (clientX < boundaryX) {
-            if (typeof cm !== 'undefined' && cm) {
+            if (cm) {
                 const scrollInfo = cm.getScrollInfo();
                 cm.scrollTo(null, scrollInfo.top + deltaY);
             }
@@ -816,7 +816,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         StylePresetManager.applyPreset(currentId);
         
         // 모달 닫기 후 에디터 활성화 복원 및 리프레시 보장
-        if (typeof cm !== 'undefined' && cm) {
+        if (cm) {
             cm.focus();
             requestAnimationFrame(() => {
                 cm.refresh();
