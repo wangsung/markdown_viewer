@@ -1021,9 +1021,7 @@
                     } else if (typeof window !== 'undefined') {
                         window.currentFileHandle = handle;
                         add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                        if (typeof window.loadSingleFile === 'function') {
-                            window.loadSingleFile(file);
-                        }
+                        FileDropManager.loadSingleFile(file);
                         if (typeof SessionManager !== 'undefined' && typeof SessionManager.setNewSessionSkippedRestore === 'function') {
                             SessionManager.setNewSessionSkippedRestore(false);
                         } else {
@@ -1084,9 +1082,7 @@
                         } else if (typeof window !== 'undefined') {
                             window.currentFileHandle = handle;
                             add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                            if (typeof window.loadSingleFile === 'function') {
-                                window.loadSingleFile(file);
-                            }
+                            FileDropManager.loadSingleFile(file);
                         }
                         isLoadSuccess = true;
                         return;
@@ -1863,10 +1859,65 @@
         }
     };
 
+    // 드래그앤드롭뿐 아니라 File Open 대화상자·숨김 input·최근 파일 목록까지 공유하는
+    // 범용 파일 검증·읽기·로딩 책임을 FileDropManager(드롭 오케스트레이션 전용)에서 분리.
+    const FileLoader = {
+        options: {
+            maxFileSize: 50 * 1024 * 1024 // 기본 50MB (환경설정 변경 지원)
+        },
+
+        is_allowed_markdown_file: is_allowed_markdown_file,
+        read_file_content_as_text: read_file_content_as_text,
+
+        configure: function(userOpts = {}) {
+            if (userOpts && typeof userOpts.maxFileSize === 'number') {
+                this.options.maxFileSize = userOpts.maxFileSize;
+            }
+            return this;
+        },
+
+        loadSingleFile: function(file, callbacks = {}, handle = null) {
+            if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'FileLoader.loadSingleFile: file object with name is required', { file })) {
+                return false;
+            }
+
+            const cb = callbacks || {};
+            const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
+
+            if (!isAllowed) {
+                const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.';
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            // 파일 크기 제한 검증 (기본값 50MB, 환경설정 커스텀 지원)
+            const maxFileSize = (this.options && typeof this.options.maxFileSize === 'number') ? this.options.maxFileSize : (50 * 1024 * 1024);
+            if (typeof file.size === 'number' && file.size > maxFileSize) {
+                const maxMb = Math.round(maxFileSize / (1024 * 1024));
+                const msg = `파일 크기가 제한 용량(${maxMb}MB)을 초과하였습니다. 더 작은 마크다운 파일(${maxMb}MB 이하)을 열어 주세요.`;
+                if (typeof cb.onError === 'function') {
+                    cb.onError(msg);
+                } else if (typeof alert !== 'undefined') {
+                    alert(msg);
+                }
+                return false;
+            }
+
+            return read_file_content_as_text(file, (content) => {
+                if (typeof cb.onFileLoaded === 'function') {
+                    cb.onFileLoaded(content, file, handle);
+                }
+            });
+        }
+    };
+
     const FileDropManager = {
         options: {
             editorContainerEl: null,
-            maxFileSize: 50 * 1024 * 1024, // 기본 50MB (환경설정 변경 지원)
             callbacks: {}
         },
         overlayState: null,
@@ -1874,8 +1925,6 @@
         prevent_window_default_drop: prevent_window_default_drop,
         setup_drag_drop_overlay_ui: setup_drag_drop_overlay_ui,
         extract_dropped_file_and_handle: extract_dropped_file_and_handle,
-        is_allowed_markdown_file: is_allowed_markdown_file,
-        read_file_content_as_text: read_file_content_as_text,
 
         init: function(userOpts = {}) {
             if (userOpts !== undefined && userOpts !== null) {
@@ -1894,7 +1943,7 @@
             }
 
             if (opts.maxFileSize && typeof opts.maxFileSize === 'number') {
-                this.options.maxFileSize = opts.maxFileSize;
+                FileLoader.configure({ maxFileSize: opts.maxFileSize });
             }
 
             if (opts.callbacks) {
@@ -1926,7 +1975,7 @@
 
                     const isFresh = (typeof cb.isFreshWindow === 'function') ? cb.isFreshWindow() : true;
                     if (isFresh) {
-                        this.loadSingleFile(file, cb, handle);
+                        FileLoader.loadSingleFile(file, cb, handle);
                     } else {
                         if (typeof cb.onOpenNewWindow === 'function') {
                             cb.onOpenNewWindow(file, handle);
@@ -1948,42 +1997,11 @@
             return { file, handle };
         },
 
+        // 검증·크기체크·읽기의 실제 구현은 FileLoader가 전담 — FileDropManager.init()에 등록된
+        // 기본 콜백(this.options.callbacks)과 호출 시 전달된 callbacks를 병합해 위임하는 얇은 래퍼.
         loadSingleFile: function(file, callbacks = {}, handle = null) {
-            if (!assert_arg(file && typeof file === 'object' && typeof file.name === 'string', 'FileDropManager.loadSingleFile: file object with name is required', { file })) {
-                return false;
-            }
-
             const cb = Object.assign({}, this.options.callbacks, callbacks);
-            const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
-
-            if (!isAllowed) {
-                const msg = '불러올 수 없는 파일 형식입니다. 마크다운(.md) 또는 텍스트(.txt) 파일을 열어 주세요.';
-                if (typeof cb.onError === 'function') {
-                    cb.onError(msg);
-                } else if (typeof alert !== 'undefined') {
-                    alert(msg);
-                }
-                return false;
-            }
-
-            // 파일 크기 제한 검증 (기본값 50MB, 환경설정 커스텀 지원)
-            const maxFileSize = (this.options && typeof this.options.maxFileSize === 'number') ? this.options.maxFileSize : (50 * 1024 * 1024);
-            if (typeof file.size === 'number' && file.size > maxFileSize) {
-                const maxMb = Math.round(maxFileSize / (1024 * 1024));
-                const msg = `파일 크기가 제한 용량(${maxMb}MB)을 초과하였습니다. 더 작은 마크다운 파일(${maxMb}MB 이하)을 열어 주세요.`;
-                if (typeof cb.onError === 'function') {
-                    cb.onError(msg);
-                } else if (typeof alert !== 'undefined') {
-                    alert(msg);
-                }
-                return false;
-            }
-
-            return read_file_content_as_text(file, (content) => {
-                if (typeof cb.onFileLoaded === 'function') {
-                    cb.onFileLoaded(content, file, handle);
-                }
-            });
+            return FileLoader.loadSingleFile(file, cb, handle);
         }
     };
 
@@ -2308,6 +2326,7 @@
         },
 
         FileDropManager: FileDropManager,
+        FileLoader: FileLoader,
 
         initFileDrop: function(userOpts) {
             return FileDropManager.init(userOpts);
@@ -2355,6 +2374,7 @@
         window.RecentFileManager = RecentFileManager;
         window.TocManager = TocManager;
         window.FileDropManager = FileDropManager;
+        window.FileLoader = FileLoader;
         window.SessionManager = SessionManager;
     }
     FrameManager.SysEnvManager = SysEnvManager;

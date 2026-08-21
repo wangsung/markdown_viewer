@@ -99,11 +99,14 @@ async function runTestSuite() {
     runAssert(typeof FrameManager.FileDropManager === 'object', 'FrameManager.FileDropManager sub-object exists');
     runAssert(typeof FileDropManager.init === 'function', 'FileDropManager.init function exists');
     runAssert(typeof FileDropManager.handleDropEvent === 'function', 'FileDropManager.handleDropEvent function exists');
-    runAssert(typeof FileDropManager.loadSingleFile === 'function', 'FileDropManager.loadSingleFile function exists');
+    runAssert(typeof FileDropManager.loadSingleFile === 'function', 'FileDropManager.loadSingleFile function exists (delegates to FileLoader)');
+    runAssert(typeof FileLoader === 'object', 'window.FileLoader object exists globally');
+    runAssert(typeof FrameManager.FileLoader === 'object', 'FrameManager.FileLoader sub-object exists');
+    runAssert(typeof FileLoader.loadSingleFile === 'function', 'FileLoader.loadSingleFile function exists');
 
     // Test 2: File Extension & Type Validation (is_allowed_markdown_file)
-    const is_allowed_markdown_file = FileDropManager.is_allowed_markdown_file;
-    const read_file_content_as_text = FileDropManager.read_file_content_as_text;
+    const is_allowed_markdown_file = FileLoader.is_allowed_markdown_file;
+    const read_file_content_as_text = FileLoader.read_file_content_as_text;
     const setup_drag_drop_overlay_ui = FileDropManager.setup_drag_drop_overlay_ui;
 
     runAssert(is_allowed_markdown_file('doc.md', 'text/markdown') === true, 'is_allowed_markdown_file accepts .md');
@@ -187,9 +190,24 @@ async function runTestSuite() {
     runAssert(loadResult === false, 'loadSingleFile returns false when file size exceeds maxFileSize limit');
     runAssert(errorMessage && errorMessage.includes('50MB'), 'loadSingleFile invokes onError callback with user-friendly size limit message');
 
-    // Test 7: Custom maxFileSize configuration (e.g. 100MB)
+    // Test 6b: FileLoader.loadSingleFile directly (bypassing FileDropManager wrapper), callbacks passed explicitly
+    let directLoadedContent = null;
+    const directFile = { name: 'direct.md', type: 'text/markdown', content: '# Direct FileLoader Content' };
+    FileLoader.loadSingleFile(directFile, {
+        onFileLoaded: (content) => {
+            directLoadedContent = content;
+        }
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 30));
+    runAssert(directLoadedContent === '# Direct FileLoader Content', 'FileLoader.loadSingleFile works directly without going through FileDropManager');
+
+    // Test 7: Custom maxFileSize configuration (e.g. 100MB) — FileDropManager.init()이 FileLoader에 위임
     FileDropManager.init({ maxFileSize: 100 * 1024 * 1024 });
-    runAssert(FileDropManager.options.maxFileSize === 100 * 1024 * 1024, 'FileDropManager.init allows custom maxFileSize option');
+    runAssert(FileLoader.options.maxFileSize === 100 * 1024 * 1024, 'FileDropManager.init forwards custom maxFileSize option to FileLoader');
+
+    // 이후 테스트에 영향 주지 않도록 기본값 복원
+    FileLoader.configure({ maxFileSize: 50 * 1024 * 1024 });
 
     // Test 8: FileDropManager.handleDropEvent (Fresh Window)
     let extractedFile = null;

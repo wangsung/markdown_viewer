@@ -432,7 +432,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         function loadSingleFile(file) {
             FileDropManagerInstance.loadSingleFile(file);
         }
-        window.loadSingleFile = loadSingleFile;
 
         if (editorContainer) {
             editorContainer.addEventListener('drop', (e) => {
