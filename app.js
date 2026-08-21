@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     PreviewManager.injectColorSwatches(document, preview);
                 }
             },
-            // 💡 세션 복원 시 ScrollSyncManager.init() 이전에 frame-man.js의
+            // [INIT-ORDER] 세션 복원 시 ScrollSyncManager.init() 이전에 frame-man.js의
             // restore_frame_settings_ui가 직접 호출할 수 있음 — 안전(scroll-sync.js _instance 가드)
             onScrollSyncToggle: (enabled) => {
                 enableScrollSync = enabled;
@@ -945,7 +945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 3. 프리뷰 DOM 생성이 완료된 후 ScrollSync 인스턴스 초기화 (cm, preview 인자 명시 전달)
-        // 🕐 이 호출 이전에도 세션 복원 등으로 ScrollSyncManager가 호출될 수 있음(scroll-sync.js _instance 가드 참고)
+        // [INIT-ORDER] 이 호출 이전에도 세션 복원 등으로 ScrollSyncManager가 호출될 수 있음(scroll-sync.js _instance 가드 참고)
         scrollSync = ScrollSyncManager.init(cm, preview, {
             previewViewport: document.querySelector('.preview-viewport'),
             enableScrollSync: enableScrollSync,
