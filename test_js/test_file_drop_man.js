@@ -99,7 +99,6 @@ async function runTestSuite() {
     runAssert(typeof FrameManager.FileDropManager === 'object', 'FrameManager.FileDropManager sub-object exists');
     runAssert(typeof FileDropManager.init === 'function', 'FileDropManager.init function exists');
     runAssert(typeof FileDropManager.handleDropEvent === 'function', 'FileDropManager.handleDropEvent function exists');
-    runAssert(typeof FileDropManager.loadSingleFile === 'function', 'FileDropManager.loadSingleFile function exists (delegates to FileLoader)');
     runAssert(typeof FileLoader === 'object', 'window.FileLoader object exists globally');
     runAssert(typeof FrameManager.FileLoader === 'object', 'FrameManager.FileLoader sub-object exists');
     runAssert(typeof FileLoader.loadSingleFile === 'function', 'FileLoader.loadSingleFile function exists');
@@ -158,11 +157,11 @@ async function runTestSuite() {
     overlayState.resetCounter();
     runAssert(!mockContainer.classList.contains('drag-over'), 'resetCounter removes drag-over CSS class');
 
-    // Test 5: FileDropManager.init & loadSingleFile
+    // Test 5: FileLoader.configure({callbacks}) registers default callbacks independently of
+    // FileDropManager, then a bare FileLoader.loadSingleFile(file) call (no explicit callbacks) picks them up
     let callbackLoadedContent = null;
     let callbackLoadedFile = null;
-    FileDropManager.init({
-        editorContainerEl: mockContainer,
+    FileLoader.configure({
         callbacks: {
             onFileLoaded: (content, file, handle) => {
                 callbackLoadedContent = content;
@@ -172,16 +171,16 @@ async function runTestSuite() {
     });
 
     const dropFile = { name: 'sample.md', type: 'text/markdown', content: '# Drop Content' };
-    FileDropManager.loadSingleFile(dropFile);
+    FileLoader.loadSingleFile(dropFile);
 
     await new Promise(resolve => setTimeout(resolve, 30));
-    runAssert(callbackLoadedContent === '# Drop Content', 'FileDropManager.loadSingleFile invokes onFileLoaded callback with text content');
-    runAssert(callbackLoadedFile && callbackLoadedFile.name === 'sample.md', 'FileDropManager.loadSingleFile passes file object to callback');
+    runAssert(callbackLoadedContent === '# Drop Content', 'FileLoader.configure registers default callback independently, invoked on bare loadSingleFile call');
+    runAssert(callbackLoadedFile && callbackLoadedFile.name === 'sample.md', 'FileLoader.loadSingleFile passes file object to registered default callback');
 
-    // Test 6: File size limit rejection (50MB default limit)
+    // Test 6: File size limit rejection (50MB default limit), explicit onError overrides registered default
     let errorMessage = null;
     const oversizedFile = { name: 'large.md', type: 'text/markdown', size: 60 * 1024 * 1024, content: 'huge data' }; // 60MB
-    const loadResult = FileDropManager.loadSingleFile(oversizedFile, {
+    const loadResult = FileLoader.loadSingleFile(oversizedFile, {
         onError: (msg) => {
             errorMessage = msg;
         }
@@ -189,18 +188,6 @@ async function runTestSuite() {
 
     runAssert(loadResult === false, 'loadSingleFile returns false when file size exceeds maxFileSize limit');
     runAssert(errorMessage && errorMessage.includes('50MB'), 'loadSingleFile invokes onError callback with user-friendly size limit message');
-
-    // Test 6b: FileLoader.loadSingleFile directly (bypassing FileDropManager wrapper), callbacks passed explicitly
-    let directLoadedContent = null;
-    const directFile = { name: 'direct.md', type: 'text/markdown', content: '# Direct FileLoader Content' };
-    FileLoader.loadSingleFile(directFile, {
-        onFileLoaded: (content) => {
-            directLoadedContent = content;
-        }
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 30));
-    runAssert(directLoadedContent === '# Direct FileLoader Content', 'FileLoader.loadSingleFile works directly without going through FileDropManager');
 
     // Test 7: Custom maxFileSize configuration (e.g. 100MB) — FileDropManager.init()이 FileLoader에 위임
     FileDropManager.init({ maxFileSize: 100 * 1024 * 1024 });
@@ -278,8 +265,8 @@ async function runTestSuite() {
     const invalidReadResult2 = read_file_content_as_text({ name: 'test.md' }, null);
     runAssert(invalidReadResult2 === false, 'read_file_content_as_text returns false on invalid onComplete callback assertion failure');
 
-    const invalidLoadResult = FileDropManager.loadSingleFile(null);
-    runAssert(invalidLoadResult === false, 'FileDropManager.loadSingleFile returns false on invalid file object assertion failure');
+    const invalidLoadResult = FileLoader.loadSingleFile(null);
+    runAssert(invalidLoadResult === false, 'FileLoader.loadSingleFile returns false on invalid file object assertion failure');
 
     window.ENABLE_DEBUG_HANDLER = true; // Restore debug handler mode
 

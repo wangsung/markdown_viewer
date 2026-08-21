@@ -364,7 +364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const file = await handle.getFile();
                     currentFileHandle = handle;
                     RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
-                    loadSingleFile(file);
+                    FileLoader.loadSingleFile(file);
                     return true;
                 }
             } catch (err) {
@@ -397,6 +397,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
     }
 
+    // 파일이 어떤 트리거(드롭/Open 대화상자/최근파일)로 로드되든 Editor에 반영하는 방법은 동일하므로,
+    // FileDropManager.init()과 무관하게 FileLoader에 독립적으로 등록한다.
+    FileLoader.configure({
+        callbacks: {
+            onFileLoaded: function(content, file, handle) {
+                if (handle) currentFileHandle = handle;
+                cm.setValue(content);
+                updateFilenameDisplay(file.name, false);
+                RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
+                renderMarkdown();
+                saveDocumentSession();
+
+                cm.scrollTo(0, 0);
+                const previewViewport = document.querySelector('.preview-viewport');
+                if (previewViewport) {
+                    previewViewport.scrollTop = 0;
+                    previewViewport.scrollLeft = 0;
+                }
+                SessionManagerInstance.setNewSessionSkippedRestore(false);
+            }
+        }
+    });
+
     if (FileDropManagerInstance) {
         FileDropManagerInstance.init({
             editorContainerEl: editorContainer,
@@ -405,22 +428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 onFileExtracted: function(file, handle) {
                     RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                 },
-                onFileLoaded: function(content, file, handle) {
-                    if (handle) currentFileHandle = handle;
-                    cm.setValue(content);
-                    updateFilenameDisplay(file.name, false);
-                    RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
-                    renderMarkdown();
-                    saveDocumentSession();
-
-                    cm.scrollTo(0, 0);
-                    const previewViewport = document.querySelector('.preview-viewport');
-                    if (previewViewport) {
-                        previewViewport.scrollTop = 0;
-                        previewViewport.scrollLeft = 0;
-                    }
-                    SessionManagerInstance.setNewSessionSkippedRestore(false);
-                },
                 onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
                     originUrl.searchParams.set('openRecent', file.name);
@@ -428,10 +435,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         });
-
-        function loadSingleFile(file) {
-            FileDropManagerInstance.loadSingleFile(file);
-        }
 
         if (editorContainer) {
             editorContainer.addEventListener('drop', (e) => {
@@ -456,7 +459,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const files = e.target.files;
             if (files && files.length > 0) {
                 currentFileHandle = null;
-                FileDropManagerInstance.loadSingleFile(files[0]);
+                FileLoader.loadSingleFile(files[0]);
                 fileInput.value = '';
             }
         });
@@ -526,7 +529,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         actions: {
             onLoadSingleFile: (file, handle) => {
                 currentFileHandle = handle || null;
-                loadSingleFile(file);
+                FileLoader.loadSingleFile(file);
                 SessionManagerInstance.setNewSessionSkippedRestore(false);
             },
             isFreshWindow

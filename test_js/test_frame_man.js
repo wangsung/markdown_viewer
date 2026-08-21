@@ -172,7 +172,6 @@ function runTestSuite() {
     runAssert(typeof FrameManager.FileDropManager === 'object', 'FrameManager.FileDropManager sub-object exists');
     runAssert(typeof FrameManager.FileDropManager.init === 'function', 'FrameManager.FileDropManager.init function exists');
     runAssert(typeof FrameManager.FileDropManager.handleDropEvent === 'function', 'FrameManager.FileDropManager.handleDropEvent function exists');
-    runAssert(typeof FrameManager.FileDropManager.loadSingleFile === 'function', 'FrameManager.FileDropManager.loadSingleFile function exists');
     runAssert(typeof FrameManager.initFileDrop === 'function', 'FrameManager.initFileDrop function exists');
 
     runAssert(typeof window.FileLoader === 'object', 'window.FileLoader object exists');

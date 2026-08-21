@@ -1021,7 +1021,7 @@
                     } else if (typeof window !== 'undefined') {
                         window.currentFileHandle = handle;
                         add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                        FileDropManager.loadSingleFile(file);
+                        FileLoader.loadSingleFile(file);
                         if (typeof SessionManager !== 'undefined' && typeof SessionManager.setNewSessionSkippedRestore === 'function') {
                             SessionManager.setNewSessionSkippedRestore(false);
                         } else {
@@ -1082,7 +1082,7 @@
                         } else if (typeof window !== 'undefined') {
                             window.currentFileHandle = handle;
                             add_recent_file_entry(file.name, file.path || file.name, handle, file.size);
-                            FileDropManager.loadSingleFile(file);
+                            FileLoader.loadSingleFile(file);
                         }
                         isLoadSuccess = true;
                         return;
@@ -1863,7 +1863,8 @@
     // 범용 파일 검증·읽기·로딩 책임을 FileDropManager(드롭 오케스트레이션 전용)에서 분리.
     const FileLoader = {
         options: {
-            maxFileSize: 50 * 1024 * 1024 // 기본 50MB (환경설정 변경 지원)
+            maxFileSize: 50 * 1024 * 1024, // 기본 50MB (환경설정 변경 지원)
+            callbacks: {} // File Open/드래그드롭/최근파일 등 호출부가 명시 생략 시 사용할 기본 콜백(onFileLoaded/onError)
         },
 
         is_allowed_markdown_file: is_allowed_markdown_file,
@@ -1873,6 +1874,9 @@
             if (userOpts && typeof userOpts.maxFileSize === 'number') {
                 this.options.maxFileSize = userOpts.maxFileSize;
             }
+            if (userOpts && userOpts.callbacks) {
+                this.options.callbacks = Object.assign({}, this.options.callbacks, userOpts.callbacks);
+            }
             return this;
         },
 
@@ -1881,7 +1885,7 @@
                 return false;
             }
 
-            const cb = callbacks || {};
+            const cb = Object.assign({}, this.options.callbacks, callbacks);
             const isAllowed = is_allowed_markdown_file(file.name, file.type || '');
 
             if (!isAllowed) {
@@ -1995,13 +1999,6 @@
                 }
             }
             return { file, handle };
-        },
-
-        // 검증·크기체크·읽기의 실제 구현은 FileLoader가 전담 — FileDropManager.init()에 등록된
-        // 기본 콜백(this.options.callbacks)과 호출 시 전달된 callbacks를 병합해 위임하는 얇은 래퍼.
-        loadSingleFile: function(file, callbacks = {}, handle = null) {
-            const cb = Object.assign({}, this.options.callbacks, callbacks);
-            return FileLoader.loadSingleFile(file, cb, handle);
         }
     };
 
@@ -2334,10 +2331,6 @@
 
         handleDropEvent: function(event, callbacks) {
             return FileDropManager.handleDropEvent(event, callbacks);
-        },
-
-        loadSingleFile: function(file, callbacks, handle) {
-            return FileDropManager.loadSingleFile(file, callbacks, handle);
         },
 
         SessionManager: SessionManager,
