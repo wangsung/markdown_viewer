@@ -108,9 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 1. FrameManager UI 엘리먼트 자율 쿼리 및 바인딩 수신
-    const frameElements = (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function')
-        ? FrameManager.getElements()
-        : {};
+    const frameElements = FrameManager.getElements();
 
     // 편리한 접근을 위한 로컬 구조 분해 할당 (Destructuring)
     const {
@@ -132,15 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function applyTheme(theme) {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyTheme === 'function') {
-            FrameManager.applyTheme(theme);
-        }
+        FrameManager.applyTheme(theme);
     }
 
     function initTheme() {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.initTheme === 'function') {
-            FrameManager.initTheme();
-        }
+        FrameManager.initTheme();
     }
 
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
@@ -157,10 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFilename = name;
         isDirty = isModified;
         
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateFilenameDisplay === 'function') {
-            FrameManager.updateFilenameDisplay(name, isModified);
-        }
-        
+        FrameManager.updateFilenameDisplay(name, isModified);
+
         if (name && name !== '제목 없음.md') {
             RecentFileManager.addFile(name, name);
         }
@@ -176,17 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     function apply_preview_max_width_limit(isLimited = true) {
         PreviewManager.applyPreviewMaxWidthLimit(previewViewport, isLimited);
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyPreviewMaxWidthLimit === 'function') {
-            FrameManager.applyPreviewMaxWidthLimit(isLimited);
-        }
+        FrameManager.applyPreviewMaxWidthLimit(isLimited);
     }
 
     // ==========================================================================
     // Session Auto-Save & Restore (Delegated to SessionManager in frame-man.js)
     // ==========================================================================
-    const SessionManagerInstance = (typeof window !== 'undefined' && window.SessionManager)
-        ? window.SessionManager
-        : (typeof FrameManager !== 'undefined' ? FrameManager.SessionManager : null);
+    const SessionManagerInstance = SessionManager;
 
     if (SessionManagerInstance) {
         SessionManagerInstance.init();
@@ -195,14 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveDocumentSession() {
         if (!cm) return;
         try {
-            if (SessionManagerInstance && typeof SessionManagerInstance.saveSession === 'function') {
-                SessionManagerInstance.saveSession(
-                    { cm: cm },
-                    { filename: currentFilename, isDirty: isDirty }
-                );
-            } else if (typeof FrameManager !== 'undefined' && typeof FrameManager.saveSessionData === 'function') {
-                FrameManager.saveSessionData({ content: cm.getValue(), filename: currentFilename, isDirty: isDirty });
-            }
+            SessionManagerInstance.saveSession(
+                { cm: cm },
+                { filename: currentFilename, isDirty: isDirty }
+            );
         } catch (e) {
             console.warn('Failed to save document session:', e);
         }
@@ -290,74 +274,72 @@ document.addEventListener('DOMContentLoaded', () => {
     // 내보내기 드롭다운 토글 및 HTML 내보내기 기능
     // ==========================================================================
     // FrameManager UI Initialization & Action Delegation
-    if (typeof FrameManager !== 'undefined' && typeof FrameManager.init === 'function') {
-        FrameManager.init({
-            actions: {
-                onThemeChange: (theme) => {
-                    apply_code_theme(theme);
-                    const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-                    StylePresetManager.applyPreset(activePresetId);
-                },
-                onPanelResize: () => {
-                    if (cm && typeof cm.refresh === 'function') cm.refresh();
-                },
-                onResizeComplete: () => {
-                    if (cm && typeof cm.refresh === 'function') cm.refresh();
-                    saveDocumentSession();
-                },
-                onColorSwatchToggle: (enabled) => {
-                    if (!enabled) {
-                        PreviewManager.removeColorSwatches(preview);
-                    } else {
-                        PreviewManager.injectColorSwatches(document, preview);
-                    }
-                },
-                onScrollSyncToggle: (enabled) => {
-                    enableScrollSync = enabled;
-                    if (typeof ScrollSyncManager !== 'undefined') {
-                        ScrollSyncManager.setEnable(enabled);
-                    } else if (scrollSync) {
-                        scrollSync.setEnable(enabled);
-                    }
-                },
-                onNewFile: () => handleNewFile(),
-                onOpenFile: () => trigger_open_file_dialog(),
-                onCopy: () => {
-                    ClipboardManager.copyPreview(preview, exportMenu, btnExport);
-                },
-                onSave: () => handleSaveDirect(),
-                onSaveAs: () => handleSaveCurrentDocument(),
-                onExportHtml: () => {
-                    ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
-                },
-                onExportPdfPrint: async () => {
-                    window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
-                    const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
-                    SysEnvManager.showNotice(pdfBannerMsg, false);
-                    const exportOptions = collectExportOptions({ theme: 'light' });
-                    try {
-                        await ExportManager.printToPdf(preview, currentFilename, exportOptions);
-                    } finally {
-                        SysEnvManager.hideNotice();
-                    }
-                },
-                onExportPdfHtml2Pdf: () => {
-                    if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
-                    ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
-                },
-                onOpenNewWindow: () => {
-                    ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
-                },
-                onOpenNewWindowDefault: () => {
-                    ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
-                },
-                onJoinParagraphs: () => {
-                    EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
-                },
-                onToggleDebug: () => toggle_debug_panel()
-            }
-        });
-    }
+    FrameManager.init({
+        actions: {
+            onThemeChange: (theme) => {
+                apply_code_theme(theme);
+                const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+                StylePresetManager.applyPreset(activePresetId);
+            },
+            onPanelResize: () => {
+                if (cm && typeof cm.refresh === 'function') cm.refresh();
+            },
+            onResizeComplete: () => {
+                if (cm && typeof cm.refresh === 'function') cm.refresh();
+                saveDocumentSession();
+            },
+            onColorSwatchToggle: (enabled) => {
+                if (!enabled) {
+                    PreviewManager.removeColorSwatches(preview);
+                } else {
+                    PreviewManager.injectColorSwatches(document, preview);
+                }
+            },
+            onScrollSyncToggle: (enabled) => {
+                enableScrollSync = enabled;
+                if (typeof ScrollSyncManager !== 'undefined') {
+                    ScrollSyncManager.setEnable(enabled);
+                } else if (scrollSync) {
+                    scrollSync.setEnable(enabled);
+                }
+            },
+            onNewFile: () => handleNewFile(),
+            onOpenFile: () => trigger_open_file_dialog(),
+            onCopy: () => {
+                ClipboardManager.copyPreview(preview, exportMenu, btnExport);
+            },
+            onSave: () => handleSaveDirect(),
+            onSaveAs: () => handleSaveCurrentDocument(),
+            onExportHtml: () => {
+                ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
+            },
+            onExportPdfPrint: async () => {
+                window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
+                const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
+                SysEnvManager.showNotice(pdfBannerMsg, false);
+                const exportOptions = collectExportOptions({ theme: 'light' });
+                try {
+                    await ExportManager.printToPdf(preview, currentFilename, exportOptions);
+                } finally {
+                    SysEnvManager.hideNotice();
+                }
+            },
+            onExportPdfHtml2Pdf: () => {
+                if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
+                ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
+            },
+            onOpenNewWindow: () => {
+                ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+            },
+            onOpenNewWindowDefault: () => {
+                ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
+            },
+            onJoinParagraphs: () => {
+                EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
+            },
+            onToggleDebug: () => toggle_debug_panel()
+        }
+    });
 
     async function trigger_open_file_dialog() {
         if (mainMenu) mainMenu.classList.remove('show');
@@ -483,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const editorContainer = document.querySelector('.editor-container');
 
-    const FileDropManagerInstance = (typeof window !== 'undefined' && window.FileDropManager) ? window.FileDropManager : (typeof FrameManager !== 'undefined' ? FrameManager.FileDropManager : null);
+    const FileDropManagerInstance = FileDropManager;
 
     if (FileDropManagerInstance) {
         FileDropManagerInstance.init({
@@ -574,23 +556,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // 실시간 키프레임 디버깅 패널 렌더링 및 제어 함수 (FrameManager 위임)
     // ==========================================================================
     function updateDebugPanelUI(keyframesList, activeSource) {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.updateDebugPanel === 'function') {
-            FrameManager.updateDebugPanel(keyframesList, activeSource);
-        }
+        FrameManager.updateDebugPanel(keyframesList, activeSource);
     }
 
     function toggle_debug_panel() {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.toggleDebugPanel === 'function') {
-            FrameManager.toggleDebugPanel((isOpen) => {
-                if (isOpen) {
-                    if (typeof ScrollSyncManager !== 'undefined') {
-                        ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
-                    } else if (scrollSync) {
-                        scrollSync.rebuildKeyframes('Keyframe Button Toggle');
-                    }
+        FrameManager.toggleDebugPanel((isOpen) => {
+            if (isOpen) {
+                if (typeof ScrollSyncManager !== 'undefined') {
+                    ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
+                } else if (scrollSync) {
+                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
                 }
-            });
-        }
+            }
+        });
     }
 
     function updateDebugPanel() {
@@ -618,10 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수 (FrameManager 위임 & Flicker-Free)
     function initializePanelWidths() {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.initializePanelWidths === 'function') {
-            const savedWidth = (typeof savedSessionData !== 'undefined' && savedSessionData && savedSessionData.editorPanelWidth) ? savedSessionData.editorPanelWidth : null;
-            return FrameManager.initializePanelWidths(container, editorPanel, cm, savedWidth);
-        }
+        const savedWidth = (typeof savedSessionData !== 'undefined' && savedSessionData && savedSessionData.editorPanelWidth) ? savedSessionData.editorPanelWidth : null;
+        return FrameManager.initializePanelWidths(container, editorPanel, cm, savedWidth);
     }
 
     // 1단계 [Data Read Phase]: localStorage 세션 데이터 수집 (SessionManager)
@@ -828,9 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalHeadingSelect = dialogEls.presetSelect || document.getElementById('modal-heading-preset-select');
 
     function showToast(message, duration = 3000) {
-        if (typeof FrameManager !== 'undefined' && typeof FrameManager.showToast === 'function') {
-            FrameManager.showToast(message, duration);
-        }
+        FrameManager.showToast(message, duration);
     }
 
     function renderHeadingModalControls(presetId) {
