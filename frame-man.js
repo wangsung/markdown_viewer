@@ -1337,6 +1337,7 @@
         const scrollSyncCheckbox = els.scrollSyncCheckbox || (typeof document !== 'undefined' ? document.getElementById('scroll-sync') : null);
         if (scrollSyncCheckbox) {
             scrollSyncCheckbox.checked = typeof sessionData.scrollSyncEnabled === 'boolean' ? sessionData.scrollSyncEnabled : true;
+            // 📌 DOM 'change'가 아닌 직접 호출. ScrollSyncManager.init()보다 먼저 실행됨
             if (typeof cb.onScrollSyncToggle === 'function') {
                 cb.onScrollSyncToggle(scrollSyncCheckbox.checked);
             }

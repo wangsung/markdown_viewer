@@ -993,6 +993,7 @@ const ScrollSyncManager = {
         return this._instance;
     },
 
+    // ⚠️ _instance가 null(init() 이전)이어도 호출될 수 있어 no-op 가드 필수 — 제거 금지
     getInstance: function() { return this._instance; },
     setEnable: function(enabled) { if (this._instance) this._instance.setEnable(enabled); },
     rebuildKeyframes: function(reason) { if (this._instance) this._instance.rebuildKeyframes(reason); },

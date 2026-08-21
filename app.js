@@ -295,13 +295,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     PreviewManager.injectColorSwatches(document, preview);
                 }
             },
+            // 💡 세션 복원 시 ScrollSyncManager.init() 이전에 frame-man.js의
+            // restore_frame_settings_ui가 직접 호출할 수 있음 — 안전(scroll-sync.js _instance 가드)
             onScrollSyncToggle: (enabled) => {
                 enableScrollSync = enabled;
-                if (typeof ScrollSyncManager !== 'undefined') {
-                    ScrollSyncManager.setEnable(enabled);
-                } else if (scrollSync) {
-                    scrollSync.setEnable(enabled);
-                }
+                ScrollSyncManager.setEnable(enabled);
             },
             onNewFile: () => handleNewFile(),
             onOpenFile: () => trigger_open_file_dialog(),
@@ -562,17 +560,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggle_debug_panel() {
         FrameManager.toggleDebugPanel((isOpen) => {
             if (isOpen) {
-                if (typeof ScrollSyncManager !== 'undefined') {
-                    ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
-                } else if (scrollSync) {
-                    scrollSync.rebuildKeyframes('Keyframe Button Toggle');
-                }
+                ScrollSyncManager.rebuildKeyframes('Keyframe Button Toggle');
             }
         });
     }
 
     function updateDebugPanel() {
-        const activeSync = (typeof ScrollSyncManager !== 'undefined' ? ScrollSyncManager.getInstance() : null) || scrollSync;
+        const activeSync = ScrollSyncManager.getInstance();
         if (activeSync) {
             updateDebugPanelUI(activeSync.keyframes, activeSync.activeScrollSource);
         }
@@ -694,16 +688,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (scrollSyncCheckbox) {
         scrollSyncCheckbox.addEventListener('change', () => {
             enableScrollSync = scrollSyncCheckbox.checked;
-            if (typeof ScrollSyncManager !== 'undefined') {
-                ScrollSyncManager.setEnable(enableScrollSync);
-                if (enableScrollSync) {
-                    ScrollSyncManager.syncPreviewToCursor();
-                }
-            } else if (scrollSync) {
-                scrollSync.setEnable(enableScrollSync);
-                if (enableScrollSync && typeof scrollSync.syncPreviewToCursor === 'function') {
-                    scrollSync.syncPreviewToCursor();
-                }
+            ScrollSyncManager.setEnable(enableScrollSync);
+            if (enableScrollSync) {
+                ScrollSyncManager.syncPreviewToCursor();
             }
             saveDocumentSession();
         });
@@ -790,11 +777,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // TOC 사이드바 토글 및 렌더링 제어기 초기화 (TocManager 위임)
     TocManager.init({
         onSelectHeading: (lineNum) => {
-            if (typeof ScrollSyncManager !== 'undefined') {
-                ScrollSyncManager.scrollToLine(lineNum);
-            } else if (scrollSync) {
-                scrollSync.scrollToLine(lineNum);
-            }
+            ScrollSyncManager.scrollToLine(lineNum);
         }
     });
     // Heading Modal & Toast Control System
@@ -962,27 +945,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 3. 프리뷰 DOM 생성이 완료된 후 ScrollSync 인스턴스 초기화 (cm, preview 인자 명시 전달)
-        if (typeof ScrollSyncManager !== 'undefined' && typeof ScrollSyncManager.init === 'function') {
-            scrollSync = ScrollSyncManager.init(cm, preview, {
-                previewViewport: document.querySelector('.preview-viewport'),
-                enableScrollSync: enableScrollSync,
-                onActiveLineChange: (lineNum) => {
-                    TocManager.highlightActive(lineNum);
-                },
-                onDebugUpdate: (keyframes, activeSource) => {
-                    if (typeof updateDebugPanelUI === 'function') {
-                        updateDebugPanelUI(keyframes, activeSource);
-                    }
-                },
-                onToast: (msg) => {
-                    if (typeof showToast === 'function') {
-                        showToast(msg, 2000);
-                    }
+        // 🕐 이 호출 이전에도 세션 복원 등으로 ScrollSyncManager가 호출될 수 있음(scroll-sync.js _instance 가드 참고)
+        scrollSync = ScrollSyncManager.init(cm, preview, {
+            previewViewport: document.querySelector('.preview-viewport'),
+            enableScrollSync: enableScrollSync,
+            onActiveLineChange: (lineNum) => {
+                TocManager.highlightActive(lineNum);
+            },
+            onDebugUpdate: (keyframes, activeSource) => {
+                if (typeof updateDebugPanelUI === 'function') {
+                    updateDebugPanelUI(keyframes, activeSource);
                 }
-            });
-            if (typeof window !== 'undefined') {
-                window.scrollSync = scrollSync;
+            },
+            onToast: (msg) => {
+                if (typeof showToast === 'function') {
+                    showToast(msg, 2000);
+                }
             }
+        });
+        if (typeof window !== 'undefined') {
+            window.scrollSync = scrollSync;
         }
 
         if (cm && typeof cm.refresh === 'function') {
