@@ -1095,16 +1095,10 @@
 
         // 새 창에서 최근 파일 로드 실패 시 (Handle 미존재, 파일 이동/삭제 등)
         if (!isLoadSuccess) {
-            if (typeof window !== 'undefined') {
-                if (window.currentFileHandle !== undefined) window.currentFileHandle = null;
-                if (window.cm && typeof window.cm.setValue === 'function') window.cm.setValue('');
-                if (typeof window.updateFilenameDisplay === 'function') {
-                    window.updateFilenameDisplay('제목 없음.md', false);
-                } else {
-                    update_filename_display_ui('제목 없음.md', false, options.elements);
-                }
-                if (typeof window.renderMarkdown === 'function') window.renderMarkdown();
-                if (typeof window.saveDocumentSession === 'function') window.saveDocumentSession();
+            if (options.actions && typeof options.actions.onLoadFailedReset === 'function') {
+                options.actions.onLoadFailedReset();
+            } else {
+                update_filename_display_ui('제목 없음.md', false, options.elements);
             }
             show_toast_ui(`최근 파일 "${recentName}"을(를) 여시려면 상단 'md 불러오기'를 이용해 주세요.`, 5000, options.elements);
             const selectCb = (options.actions && typeof options.actions.onSelectRecentFile === 'function')

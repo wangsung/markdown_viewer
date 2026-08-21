@@ -397,17 +397,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
     }
 
+    // Editor에 콘텐츠를 앉히는 최소 단위 — 파일 로딩 경로들이 공통으로 사용
+    function applyContentToEditor(content, name) {
+        cm.setValue(content);
+        updateFilenameDisplay(name, false);
+        saveDocumentSession();
+    }
+
     // 파일이 어떤 트리거(드롭/Open 대화상자/최근파일)로 로드되든 Editor에 반영하는 방법은 동일하므로,
     // FileDropManager.init()과 무관하게 FileLoader에 독립적으로 등록한다.
     FileLoader.configure({
         callbacks: {
             onFileLoaded: function(content, file, handle) {
                 if (handle) currentFileHandle = handle;
-                cm.setValue(content);
-                updateFilenameDisplay(file.name, false);
+                applyContentToEditor(content, file.name);
                 RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
                 renderMarkdown();
-                saveDocumentSession();
 
                 cm.scrollTo(0, 0);
                 const previewViewport = document.querySelector('.preview-viewport');
@@ -532,7 +537,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 FileLoader.loadSingleFile(file);
                 SessionManagerInstance.setNewSessionSkippedRestore(false);
             },
-            isFreshWindow
+            isFreshWindow,
+            // 최근 파일 핸들 유실(파일 이동/삭제, 권한 회수 등)로 로드에 실패했을 때 Editor를 빈 문서로 리셋
+            onLoadFailedReset: () => {
+                currentFileHandle = null;
+                applyContentToEditor('', '제목 없음.md');
+                renderMarkdown();
+            }
         }
     });
 
@@ -858,8 +869,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 최종 내용 기준으로 키프레임을 계산하도록, 렌더는 아래에서 한 번만 수행한다.
         // [PENDING-OPEN] 초기화 도중(세션 복원 등)에는 절대 반영하지 않는 것이 설계 의도.
         if (loadedFileContent && typeof loadedFileContent.content === 'string') {
-            cm.setValue(loadedFileContent.content);
-            updateFilenameDisplay(loadedFileContent.name, false);
+            applyContentToEditor(loadedFileContent.content, loadedFileContent.name);
             SessionManagerInstance.setNewSessionSkippedRestore(true);
         }
 
