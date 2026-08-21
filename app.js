@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Step 1. 극초기 전처리: URL 쿼리 파라미터(?file=...) 더블클릭 파일 경로 캡처
     // [GATE-EXCEPTION] 게이트(11-39줄)보다 먼저 실행되는 부트스트랩 가드 — 제거 금지
     if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.capturePendingExtensionFile === 'function') {
@@ -584,12 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // 초기 렌더링 및 이벤트 등록 (Scroll Sync 초기화 지연 방지를 위해 가장 하단에 배치)
     // ==========================================================================
-    // 탐색기 더블클릭 연동으로 로드되었는지 확인 및 적용
-    const isSkippedRestore = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
-    if (!isSkippedRestore && window.loadedFileContent && typeof window.loadedFileContent.content === 'string') {
-        cm.setValue(window.loadedFileContent.content);
-        updateFilenameDisplay(window.loadedFileContent.name, false);
-    }
+    // [PENDING-OPEN] 탐색기 더블클릭(window.loadedFileContent)으로 로드된 파일은 여기서
+    // 즉시 반영하지 않는다 — Editor/Frame/Preview 전체 초기화가 끝난 뒤 게이트 콜백(Step 9,
+    // initExtensionModulesAndPendingOpen)에서만 반영해야 세션 복원(아래)에 덮어써지지 않는다.
 
     // 에디터와 프리뷰 패널 너비를 동일하게 맞추는 초기화 함수 (FrameManager 위임 & Flicker-Free)
     function initializePanelWidths() {
@@ -938,18 +935,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Step 3. 오픈 준비 완비 보장 & 모듈/파일 렌더링 게이트웨이
     // ==========================================================================
-    const initExtensionModulesAndPendingOpen = () => {
+    const initExtensionModulesAndPendingOpen = (loadedFileContent, pendingPath) => {
         // 1. 문서 시작 시 Heading Preset 초기화 및 적용
         StylePresetManager.updateSelects();
         const activePreset = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
         StylePresetManager.applyPreset(activePreset);
 
-        // 2. 프리뷰 마크다운 HTML 및 DOM 1차 렌더링 완성 (프리뷰 요소 화면 형성)
-        if (typeof renderMarkdown === 'function') {
-            renderMarkdown();
+        // 2. 펜딩 파일이 있으면 최초 렌더 전에 먼저 반영한다 — ScrollSyncManager가 처음부터
+        // 최종 내용 기준으로 키프레임을 계산하도록, 렌더는 아래에서 한 번만 수행한다.
+        // [PENDING-OPEN] 초기화 도중(세션 복원 등)에는 절대 반영하지 않는 것이 설계 의도.
+        if (loadedFileContent && typeof loadedFileContent.content === 'string') {
+            cm.setValue(loadedFileContent.content);
+            updateFilenameDisplay(loadedFileContent.name, false);
+            SessionManagerInstance.setNewSessionSkippedRestore(true);
         }
 
-        // 3. 프리뷰 DOM 생성이 완료된 후 ScrollSync 인스턴스 초기화 (cm, preview 인자 명시 전달)
+        // 3. `?file=` 펜딩 경로(레거시) — 내용 반영 로직은 아직 없음, 파일명만 갱신
+        if (pendingPath) {
+            const fileName = pendingPath.split(/[/\\]/).pop() || pendingPath;
+            updateFilenameDisplay(fileName, false);
+            console.log('🔗 Step 3: Standard file loader safely executed for pending path:', pendingPath);
+        }
+
+        // 4. CodeMirror 레이아웃을 먼저 확정한 뒤 ScrollSync를 초기화한다 — ScrollSyncManager가
+        // cm.refresh() 이전의 stale한 레이아웃 측정값으로 키프레임을 계산하지 않도록.
+        if (cm && typeof cm.refresh === 'function') {
+            cm.refresh();
+        }
+
+        // 5. 프리뷰 마크다운 HTML 및 DOM 렌더링 완성 (최종 내용 기준, 단 한 번만)
+        renderMarkdown();
+
+        // 6. 최종 내용·레이아웃이 모두 확정된 후 ScrollSync 인스턴스 초기화 (cm, preview 인자 명시 전달)
         // [INIT-ORDER] 이 호출 이전에도 세션 복원 등으로 ScrollSyncManager가 호출될 수 있음(scroll-sync.js _instance 가드 참고)
         scrollSync = ScrollSyncManager.init(cm, preview, {
             previewViewport: document.querySelector('.preview-viewport'),
@@ -971,40 +988,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window !== 'undefined') {
             window.scrollSync = scrollSync;
         }
-
-        if (cm && typeof cm.refresh === 'function') {
-            cm.refresh();
-        }
-
-        // 4. Pending 파일이 존재하는 경우 표준 파일 로더 및 renderMarkdown() 2차 구동
-        const pendingPath = SysEnvManager.getPendingExtensionFile();
-        if (pendingPath) {
-            const path = SysEnvManager.clearPendingExtensionFile() || pendingPath;
-            const fileName = path.split(/[/\\]/).pop() || path;
-            if (typeof updateFilenameDisplay === 'function') {
-                updateFilenameDisplay(fileName, false);
-            }
-            if (typeof renderMarkdown === 'function') {
-                renderMarkdown();
-            }
-            console.log('🔗 Step 3: Standard file loader & renderMarkdown safely executed for pending path:', path);
-        }
     };
 
+    // 펜딩 파일(loadedFileContent/pendingPath)을 캡처해 초기화를 진행하는 공통 처리부.
+    // 비확장 모드와, 확장 모드에서 게이트 B를 쓸 수 없는 극단적 폴백이 동일한 로직을 쓰므로 공유한다.
+    function proceedWithPendingFile() {
+        const loadedFileContent = window.loadedFileContent;
+        window.loadedFileContent = null;
+        const pendingPath = (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.clearPendingExtensionFile === 'function')
+            ? SysEnvManager.clearPendingExtensionFile()
+            : null;
+        initExtensionModulesAndPendingOpen(loadedFileContent, pendingPath);
+    }
+
     // 중앙 게이트웨이를 통해 모듈 완비 대기 후 정돈된 바인딩 실행!
-    // [GATE-EXCEPTION] 게이트 자체를 호출 가능한지 확인하는 부트스트랩 지점 — 제거 금지
-    if (typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.ensureExtensionOpenReady === 'function') {
-        SysEnvManager.ensureExtensionOpenReady(
-            initExtensionModulesAndPendingOpen,
-            (missing) => {
-                console.error('🚨 Extension Entry Module Error: Failed to load modules in time:', missing);
-                if (typeof SysEnvManager.showSystemError === 'function') {
-                    SysEnvManager.showSystemError(`[Module Load Error] 일부 필수 모듈(${missing.join(', ')}) 로딩이 지연되었습니다. 페이지를 새로고침(F5) 해주세요.`);
-                }
+    // [GATE-EXCEPTION] 비확장 모드는 게이트 A(위)가 이미 동기적으로 모듈 준비를 확인했으므로,
+    // 게이트 B(ensureExtensionOpenReady, 비동기 5초 폴링)를 거칠 필요가 없다.
+    const canUseGateB = isExtensionEnv && typeof SysEnvManager !== 'undefined' && typeof SysEnvManager.ensureExtensionOpenReady === 'function';
+
+    if (canUseGateB) {
+        const { ready, missing } = await SysEnvManager.ensureExtensionOpenReady();
+        if (ready) {
+            proceedWithPendingFile();
+        } else {
+            console.error('🚨 Extension Entry Module Error: Failed to load modules in time:', missing);
+            if (typeof SysEnvManager.showSystemError === 'function') {
+                SysEnvManager.showSystemError(`[Module Load Error] 일부 필수 모듈(${missing.join(', ')}) 로딩이 지연되었습니다. 페이지를 새로고침(F5) 해주세요.`);
             }
-        );
+        }
     } else {
-        initExtensionModulesAndPendingOpen();
+        // 비확장 모드, 또는 확장 모드인데 SysEnvManager.ensureExtensionOpenReady 자체가 없는 극단적 폴백
+        proceedWithPendingFile();
     }
 });
 

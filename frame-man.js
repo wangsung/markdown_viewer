@@ -296,53 +296,52 @@
     }
 
     /**
-     * pure sub-function: 크롬 확장 프로그램 및 더블클릭 환경 시 필수 전역 모듈의 오픈 준비 완비(Open-Ready) 상태를 대기/검증하고, 지연 대기 또는 명확한 에러를 방출하는 안전 게이트웨이.
-     * @param {Function} onReady - 오픈 준비 완비 시 실행할 콜백
-     * @param {Function} [onError] - 타임아웃 발생 시 실행할 에러 콜백
+     * pure sub-function: 크롬 확장 프로그램 및 더블클릭 환경 시 필수 전역 모듈의 오픈 준비 완비(Open-Ready) 상태를
+     * 대기/검증하는 안전 게이트웨이. Promise<{ready: boolean, missing: string[]}>를 리턴한다.
      */
-    function ensure_extension_open_ready(onReady, onError) {
-        if (typeof onReady !== 'function') return;
+    function ensure_extension_open_ready() {
+        function open_ready_executor(resolve) {
+            let attempts = 0;
+            const maxAttempts = 250; // 20ms 간격으로 최대 5초간 넉넉하게 대기 (20ms * 250)
 
-        let attempts = 0;
-        const maxAttempts = 250; // 20ms 간격으로 최대 5초간 넉넉하게 대기 (20ms * 250)
+            function check_modules() {
+                attempts++;
+                const missingModules = [];
+                if (typeof window === 'undefined' || typeof window.FrameManager === 'undefined') missingModules.push('FrameManager');
+                if (typeof window === 'undefined' || typeof window.ExportManager === 'undefined') missingModules.push('ExportManager');
+                if (typeof window === 'undefined' || typeof window.PreviewManager === 'undefined') missingModules.push('PreviewManager');
+                if (typeof window === 'undefined' || typeof window.EditorManager === 'undefined') missingModules.push('EditorManager');
+                if (typeof window === 'undefined' || typeof window.StylePresetManager === 'undefined') missingModules.push('StylePresetManager');
+                if (typeof window === 'undefined' || typeof window.ScrollSyncManager === 'undefined') missingModules.push('ScrollSyncManager');
+                if (typeof window === 'undefined' || typeof window.SettingsManager === 'undefined') missingModules.push('SettingsManager');
 
-        const check_modules = () => {
-            attempts++;
-            const missingModules = [];
-            if (typeof window === 'undefined' || typeof window.FrameManager === 'undefined') missingModules.push('FrameManager');
-            if (typeof window === 'undefined' || typeof window.ExportManager === 'undefined') missingModules.push('ExportManager');
-            if (typeof window === 'undefined' || typeof window.PreviewManager === 'undefined') missingModules.push('PreviewManager');
-            if (typeof window === 'undefined' || typeof window.EditorManager === 'undefined') missingModules.push('EditorManager');
-            if (typeof window === 'undefined' || typeof window.StylePresetManager === 'undefined') missingModules.push('StylePresetManager');
-            if (typeof window === 'undefined' || typeof window.ScrollSyncManager === 'undefined') missingModules.push('ScrollSyncManager');
-            if (typeof window === 'undefined' || typeof window.SettingsManager === 'undefined') missingModules.push('SettingsManager');
-
-            // 1. 모든 필수 모듈이 100% 안착된 경우: 배너 숨기고 즉시 성공 통지
-            if (missingModules.length === 0) {
-                if (typeof hide_global_bottom_banner_ui === 'function') {
-                    hide_global_bottom_banner_ui();
+                // 1. 모든 필수 모듈이 100% 안착된 경우: 배너 숨기고 즉시 성공 통지
+                if (missingModules.length === 0) {
+                    if (typeof hide_global_bottom_banner_ui === 'function') {
+                        hide_global_bottom_banner_ui();
+                    }
+                    resolve({ ready: true, missing: [] });
+                    return;
                 }
-                onReady();
-                return;
-            }
 
-            // 2. 미완비되었으나 5초 대기 시간이 남아있는 경우: 20ms 지연 대기 후 재검사
-            if (attempts < maxAttempts) {
-                setTimeout(check_modules, 20);
-            } else {
-                // 3. 5초 타임아웃 초과 시: 명확한 System Warning 메시지 및 배너 방출
-                const errorMsg = `[Module Gate Error] 필수 모듈 로딩 지연: ${missingModules.join(', ')}`;
-                console.error(errorMsg);
-                if (typeof show_global_bottom_banner_ui === 'function') {
-                    show_global_bottom_banner_ui(errorMsg);
-                }
-                if (typeof onError === 'function') {
-                    onError(missingModules);
+                // 2. 미완비되었으나 5초 대기 시간이 남아있는 경우: 20ms 지연 대기 후 재검사
+                if (attempts < maxAttempts) {
+                    setTimeout(check_modules, 20);
+                } else {
+                    // 3. 5초 타임아웃 초과 시: 명확한 System Warning 메시지 및 배너 방출
+                    const errorMsg = `[Module Gate Error] 필수 모듈 로딩 지연: ${missingModules.join(', ')}`;
+                    console.error(errorMsg);
+                    if (typeof show_global_bottom_banner_ui === 'function') {
+                        show_global_bottom_banner_ui(errorMsg);
+                    }
+                    resolve({ ready: false, missing: missingModules });
                 }
             }
-        };
 
-        check_modules();
+            check_modules();
+        }
+
+        return new Promise(open_ready_executor);
     }
 
     // ==========================================================================
