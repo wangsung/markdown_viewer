@@ -188,9 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ==========================================================================
     const SessionManagerInstance = SessionManager;
 
-    if (SessionManagerInstance) {
-        SessionManagerInstance.init();
-    }
+    SessionManagerInstance.init();
 
     function saveDocumentSession() {
         if (!cm) return;
@@ -399,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             editorContainerEl: editorContainer,
             callbacks: {
                 isFreshWindow: function() {
-                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                    const skipped = SessionManagerInstance.isNewSessionSkippedRestore();
                     return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 },
                 onFileExtracted: function(file, handle) {
@@ -419,11 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         previewViewport.scrollTop = 0;
                         previewViewport.scrollLeft = 0;
                     }
-                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
-                        SessionManagerInstance.setNewSessionSkippedRestore(false);
-                    } else {
-                        window.isNewSessionSkippedRestore = false;
-                    }
+                    SessionManagerInstance.setNewSessionSkippedRestore(false);
                 },
                 onOpenNewWindow: function(file, handle) {
                     const originUrl = new URL(window.location.origin + window.location.pathname);
@@ -461,11 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const files = e.target.files;
             if (files && files.length > 0) {
                 currentFileHandle = null;
-                if (FileDropManagerInstance) {
-                    FileDropManagerInstance.loadSingleFile(files[0]);
-                } else if (typeof window.loadSingleFile === 'function') {
-                    window.loadSingleFile(files[0]);
-                }
+                FileDropManagerInstance.loadSingleFile(files[0]);
                 fileInput.value = '';
             }
         });
@@ -521,11 +511,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 1단계 [Data Read Phase]: localStorage 세션 데이터 수집 (SessionManager)
-    const savedSessionData = SessionManagerInstance ? SessionManagerInstance.readData() : null;
+    const savedSessionData = SessionManagerInstance.readData();
     const hasSavedSession = !!savedSessionData;
 
     // 2단계 [Content Restore Phase]: 문서 내용 및 파일명 복원 (SessionManager)
-    if (SessionManagerInstance && savedSessionData) {
+    if (savedSessionData) {
         SessionManagerInstance.restoreContent(cm, savedSessionData, {
             onUpdateFilename: (name, isModified) => updateFilenameDisplay(name, isModified)
         });
@@ -536,21 +526,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             onLoadSingleFile: (file, handle) => {
                 currentFileHandle = handle || null;
                 loadSingleFile(file);
-                if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
-                    SessionManagerInstance.setNewSessionSkippedRestore(false);
-                } else {
-                    window.isNewSessionSkippedRestore = false;
-                }
+                SessionManagerInstance.setNewSessionSkippedRestore(false);
             },
             isFreshWindow: () => {
-                const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                const skipped = SessionManagerInstance.isNewSessionSkippedRestore();
                 return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
             }
         }
     });
 
     // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원 (SessionManager)
-    if (SessionManagerInstance && savedSessionData) {
+    if (savedSessionData) {
         SessionManagerInstance.restoreUI(savedSessionData);
     }
 
