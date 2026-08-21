@@ -389,6 +389,8 @@
         detectBrowser: detect_browser_type,
         showBanner: show_global_bottom_banner_ui,
         hideBanner: hide_global_bottom_banner_ui,
+        showNotice: show_global_bottom_banner_ui,
+        hideNotice: hide_global_bottom_banner_ui,
         showSystemError: show_system_error_ui,
         showToast: show_toast_ui,
         installGlobalErrorHandler: install_global_error_handler,
