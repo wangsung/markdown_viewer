@@ -97,17 +97,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // EditorManager 단축키 바인딩 전담 위임 (app.js에서 extraKeys 속성 완전 분리)
-    if (typeof EditorManager !== 'undefined' && typeof EditorManager.initShortcuts === 'function') {
-        EditorManager.initShortcuts(cm, {
-            onFormatChange: (type) => {
-                updateFilenameDisplay(currentFilename, true);
-                renderMarkdown();
-            },
-            onParagraphJoin: () => {
-                renderMarkdown();
-            }
-        });
-    }
+    EditorManager.initShortcuts(cm, {
+        onFormatChange: (type) => {
+            updateFilenameDisplay(currentFilename, true);
+            renderMarkdown();
+        },
+        onParagraphJoin: () => {
+            renderMarkdown();
+        }
+    });
 
     // 1. FrameManager UI 엘리먼트 자율 쿼리 및 바인딩 수신
     const frameElements = (typeof FrameManager !== 'undefined' && typeof FrameManager.getElements === 'function')
@@ -163,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
             FrameManager.updateFilenameDisplay(name, isModified);
         }
         
-        if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function' && name && name !== '제목 없음.md') {
+        if (name && name !== '제목 없음.md') {
             RecentFileManager.addFile(name, name);
         }
     }
@@ -177,9 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Preview Max Width Limit Control (snake_case sub-function)
     // ==========================================================================
     function apply_preview_max_width_limit(isLimited = true) {
-        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.applyPreviewMaxWidthLimit === 'function') {
-            PreviewManager.applyPreviewMaxWidthLimit(previewViewport, isLimited);
-        }
+        PreviewManager.applyPreviewMaxWidthLimit(previewViewport, isLimited);
         if (typeof FrameManager !== 'undefined' && typeof FrameManager.applyPreviewMaxWidthLimit === 'function') {
             FrameManager.applyPreviewMaxWidthLimit(isLimited);
         }
@@ -220,20 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Markdown & Syntax Highlight & Math Configuration
     // ==========================================================================
     
-    if (typeof PreviewManager !== 'undefined') {
-        if (typeof PreviewManager.initMath === 'function') {
-            PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
-        }
-        if (typeof PreviewManager.initDiagrams === 'function') {
-            PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
-        }
-    }
+    PreviewManager.initMath({ mathRenderWrapper, mathRenderCheckbox });
+    PreviewManager.initDiagrams({ diagramRenderWrapper, diagramRenderCheckbox });
 
     // Main Render Function with Line Mapping
     function renderMarkdown() {
-        if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.renderMarkdown === 'function') {
-            PreviewManager.renderMarkdown(cm, preview, colorSwatchCheckbox, scrollSync, typeof buildTOC === 'function' ? buildTOC : null);
-        }
+        PreviewManager.renderMarkdown(cm, preview, colorSwatchCheckbox, scrollSync, typeof buildTOC === 'function' ? buildTOC : null);
     }
 
     // (초기 렌더링 및 입력 이벤트 리스너는 변수 TDZ 참조 오류를 방지하기 위해 스크롤 싱크 로직이 완료된 파일 최하단으로 이동 배치되었습니다)
@@ -253,24 +241,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnFontSizeUp = document.getElementById('btn-font-size-up');
     const btnFontSizeDown = document.getElementById('btn-font-size-down');
 
-    if (typeof PreviewManager !== 'undefined' && typeof PreviewManager.initUIControls === 'function') {
-        PreviewManager.initUIControls({
-            preview: preview,
-            fontSelect: fontSelect,
-            fontSizeSelect: fontSizeSelect,
-            btnFontSizeUp: btnFontSizeUp,
-            btnFontSizeDown: btnFontSizeDown,
-            codeblockScrollCheckbox: codeblockScrollCheckbox,
-            codeblockScrollWrapper: codeblockScrollWrapper,
-            togglePreviewMaxWidthCheckbox: togglePreviewMaxWidthCheckbox,
-            previewMaxWidthWrapper: previewMaxWidthWrapper
-        }, {
-            onSettingChange: () => saveDocumentSession(),
-            onRefreshEditor: () => {
-                if (cm && typeof cm.refresh === 'function') cm.refresh();
-            }
-        });
-    }
+    PreviewManager.initUIControls({
+        preview: preview,
+        fontSelect: fontSelect,
+        fontSizeSelect: fontSizeSelect,
+        btnFontSizeUp: btnFontSizeUp,
+        btnFontSizeDown: btnFontSizeDown,
+        codeblockScrollCheckbox: codeblockScrollCheckbox,
+        codeblockScrollWrapper: codeblockScrollWrapper,
+        togglePreviewMaxWidthCheckbox: togglePreviewMaxWidthCheckbox,
+        previewMaxWidthWrapper: previewMaxWidthWrapper
+    }, {
+        onSettingChange: () => saveDocumentSession(),
+        onRefreshEditor: () => {
+            if (cm && typeof cm.refresh === 'function') cm.refresh();
+        }
+    });
 
     // Line color dynamic theme variables update delegated to FrameManager.applyThemeColors(color)
 
@@ -320,12 +306,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveDocumentSession();
                 },
                 onColorSwatchToggle: (enabled) => {
-                    if (typeof PreviewManager !== 'undefined') {
-                        if (!enabled) {
-                            PreviewManager.removeColorSwatches(preview);
-                        } else {
-                            PreviewManager.injectColorSwatches(document, preview);
-                        }
+                    if (!enabled) {
+                        PreviewManager.removeColorSwatches(preview);
+                    } else {
+                        PreviewManager.injectColorSwatches(document, preview);
                     }
                 },
                 onScrollSyncToggle: (enabled) => {
@@ -339,52 +323,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 onNewFile: () => handleNewFile(),
                 onOpenFile: () => trigger_open_file_dialog(),
                 onCopy: () => {
-                    if (typeof ClipboardManager !== 'undefined') {
-                        ClipboardManager.copyPreview(preview, exportMenu, btnExport);
-                    } else if (typeof ExportManager !== 'undefined' && ExportManager.ClipboardManager) {
-                        ExportManager.ClipboardManager.copyPreview(preview, exportMenu, btnExport);
-                    }
+                    ClipboardManager.copyPreview(preview, exportMenu, btnExport);
                 },
                 onSave: () => handleSaveDirect(),
                 onSaveAs: () => handleSaveCurrentDocument(),
                 onExportHtml: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
-                    }
+                    ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
                 },
                 onExportPdfPrint: async () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
-                        const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
-                        SysEnvManager.showNotice(pdfBannerMsg, false);
-                        const exportOptions = collectExportOptions({ theme: 'light' });
-                        try {
-                            await ExportManager.printToPdf(preview, currentFilename, exportOptions);
-                        } finally {
-                            SysEnvManager.hideNotice();
-                        }
+                    window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
+                    const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
+                    SysEnvManager.showNotice(pdfBannerMsg, false);
+                    const exportOptions = collectExportOptions({ theme: 'light' });
+                    try {
+                        await ExportManager.printToPdf(preview, currentFilename, exportOptions);
+                    } finally {
+                        SysEnvManager.hideNotice();
                     }
                 },
                 onExportPdfHtml2Pdf: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
-                        ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
-                    }
+                    if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
+                    ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
                 },
                 onOpenNewWindow: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
-                    }
+                    ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
                 },
                 onOpenNewWindowDefault: () => {
-                    if (typeof ExportManager !== 'undefined') {
-                        ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
-                    }
+                    ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
                 },
                 onJoinParagraphs: () => {
-                    if (typeof EditorManager !== 'undefined') {
-                        EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
-                    }
+                    EditorManager.apply_paragraph_join(cm, () => renderMarkdown());
                 },
                 onToggleDebug: () => toggle_debug_panel()
             }
@@ -405,9 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (handle) {
                     const file = await handle.getFile();
                     currentFileHandle = handle;
-                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
-                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
-                    }
+                    RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                     loadSingleFile(file);
                     return true;
                 }
@@ -431,12 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const computedStyle = getComputedStyle(root);
         
         // 프리뷰의 전체 테마 + Heading Preset + 레이아웃 변수 수집 목록 (ExportStyleSet 기반)
-        const exportStyleSetRef = (typeof ExportStyleSet !== 'undefined' && typeof ExportStyleSet.getAll === 'function')
-            ? ExportStyleSet
-            : ((typeof ExportManager !== 'undefined' && ExportManager.ExportStyleSet)
-                ? ExportManager.ExportStyleSet
-                : (typeof window !== 'undefined' && window.ExportStyleSet ? window.ExportStyleSet : null));
-        const cssVarList = exportStyleSetRef ? exportStyleSetRef.getAll() : [];
+        const cssVarList = ExportStyleSet.getAll();
 
         const styleVars = {};
         const previewEl = document.getElementById('preview');
@@ -464,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. targetTheme가 현재 화면 테마와 다른 경우 (예: 다크 모드 화면에서 PDF 라이트 모드 출력)
         // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
-        if (targetTheme !== currentTheme && typeof EditorManager !== 'undefined' && EditorManager.apply_heading_preset) {
+        if (targetTheme !== currentTheme) {
             const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
             const presets = StylePresetManager.getPresets();
             const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
@@ -533,17 +494,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
                 },
                 onFileExtracted: function(file, handle) {
-                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
-                        RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
-                    }
+                    RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                 },
                 onFileLoaded: function(content, file, handle) {
                     if (handle) currentFileHandle = handle;
                     cm.setValue(content);
                     updateFilenameDisplay(file.name, false);
-                    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.addFile === 'function') {
-                        RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
-                    }
+                    RecentFileManager.addFile(file.name, file.path || file.webkitRelativePath || file.name, handle, file.size);
                     renderMarkdown();
                     saveDocumentSession();
 
@@ -646,9 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 에디터 텍스트 파싱을 통한 TOC 리스트 빌드 및 렌더링 (TocManager 위임)
     function buildTOC() {
         if (!cm) return;
-        if (typeof TocManager !== 'undefined' && typeof TocManager.render === 'function') {
-            TocManager.render(cm.getValue(), cm);
-        }
+        TocManager.render(cm.getValue(), cm);
     }
 
     // ==========================================================================
@@ -680,25 +635,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (typeof RecentFileManager !== 'undefined' && typeof RecentFileManager.init === 'function') {
-        RecentFileManager.init({
-            actions: {
-                onLoadSingleFile: (file, handle) => {
-                    currentFileHandle = handle || null;
-                    loadSingleFile(file);
-                    if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
-                        SessionManagerInstance.setNewSessionSkippedRestore(false);
-                    } else {
-                        window.isNewSessionSkippedRestore = false;
-                    }
-                },
-                isFreshWindow: () => {
-                    const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
-                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+    RecentFileManager.init({
+        actions: {
+            onLoadSingleFile: (file, handle) => {
+                currentFileHandle = handle || null;
+                loadSingleFile(file);
+                if (SessionManagerInstance && typeof SessionManagerInstance.setNewSessionSkippedRestore === 'function') {
+                    SessionManagerInstance.setNewSessionSkippedRestore(false);
+                } else {
+                    window.isNewSessionSkippedRestore = false;
                 }
+            },
+            isFreshWindow: () => {
+                const skipped = SessionManagerInstance ? SessionManagerInstance.isNewSessionSkippedRestore() : !!window.isNewSessionSkippedRestore;
+                return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
             }
-        });
-    }
+        }
+    });
 
     // 3단계 [Frame UI Restore Phase]: Frame UI 세팅 및 레이아웃 복원 (SessionManager)
     if (SessionManagerInstance && savedSessionData) {
@@ -729,7 +682,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 수식 토글 변경 시 이벤트 바인딩
     if (mathRenderCheckbox) {
         mathRenderCheckbox.addEventListener('change', () => {
-            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setMathSupport === 'function', 'PreviewManager.setMathSupport is required!', { PreviewManager });
             PreviewManager.setMathSupport(mathRenderCheckbox.checked);
             renderMarkdown();
         });
@@ -738,7 +690,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 다이어그램 토글 변경 시 이벤트 바인딩
     if (diagramRenderCheckbox) {
         diagramRenderCheckbox.addEventListener('change', () => {
-            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.setDiagramSupport === 'function', 'PreviewManager.setDiagramSupport is required!', { PreviewManager });
             PreviewManager.setDiagramSupport(diagramRenderCheckbox.checked);
             renderMarkdown();
         });
@@ -747,7 +698,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Color 스와치 토글 변경 시 이벤트 바인딩
     if (colorSwatchCheckbox) {
         colorSwatchCheckbox.addEventListener('change', () => {
-            window.assert_arg(typeof PreviewManager !== 'undefined' && typeof PreviewManager.injectColorSwatches === 'function', 'PreviewManager.injectColorSwatches is required!', { PreviewManager });
             if (colorSwatchCheckbox.checked) {
                 PreviewManager.injectColorSwatches(document, preview);
             } else {
@@ -859,22 +809,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 💡 주: btnSave 및 btnSaveAs 클릭 이벤트는 FrameManager.init({ actions: { onSave: ..., onSaveAs: ... } })를 통해 통합 처리됩니다.
 
     // 설정 모달 및 브라우저 레지스트리 다운로드 초기화 (SettingsManager 위임)
-    if (typeof SettingsManager !== 'undefined') {
-        SettingsManager.init();
-    }
+    SettingsManager.init();
 
     // TOC 사이드바 토글 및 렌더링 제어기 초기화 (TocManager 위임)
-    if (typeof TocManager !== 'undefined' && typeof TocManager.init === 'function') {
-        TocManager.init({
-            onSelectHeading: (lineNum) => {
-                if (typeof ScrollSyncManager !== 'undefined') {
-                    ScrollSyncManager.scrollToLine(lineNum);
-                } else if (scrollSync) {
-                    scrollSync.scrollToLine(lineNum);
-                }
+    TocManager.init({
+        onSelectHeading: (lineNum) => {
+            if (typeof ScrollSyncManager !== 'undefined') {
+                ScrollSyncManager.scrollToLine(lineNum);
+            } else if (scrollSync) {
+                scrollSync.scrollToLine(lineNum);
             }
-        });
-    }
+        }
+    });
     // Heading Modal & Toast Control System
     const dialogEls = (typeof window.StyleEditor !== 'undefined' && typeof window.StyleEditor.getDialogElements === 'function')
         ? window.StyleEditor.getDialogElements()
@@ -1047,9 +993,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewViewport: document.querySelector('.preview-viewport'),
                 enableScrollSync: enableScrollSync,
                 onActiveLineChange: (lineNum) => {
-                    if (typeof TocManager !== 'undefined' && typeof TocManager.highlightActive === 'function') {
-                        TocManager.highlightActive(lineNum);
-                    }
+                    TocManager.highlightActive(lineNum);
                 },
                 onDebugUpdate: (keyframes, activeSource) => {
                     if (typeof updateDebugPanelUI === 'function') {
