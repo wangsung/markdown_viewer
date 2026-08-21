@@ -392,14 +392,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const FileDropManagerInstance = FileDropManager;
 
+    function isFreshWindow() {
+        const skipped = SessionManagerInstance.isNewSessionSkippedRestore();
+        return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
+    }
+
     if (FileDropManagerInstance) {
         FileDropManagerInstance.init({
             editorContainerEl: editorContainer,
             callbacks: {
-                isFreshWindow: function() {
-                    const skipped = SessionManagerInstance.isNewSessionSkippedRestore();
-                    return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-                },
+                isFreshWindow,
                 onFileExtracted: function(file, handle) {
                     RecentFileManager.addFile(file.name, file.path || file.name, handle, file.size);
                 },
@@ -528,10 +530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadSingleFile(file);
                 SessionManagerInstance.setNewSessionSkippedRestore(false);
             },
-            isFreshWindow: () => {
-                const skipped = SessionManagerInstance.isNewSessionSkippedRestore();
-                return skipped || (!isDirty && cm && cm.getValue().trim() === '' && !currentFileHandle);
-            }
+            isFreshWindow
         }
     });
 
