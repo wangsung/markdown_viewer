@@ -61,7 +61,7 @@ const appChecks = [
     "btnExportPdfPrint",
     "btnExportPdfHtml2Pdf",
     "ExportManager.printToPdf(preview, currentFilename, exportOptions)",
-    "ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions())"
+    "ExportManager.saveToPdfFile(preview, currentFilename, ExportManager.collectOptions(exportUiElements))"
 ];
 
 console.log('\n[3/4] Checking app.js bindings and event listeners...');

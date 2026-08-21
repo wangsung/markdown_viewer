@@ -77,28 +77,22 @@ assert(allVars.includes('--preview-bg'), 'getAll() includes container var --prev
 assert(allVars.includes('--h1-color'), 'getAll() includes preset var --h1-color');
 assert(allVars.includes('--preview-font-size'), 'getAll() includes layout var --preview-font-size');
 
-// Test Group 2: app.js collectExportOptions Integration
-console.log('\n--- [Test Group 2]: app.js collectExportOptions Integration ---');
-// Mock minimal app.js environment for collectExportOptions
-const appPath = path.join(__dirname, '..', 'app.js');
-const appCode = fs.readFileSync(appPath, 'utf8');
+// Test Group 2: ExportManager.collectOptions Integration (app.js의 collectExportOptions가
+// export-man.js로 이전됨 — app.js는 이제 DOM 엘리먼트 묶음(exportUiElements)만 주입한다)
+console.log('\n--- [Test Group 2]: ExportManager.collectOptions Integration ---');
+assert(typeof ExportManager.collectOptions === 'function', 'ExportManager.collectOptions is a function');
 
-// Create mock function scope to extract collectExportOptions
-let collectExportOptionsFunc = null;
-try {
-    const evalEnv = {
-        document: global.document,
-        window: global.window,
-        getComputedStyle: global.getComputedStyle,
-        ExportStyleSet: global.ExportStyleSet,
-        ExportManager: global.ExportManager
-    };
-    // Inspect if cssVarList in collectExportOptions uses ExportStyleSet.getAll()
-    assert(appCode.includes('ExportStyleSet'), 'app.js references ExportStyleSet in collectExportOptions');
-    assert(appCode.includes('exportStyleSetRef.getAll()'), 'app.js invokes exportStyleSetRef.getAll()');
-} catch (e) {
-    console.error('Failed app.js integration check:', e);
-}
+const mockExportUiElements = {
+    lineColorPicker: null,
+    fontSizeSelect: null,
+    fontSelect: null,
+    togglePreviewMaxWidthCheckbox: null,
+    colorSwatchCheckbox: null
+};
+const collectedOptions = ExportManager.collectOptions(mockExportUiElements);
+assert(collectedOptions && typeof collectedOptions === 'object', 'ExportManager.collectOptions() returns an options object');
+assert(collectedOptions.theme === 'dark', 'ExportManager.collectOptions() defaults to current (mock) dark theme');
+assert(collectedOptions.styleVars && typeof collectedOptions.styleVars === 'object', 'ExportManager.collectOptions() returns a styleVars object');
 
 // Test Group 3: style-editor.js Pre-load assert_arg Verification (6-Layer Loading Priority Policy)
 console.log('\n--- [Test Group 3]: style-editor.js Pre-load assert_arg Verification ---');

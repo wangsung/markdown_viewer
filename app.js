@@ -130,6 +130,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnCopy, btnSave, btnSaveAs, btnJoinParagraphs, btnDebug
     } = frameElements;
 
+    // ExportManager.collectOptions(elements, overrideOptions)에 주입할 DOM 엘리먼트 묶음
+    const exportUiElements = {
+        lineColorPicker,
+        fontSizeSelect,
+        fontSelect,
+        togglePreviewMaxWidthCheckbox,
+        colorSwatchCheckbox
+    };
+
 
 
     function applyTheme(theme) {
@@ -312,13 +321,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             onSave: () => handleSaveDirect(),
             onSaveAs: () => handleSaveCurrentDocument(),
             onExportHtml: () => {
-                ExportManager.downloadPreviewHtml(preview, currentFilename, collectExportOptions());
+                ExportManager.downloadPreviewHtml(preview, currentFilename, ExportManager.collectOptions(exportUiElements));
             },
             onExportPdfPrint: async () => {
                 window.assert_arg(typeof ExportManager.getPdfPrintNoticeMessage === 'function', 'ExportManager.getPdfPrintNoticeMessage function missing!', { ExportManager });
                 const pdfBannerMsg = ExportManager.getPdfPrintNoticeMessage();
                 SysEnvManager.showNotice(pdfBannerMsg, false);
-                const exportOptions = collectExportOptions({ theme: 'light' });
+                const exportOptions = ExportManager.collectOptions(exportUiElements, { theme: 'light' });
                 try {
                     await ExportManager.printToPdf(preview, currentFilename, exportOptions);
                 } finally {
@@ -327,10 +336,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             },
             onExportPdfHtml2Pdf: () => {
                 if (btnExportPdfHtml2Pdf && btnExportPdfHtml2Pdf.disabled) return;
-                ExportManager.saveToPdfFile(preview, currentFilename, collectExportOptions());
+                ExportManager.saveToPdfFile(preview, currentFilename, ExportManager.collectOptions(exportUiElements));
             },
             onOpenNewWindow: () => {
-                ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, collectExportOptions());
+                ExportManager.openPreviewHtmlInNewWindow(preview, currentFilename, ExportManager.collectOptions(exportUiElements));
             },
             onOpenNewWindowDefault: () => {
                 ExportManager.openDefaultPreviewHtmlInNewWindow(preview, currentFilename);
@@ -371,91 +380,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 💡 주: btnOpenFile 클릭 이벤트는 FrameManager.init({ actions: { onOpenFile: ... } })를 통해 통합 처리됩니다.
 
-    // 헬퍼: 현재 앱의 테마 및 CSS 스타일 변수 맵 수집 함수 (Structured Options Object 생성)
-    function collectExportOptions(overrideOptions = {}) {
-        const root = document.documentElement;
-        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
-        const targetTheme = overrideOptions.theme || currentTheme;
-        const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
-        const computedStyle = getComputedStyle(root);
-        
-        // 프리뷰의 전체 테마 + Heading Preset + 레이아웃 변수 수집 목록 (ExportStyleSet 기반)
-        const cssVarList = ExportStyleSet.getAll();
-
-        const styleVars = {};
-        const previewEl = document.getElementById('preview');
-        const previewComputedStyle = previewEl ? getComputedStyle(previewEl) : null;
-        
-        // 1. 현재 DOM computedStyle (root & previewEl)로부터 기본 스타일 수집
-        cssVarList.forEach(varName => {
-            let val = computedStyle.getPropertyValue(varName).trim();
-            if (!val && previewComputedStyle) {
-                val = previewComputedStyle.getPropertyValue(varName).trim();
-            }
-            if (!val && previewEl && previewEl.style) {
-                val = previewEl.style.getPropertyValue(varName).trim();
-            }
-            if (val) styleVars[varName] = val;
-        });
-
-        // 메뉴바 fontSizeSelect & fontSelect 설정값을 수집에 확정 반영 (10pt == 100% 환산 반영)
-        if (typeof fontSizeSelect !== 'undefined' && fontSizeSelect && fontSizeSelect.value) {
-            styleVars['--preview-font-size'] = calc_scaled_font_size(fontSizeSelect.value, 10);
-        }
-        if (typeof fontSelect !== 'undefined' && fontSelect && fontSelect.value) {
-            styleVars['--preview-font-family'] = fontSelect.value;
-        }
-
-        // 2. targetTheme가 현재 화면 테마와 다른 경우 (예: 다크 모드 화면에서 PDF 라이트 모드 출력)
-        // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
-        if (targetTheme !== currentTheme) {
-            const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
-            const presets = StylePresetManager.getPresets();
-            const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
-
-            if (foundPreset && foundPreset.styles) {
-                const tempEl = document.createElement('div');
-                EditorManager.apply_heading_preset(tempEl, foundPreset.styles, targetTheme);
-                
-                // tempEl에 바인딩된 targetTheme 전용 스타일 변수로 styleVars 수집
-                cssVarList.forEach(varName => {
-                    const tempVal = tempEl.style.getPropertyValue(varName);
-                    if (tempVal) {
-                        styleVars[varName] = tempVal.trim();
-                    }
-                });
-            }
-        }
-
-        // 3. targetTheme 폴백 보정
-        if (targetTheme === 'light') {
-            styleVars['--preview-bg'] = '#ffffff';
-            styleVars['--preview-text'] = '#1f2937';
-            styleVars['--preview-heading'] = styleVars['--h1-color'] || '#0f172a';
-            styleVars['--preview-border'] = '#e2e8f0';
-            styleVars['--preview-blockquote-bg'] = (styleVars['--preview-blockquote-bg'] && styleVars['--preview-blockquote-bg'] !== '#0f172a') ? styleVars['--preview-blockquote-bg'] : '#f9fafb';
-            styleVars['--preview-blockquote-text'] = styleVars['--blockquote-text-color'] || '#475569';
-            styleVars['--blockquote-text-color'] = styleVars['--blockquote-text-color'] || '#475569';
-            styleVars['--preview-code-bg'] = '#f8fafc';
-            styleVars['--preview-code-text'] = '#1e293b';
-        } else if (targetTheme === 'dark') {
-            styleVars['--preview-bg'] = '#1e293b';
-            styleVars['--preview-text'] = '#f8fafc';
-            styleVars['--preview-border'] = '#334155';
-            styleVars['--preview-blockquote-bg'] = '#0f172a';
-        }
-
-        const isLimited = togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true;
-        const isColorSwatchEnabled = colorSwatchCheckbox ? colorSwatchCheckbox.checked : true;
-
-        return {
-            theme: targetTheme,
-            lineColor: activeLineColor,
-            isMaxWidthLimited: isLimited,
-            isColorSwatchEnabled: isColorSwatchEnabled,
-            styleVars: styleVars
-        };
-    }
+    // 💡 주: 내보내기 옵션 수집(collectExportOptions)은 export-man.js의
+    // ExportManager.collectOptions(exportUiElements, overrideOptions)로 이전되었습니다.
 
         // 💡 주: 내보내기 및 문단 모으기/디버그 액션 버튼 클릭 이벤트는 
         // FrameManager.init({ actions: { ... } })를 통해 캡슐화 및 단일 바인딩되어 처리됩니다.

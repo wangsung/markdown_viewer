@@ -38,17 +38,10 @@ global.getComputedStyle = () => ({
 global.togglePreviewMaxWidthCheckbox = null;
 global.colorSwatchCheckbox = null;
 
-// 2. Load export-man.js FIRST — collectExportOptions() reads its CSS var list from
-//    ExportStyleSet (defined here), and in the real app export-man.js (Layer 2) always
-//    loads before app.js (Layer 5), so the mock must respect that same order.
+// 2. Load export-man.js — collectOptions()의 CSS var 목록은 여기서 정의되는 ExportStyleSet에서
+//    읽어오고, collectOptions 자체도 export-man.js 소속(ExportManager.collectOptions)이다.
 global.chrome = undefined;
 global.fetch = async () => ({ text: async () => '' });
-
-const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
-eval(exportManCode);
-
-// 3. Read app.js code to test collectExportOptions behavior
-const appCode = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
 // Mock EditorManager for cross-theme preset calculation
 global.EditorManager = {
@@ -63,20 +56,25 @@ global.StylePresetManager = {
     getPresets: () => [{ id: 'github_classic', styles: { h1: {} } }]
 };
 
-// Extract collectExportOptions function
-const collectOptMatch = appCode.match(/function collectExportOptions[\s\S]*?^    \}/m);
-assert(collectOptMatch, 'PASS: collectExportOptions function found in app.js');
+const exportManCode = fs.readFileSync(path.join(__dirname, '..', 'export-man.js'), 'utf8');
+eval(exportManCode);
 
-let lineColorPicker = null;
-eval(collectOptMatch[0]);
+// app.js가 넘기는 exportUiElements와 동일한 형태의 모의 DOM 엘리먼트 묶음
+const mockExportUiElements = {
+    lineColorPicker: null,
+    fontSizeSelect: null,
+    fontSelect: null,
+    togglePreviewMaxWidthCheckbox: null,
+    colorSwatchCheckbox: null
+};
 
 // Test A: Default call returns dark theme when app is in dark mode
-const darkOpts = collectExportOptions();
-assert.strictEqual(darkOpts.theme, 'dark', 'PASS: Default collectExportOptions returns dark theme');
+const darkOpts = ExportManager.collectOptions(mockExportUiElements);
+assert.strictEqual(darkOpts.theme, 'dark', 'PASS: Default ExportManager.collectOptions returns dark theme');
 
 // Test B: Forced light theme call returns light theme & light mode styleVars overrides
-const lightOpts = collectExportOptions({ theme: 'light' });
-assert.strictEqual(lightOpts.theme, 'light', 'PASS: collectExportOptions({ theme: "light" }) returns light theme');
+const lightOpts = ExportManager.collectOptions(mockExportUiElements, { theme: 'light' });
+assert.strictEqual(lightOpts.theme, 'light', 'PASS: ExportManager.collectOptions(elements, { theme: "light" }) returns light theme');
 assert.strictEqual(lightOpts.styleVars['--preview-bg'], '#ffffff', 'PASS: --preview-bg forced to #ffffff for Light Mode');
 assert.strictEqual(lightOpts.styleVars['--preview-text'], '#1f2937', 'PASS: --preview-text forced to #1f2937 for Light Mode');
 assert.strictEqual(lightOpts.styleVars['--h1-color'], '#00875a', 'PASS: --h1-color recalculated to Light Mode preset color (#00875a)');

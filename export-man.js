@@ -935,6 +935,104 @@ const ExportManager = (function() {
         return '💡 <span class="banner-badge">인쇄 안내</span> - [프린터]: <strong class="banner-highlight">"PDF로 저장"</strong> | [여백]: <strong class="banner-highlight">"맞춤"</strong> 권장';
     }
 
+    /**
+     * pure sub-function: app.js가 소유한 DOM 엘리먼트 클로저를 명시적으로 주입받아, 내보내기(Export)에
+     * 필요한 테마/레이아웃/스타일 변수 옵션 객체를 조합해 반환한다.
+     * @param {Object} elements - { lineColorPicker, fontSizeSelect, fontSelect, togglePreviewMaxWidthCheckbox, colorSwatchCheckbox }
+     * @param {Object} [overrideOptions={}] - { theme } 등 오버라이드 옵션
+     * @returns {Object} { theme, lineColor, isMaxWidthLimited, isColorSwatchEnabled, styleVars }
+     */
+    function collect_export_options(elements, overrideOptions = {}) {
+        if (!assert_arg(elements && typeof elements === 'object', 'collect_export_options: elements object is required!', { elements })) {
+            return null;
+        }
+
+        const { lineColorPicker, fontSizeSelect, fontSelect, togglePreviewMaxWidthCheckbox, colorSwatchCheckbox } = elements;
+
+        const root = document.documentElement;
+        const currentTheme = root.getAttribute('data-editor-theme') || 'dark';
+        const targetTheme = overrideOptions.theme || currentTheme;
+        const activeLineColor = lineColorPicker ? lineColorPicker.value : '#3b82f6';
+        const computedStyle = getComputedStyle(root);
+
+        // 프리뷰의 전체 테마 + Heading Preset + 레이아웃 변수 수집 목록 (ExportStyleSet 기반)
+        const cssVarList = ExportStyleSet.getAll();
+
+        const styleVars = {};
+        const previewEl = document.getElementById('preview');
+        const previewComputedStyle = previewEl ? getComputedStyle(previewEl) : null;
+
+        // 1. 현재 DOM computedStyle (root & previewEl)로부터 기본 스타일 수집
+        cssVarList.forEach(varName => {
+            let val = computedStyle.getPropertyValue(varName).trim();
+            if (!val && previewComputedStyle) {
+                val = previewComputedStyle.getPropertyValue(varName).trim();
+            }
+            if (!val && previewEl && previewEl.style) {
+                val = previewEl.style.getPropertyValue(varName).trim();
+            }
+            if (val) styleVars[varName] = val;
+        });
+
+        // 메뉴바 fontSizeSelect & fontSelect 설정값을 수집에 확정 반영 (10pt == 100% 환산 반영)
+        if (fontSizeSelect && fontSizeSelect.value) {
+            styleVars['--preview-font-size'] = PreviewManager.calcScaledFontSize(fontSizeSelect.value, 10);
+        }
+        if (fontSelect && fontSelect.value) {
+            styleVars['--preview-font-family'] = fontSelect.value;
+        }
+
+        // 2. targetTheme가 현재 화면 테마와 다른 경우 (예: 다크 모드 화면에서 PDF 라이트 모드 출력)
+        // 활성화된 Heading Preset을 targetTheme 기준으로 재계산하여 styleVars 덮어씀
+        if (targetTheme !== currentTheme) {
+            const activePresetId = localStorage.getItem('markvi_active_heading_preset') || 'github_classic';
+            const presets = StylePresetManager.getPresets();
+            const foundPreset = presets.find(p => p.id === activePresetId) || presets[0];
+
+            if (foundPreset && foundPreset.styles) {
+                const tempEl = document.createElement('div');
+                EditorManager.apply_heading_preset(tempEl, foundPreset.styles, targetTheme);
+
+                // tempEl에 바인딩된 targetTheme 전용 스타일 변수로 styleVars 수집
+                cssVarList.forEach(varName => {
+                    const tempVal = tempEl.style.getPropertyValue(varName);
+                    if (tempVal) {
+                        styleVars[varName] = tempVal.trim();
+                    }
+                });
+            }
+        }
+
+        // 3. targetTheme 폴백 보정
+        if (targetTheme === 'light') {
+            styleVars['--preview-bg'] = '#ffffff';
+            styleVars['--preview-text'] = '#1f2937';
+            styleVars['--preview-heading'] = styleVars['--h1-color'] || '#0f172a';
+            styleVars['--preview-border'] = '#e2e8f0';
+            styleVars['--preview-blockquote-bg'] = (styleVars['--preview-blockquote-bg'] && styleVars['--preview-blockquote-bg'] !== '#0f172a') ? styleVars['--preview-blockquote-bg'] : '#f9fafb';
+            styleVars['--preview-blockquote-text'] = styleVars['--blockquote-text-color'] || '#475569';
+            styleVars['--blockquote-text-color'] = styleVars['--blockquote-text-color'] || '#475569';
+            styleVars['--preview-code-bg'] = '#f8fafc';
+            styleVars['--preview-code-text'] = '#1e293b';
+        } else if (targetTheme === 'dark') {
+            styleVars['--preview-bg'] = '#1e293b';
+            styleVars['--preview-text'] = '#f8fafc';
+            styleVars['--preview-border'] = '#334155';
+            styleVars['--preview-blockquote-bg'] = '#0f172a';
+        }
+
+        const isLimited = togglePreviewMaxWidthCheckbox ? togglePreviewMaxWidthCheckbox.checked : true;
+        const isColorSwatchEnabled = colorSwatchCheckbox ? colorSwatchCheckbox.checked : true;
+
+        return {
+            theme: targetTheme,
+            lineColor: activeLineColor,
+            isMaxWidthLimited: isLimited,
+            isColorSwatchEnabled: isColorSwatchEnabled,
+            styleVars: styleVars
+        };
+    }
+
     // 외부로 공개하는 모듈 API
     return {
         ExportStyleSet,
@@ -949,6 +1047,8 @@ const ExportManager = (function() {
         downloadCurrentContent,
         getPdfPrintNoticeMessage: get_pdf_print_notice_message,
         get_pdf_print_notice_message,
+        collectOptions: collect_export_options,
+        collect_export_options,
         printToPdf: print_to_pdf,
         saveToPdfFile: save_to_pdf_file,
         print_to_pdf,
