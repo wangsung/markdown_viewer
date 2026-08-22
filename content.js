@@ -31,6 +31,7 @@
             path: "${decodeURIComponent(window.location.pathname).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}",
             content: \`${rawMarkdown.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\${/g, '\\${').replace(/<\/script>/g, '<\\/script>')}\`
         };
+        window.__extensionBaseUrl = "${extensionBaseUrl.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}";
     </script>`;
     
     htmlText = htmlText.replace('</head>', dataScript + '</head>');

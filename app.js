@@ -7,7 +7,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 💡 Extension 환경 감지 및 비확장 모드 동기 사전 단증 (Fail-Fast Policy)
     // 확장 모드에서는 게이트 B(ensureExtensionOpenReady)의 5초 비동기 유예 정책에 전적으로 위임합니다.
-    const isExtensionEnv = (typeof chrome !== 'undefined' && chrome && chrome.runtime && typeof chrome.runtime.id === 'string');
+    // content.js의 main world 실행 스크립트가 심어준 값만 신뢰 — main world에서 chrome.runtime.getURL()은
+    // 신뢰할 수 없는 것으로 확인됨(코드 하이라이팅 CSS 로딩 실패 버그의 근본 원인).
+    const isExtensionEnv = typeof window.__extensionBaseUrl === 'string';
 
     if (!isExtensionEnv && typeof window !== 'undefined' && typeof window.assert_arg === 'function') {
         // [GATE-EXCEPTION] 이 블록이 게이트 자체 — 이후 "가드 없이 직접 호출 안전" 전제의
@@ -78,11 +80,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     function apply_code_theme(themeStr) {
         const linkEl = document.getElementById('code-theme-stylesheet');
         if (linkEl) {
-            if (themeStr === 'dark') {
-                linkEl.href = 'libs/github-dark.min.css';
-            } else {
-                linkEl.href = 'libs/github.min.css';
-            }
+            const cssFile = themeStr === 'dark' ? 'libs/github-dark.min.css' : 'libs/github.min.css';
+            linkEl.href = (typeof window.__extensionBaseUrl === 'string') ? (window.__extensionBaseUrl + cssFile) : cssFile;
         }
     }
 
